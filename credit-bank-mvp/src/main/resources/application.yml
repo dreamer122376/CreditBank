@@ -10,11 +10,6 @@ spring:
     password: 123456          # ← 改成你自己的 MySQL 密码
 
   # 启动时自动执行下面的建表 + 初始化数据脚本
-  sql:
-    init:
-      mode: always            # 学习期用 always，每次启动重建；正式开发改成 never
-      schema-locations: classpath:db/schema.sql
-      data-locations: classpath:db/data.sql
 
   mvc:
     pathmatch:

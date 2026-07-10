@@ -23,11 +23,11 @@ DROP TABLE IF EXISTS `admin_role_menu`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `admin_role_menu` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '权限ID',
-  `role_tag` varchar(30) NOT NULL COMMENT '角色标签',
-  `menu_code` varchar(50) NOT NULL COMMENT '菜单编码',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_role_menu` (`role_tag`,`menu_code`)
+                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '权限ID',
+                                   `role_tag` varchar(30) NOT NULL COMMENT '角色标签',
+                                   `menu_code` varchar(50) NOT NULL COMMENT '菜单编码',
+                                   PRIMARY KEY (`id`),
+                                   UNIQUE KEY `uk_role_menu` (`role_tag`,`menu_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员角色菜单权限表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -48,20 +48,20 @@ DROP TABLE IF EXISTS `application`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `application` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '申请单ID',
-  `biz_type` varchar(30) NOT NULL COMMENT '业务类型：PROJECT_UP/EXCHANGE/CERT_APPLY',
-  `biz_key` bigint DEFAULT NULL COMMENT '关联的具体业务主键ID',
-  `applicant_id` bigint NOT NULL COMMENT '申请人ID',
-  `org_id` bigint DEFAULT NULL COMMENT '申请所属机构ID',
-  `expert_id` bigint DEFAULT NULL COMMENT '指派的专家审批人ID',
-  `form_data` json DEFAULT NULL COMMENT '前端表单的JSON数据',
-  `current_status` tinyint DEFAULT '0' COMMENT '状态：0草稿/1待机构审/2待专家审/3通过/4驳回',
-  `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
-  `applied_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_applicant_id` (`applicant_id`),
-  KEY `idx_current_status` (`current_status`)
+                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '申请单ID',
+                               `biz_type` varchar(30) NOT NULL COMMENT '业务类型：PROJECT_UP/EXCHANGE/CERT_APPLY',
+                               `biz_key` bigint DEFAULT NULL COMMENT '关联的具体业务主键ID',
+                               `applicant_id` bigint NOT NULL COMMENT '申请人ID',
+                               `org_id` bigint DEFAULT NULL COMMENT '申请所属机构ID',
+                               `expert_id` bigint DEFAULT NULL COMMENT '指派的专家审批人ID',
+                               `form_data` json DEFAULT NULL COMMENT '前端表单的JSON数据',
+                               `current_status` tinyint DEFAULT '0' COMMENT '状态：0草稿/1待机构审/2待专家审/3通过/4驳回',
+                               `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
+                               `applied_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+                               `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+                               PRIMARY KEY (`id`),
+                               KEY `idx_applicant_id` (`applicant_id`),
+                               KEY `idx_current_status` (`current_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='统一申请审批表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -82,15 +82,18 @@ DROP TABLE IF EXISTS `campaign`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `campaign` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '活动ID',
-  `title` varchar(100) NOT NULL COMMENT '活动标题',
-  `multiplier` decimal(3,1) DEFAULT '1.0' COMMENT '积分倍率（如1.5表示1.5倍）',
-  `project_ids` text COMMENT '适用项目ID，逗号分隔（空代表全平台）',
-  `start_time` datetime NOT NULL COMMENT '活动开始时间',
-  `end_time` datetime NOT NULL COMMENT '活动结束时间',
-  `status` tinyint DEFAULT '0' COMMENT '状态：0未开始，1进行中，2已结束',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`)
+                            `id` bigint NOT NULL AUTO_INCREMENT COMMENT '活动ID',
+                            `title` varchar(100) NOT NULL COMMENT '活动标题',
+                            `multiplier` decimal(3,1) DEFAULT '1.0' COMMENT '积分倍率（如1.5表示1.5倍）',
+                            `start_time` datetime NOT NULL COMMENT '活动开始时间',
+                            `end_time` datetime NOT NULL COMMENT '活动结束时间',
+                            `status` tinyint DEFAULT '0' COMMENT '状态：0未开始，1进行中，2已结束',
+                            `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                            `description` text,
+                            `cover_image` varchar(255) DEFAULT NULL,
+                            `organizer` varchar(100) DEFAULT NULL,
+                            `images` text COMMENT '多张活动图片，JSON数组',
+                            PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='平台活动表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -111,14 +114,14 @@ DROP TABLE IF EXISTS `cert_standard`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cert_standard` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '认证标准ID',
-  `standard_name` varchar(100) NOT NULL COMMENT '认证名称',
-  `min_credit` int NOT NULL COMMENT '要求的最低总积分',
-  `need_expert_approve` tinyint DEFAULT '0' COMMENT '是否需要专家签字：0不需要，1需要',
-  `validity_days` int DEFAULT '365' COMMENT '证书有效期（天数）',
-  `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`)
+                                 `id` bigint NOT NULL AUTO_INCREMENT COMMENT '认证标准ID',
+                                 `standard_name` varchar(100) NOT NULL COMMENT '认证名称',
+                                 `min_credit` int NOT NULL COMMENT '要求的最低总积分',
+                                 `need_expert_approve` tinyint DEFAULT '0' COMMENT '是否需要专家签字：0不需要，1需要',
+                                 `validity_days` int DEFAULT '365' COMMENT '证书有效期（天数）',
+                                 `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用',
+                                 `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                 PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='认证标准表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -139,15 +142,16 @@ DROP TABLE IF EXISTS `credit_rule`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `credit_rule` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '规则ID',
-  `event_code` varchar(50) NOT NULL COMMENT '事件编码',
-  `event_name` varchar(100) NOT NULL COMMENT '事件中文名',
-  `credit_value` int NOT NULL COMMENT '变动值（正数=加分，负数=扣分）',
-  `scope` varchar(20) DEFAULT 'ALL' COMMENT '适用对象：ALL/STUDENT/EXPERT',
-  `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用：1启用，0停用',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_event_code` (`event_code`)
+                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '规则ID',
+                               `event_code` varchar(50) NOT NULL COMMENT '事件编码',
+                               `event_name` varchar(100) NOT NULL COMMENT '事件中文名',
+                               `credit_value` int NOT NULL COMMENT '变动值（正数=加分，负数=扣分）',
+                               `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用：1启用，0停用',
+                               `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                               `project_id` bigint DEFAULT NULL,
+                               PRIMARY KEY (`id`),
+                               KEY `fk_credit_rule_project` (`project_id`),
+                               CONSTRAINT `fk_credit_rule_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='积分规则表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -168,15 +172,15 @@ DROP TABLE IF EXISTS `exchange_rule`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `exchange_rule` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '兑换规则ID',
-  `item_name` varchar(100) NOT NULL COMMENT '兑换品名称',
-  `item_icon` varchar(200) DEFAULT NULL COMMENT '商品图标URL',
-  `required_credit` int NOT NULL COMMENT '兑换所需积分数量',
-  `stock` int DEFAULT '9999' COMMENT '总库存数量',
-  `daily_limit` int DEFAULT '1' COMMENT '每人每日限兑次数',
-  `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`)
+                                 `id` bigint NOT NULL AUTO_INCREMENT COMMENT '兑换规则ID',
+                                 `item_name` varchar(100) NOT NULL COMMENT '兑换品名称',
+                                 `item_icon` varchar(200) DEFAULT NULL COMMENT '商品图标URL',
+                                 `required_credit` int NOT NULL COMMENT '兑换所需积分数量',
+                                 `stock` int DEFAULT '9999' COMMENT '总库存数量',
+                                 `daily_limit` int DEFAULT '1' COMMENT '每人每日限兑次数',
+                                 `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用',
+                                 `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                 PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='积分转换规则表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -197,15 +201,15 @@ DROP TABLE IF EXISTS `organization`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `organization` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '机构唯一ID',
-  `name` varchar(100) NOT NULL COMMENT '机构全称',
-  `contact_person` varchar(50) DEFAULT NULL COMMENT '联系人姓名',
-  `contact_phone` varchar(20) DEFAULT NULL COMMENT '联系电话',
-  `address` varchar(200) DEFAULT NULL COMMENT '机构地址',
-  `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1启用，2禁用',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
-  PRIMARY KEY (`id`)
+                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '机构唯一ID',
+                                `name` varchar(100) NOT NULL COMMENT '机构全称',
+                                `contact_person` varchar(50) DEFAULT NULL COMMENT '联系人姓名',
+                                `contact_phone` varchar(20) DEFAULT NULL COMMENT '联系电话',
+                                `address` varchar(200) DEFAULT NULL COMMENT '机构地址',
+                                `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1启用，2禁用',
+                                `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
+                                PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='机构表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -226,19 +230,17 @@ DROP TABLE IF EXISTS `project`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `project` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '项目ID',
-  `org_id` bigint NOT NULL COMMENT '发起该项目的机构ID',
-  `expert_id` bigint DEFAULT NULL COMMENT '负责该项目的专家ID',
-  `name` varchar(100) NOT NULL COMMENT '项目名称',
-  `description` text COMMENT '项目简介',
-  `credit_reward` int DEFAULT '0' COMMENT '完成该项目奖励多少积分',
-  `credit_price` int DEFAULT '0' COMMENT '报名需要消耗多少积分（0为免费）',
-  `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1已上架，2已下架',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_org_id` (`org_id`),
-  KEY `idx_expert_id` (`expert_id`)
+                           `id` bigint NOT NULL AUTO_INCREMENT COMMENT '项目ID',
+                           `org_id` bigint NOT NULL COMMENT '发起该项目的机构ID',
+                           `expert_id` bigint DEFAULT NULL COMMENT '负责该项目的专家ID',
+                           `name` varchar(100) NOT NULL COMMENT '项目名称',
+                           `description` text COMMENT '项目简介',
+                           `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1已上架，2已下架',
+                           `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                           `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
+                           PRIMARY KEY (`id`),
+                           KEY `idx_org_id` (`org_id`),
+                           KEY `idx_expert_id` (`expert_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -259,21 +261,21 @@ DROP TABLE IF EXISTS `sys_user`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sys_user` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',
-  `username` varchar(50) NOT NULL COMMENT '登录账号',
-  `password` varchar(255) NOT NULL COMMENT '加密后的密码',
-  `real_name` varchar(50) DEFAULT NULL COMMENT '真实姓名',
-  `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
-  `email` varchar(100) DEFAULT NULL COMMENT '电子邮箱',
-  `role` varchar(20) NOT NULL COMMENT '角色：admin/org_admin/expert/student',
-  `org_id` bigint DEFAULT NULL COMMENT '所属机构ID',
-  `expert_field` varchar(100) DEFAULT NULL COMMENT '专家擅长领域',
-  `balance` int DEFAULT '0' COMMENT '当前可用总积分',
-  `status` tinyint DEFAULT '1' COMMENT '账号状态：1正常，0冻结',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_username` (`username`),
-  KEY `idx_org_id` (`org_id`)
+                            `id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+                            `username` varchar(50) NOT NULL COMMENT '登录账号',
+                            `password` varchar(255) NOT NULL COMMENT '加密后的密码',
+                            `real_name` varchar(50) DEFAULT NULL COMMENT '真实姓名',
+                            `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
+                            `email` varchar(100) DEFAULT NULL COMMENT '电子邮箱',
+                            `role` varchar(20) NOT NULL COMMENT '角色：admin/org_admin/expert/student',
+                            `org_id` bigint DEFAULT NULL COMMENT '所属机构ID',
+                            `expert_field` varchar(100) DEFAULT NULL COMMENT '专家擅长领域',
+                            `balance` int DEFAULT '0' COMMENT '当前可用总积分',
+                            `status` tinyint DEFAULT '1' COMMENT '账号状态：1正常，0冻结',
+                            `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
+                            PRIMARY KEY (`id`),
+                            UNIQUE KEY `uk_username` (`username`),
+                            KEY `idx_org_id` (`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -294,17 +296,17 @@ DROP TABLE IF EXISTS `transaction_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `transaction_log` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '流水ID',
-  `user_id` bigint NOT NULL COMMENT '用户ID',
-  `amount` int NOT NULL COMMENT '变动金额（+增加，-减少）',
-  `balance_after` int NOT NULL COMMENT '变动后的即时余额快照',
-  `biz_type` varchar(30) NOT NULL COMMENT '业务类型：REWARD/EXCHANGE/REFUND/ADMIN',
-  `biz_id` varchar(50) DEFAULT NULL COMMENT '关联业务单号',
-  `description` varchar(200) DEFAULT NULL COMMENT '备注说明',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '交易发生时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_created_at` (`created_at`)
+                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '流水ID',
+                                   `user_id` bigint NOT NULL COMMENT '用户ID',
+                                   `amount` int NOT NULL COMMENT '变动金额（+增加，-减少）',
+                                   `balance_after` int NOT NULL COMMENT '变动后的即时余额快照',
+                                   `biz_type` varchar(30) NOT NULL COMMENT '业务类型：REWARD/EXCHANGE/REFUND/ADMIN',
+                                   `biz_id` varchar(50) DEFAULT NULL COMMENT '关联业务单号',
+                                   `description` varchar(200) DEFAULT NULL COMMENT '备注说明',
+                                   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '交易发生时间',
+                                   PRIMARY KEY (`id`),
+                                   KEY `idx_user_id` (`user_id`),
+                                   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='交易流水表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -334,4 +336,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-10 16:17:33
+-- Dump completed on 2026-07-10 21:06:15

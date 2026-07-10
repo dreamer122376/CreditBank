@@ -98,4 +98,28 @@ public class PointService {
         return creditRuleMapper.selectList(
                 new LambdaQueryWrapper<CreditRule>().eq(CreditRule::getIsEnabled, 1));
     }
+
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser register(String username, String password, String realName, String role, Long orgId, String expertField) {
+        SysUser existing = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username));
+        if (existing != null) {
+            throw new BizException("用户名已存在");
+        }
+
+        SysUser user = new SysUser();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setRealName(realName);
+        user.setRole(role);
+        user.setOrgId(orgId);
+        user.setExpertField(expertField);
+        user.setBalance(0);
+        user.setStatus(1);
+        user.setCreatedAt(java.time.LocalDateTime.now());
+
+        sysUserMapper.insert(user);
+        return user;
+    }
 }

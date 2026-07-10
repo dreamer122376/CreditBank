@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { login as apiLogin } from '@/api/user'
+import { login as apiLogin, register as apiRegister } from '@/api/user'
 
 const ROLE_NAME = {
   admin: '系统管理员',
@@ -33,20 +33,23 @@ function logout() {
   localStorage.removeItem('cb_user')
 }
 
-function register(form) {
-  const user = {
+async function register(form) {
+  const data = {
     username: form.username,
     password: form.password,
     realName: form.realName,
     role: form.userType,
     orgId: form.institutionId ? Number(form.institutionId) : null,
-    expertField: form.institutionName || '',
-    balance: 0,
-    status: 1
+    expertField: form.institutionName || ''
   }
-  currentUser.value = user
-  localStorage.setItem('cb_user', JSON.stringify(user))
-  return user
+  try {
+    const user = await apiRegister(data)
+    currentUser.value = user
+    localStorage.setItem('cb_user', JSON.stringify(user))
+    return true
+  } catch (error) {
+    return false
+  }
 }
 
 loadUser()

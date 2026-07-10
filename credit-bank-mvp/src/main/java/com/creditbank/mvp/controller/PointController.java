@@ -49,6 +49,12 @@ public class PointController {
         return Result.ok(pointService.earn(req.getUserId(), req.getEventCode()));
     }
 
+    @PostMapping("/user/register")
+    public Result<SysUser> register(@RequestBody RegisterRequest req) {
+        return Result.ok(pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
+                req.getRole(), req.getOrgId(), req.getExpertField()));
+    }
+
     public static class LoginRequest {
         private String username;
         private String password;
@@ -88,6 +94,63 @@ public class PointController {
 
         public void setEventCode(String eventCode) {
             this.eventCode = eventCode;
+        }
+    }
+
+    public static class RegisterRequest {
+        private String username;
+        private String password;
+        private String realName;
+        private String role;
+        private Long orgId;
+        private String expertField;
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public String getRealName() {
+            return realName;
+        }
+
+        public void setRealName(String realName) {
+            this.realName = realName;
+        }
+
+        public String getRole() {
+            return role;
+        }
+
+        public void setRole(String role) {
+            this.role = role;
+        }
+
+        public Long getOrgId() {
+            return orgId;
+        }
+
+        public void setOrgId(Long orgId) {
+            this.orgId = orgId;
+        }
+
+        public String getExpertField() {
+            return expertField;
+        }
+
+        public void setExpertField(String expertField) {
+            this.expertField = expertField;
         }
     }
 }

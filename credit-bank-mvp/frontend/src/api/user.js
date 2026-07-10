@@ -15,3 +15,7 @@ export function getUser(id) {
 export function getTransactions(userId) {
   return request.get(`/user/${userId}/transactions`)
 }
+
+export function register(data) {
+  return request.post('/user/register', data)
+}

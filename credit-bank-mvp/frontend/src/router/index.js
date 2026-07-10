@@ -42,6 +42,36 @@ const routes = [
         name: 'Transactions',
         component: () => import('@/views/Placeholder.vue'),
         meta: { title: '交易管理' }
+      },
+      {
+        path: 'organizations',
+        name: 'Organizations',
+        component: () => import('@/views/Organizations.vue'),
+        meta: { title: '机构管理' }
+      },
+      {
+        path: 'experts',
+        name: 'Experts',
+        component: () => import('@/views/Experts.vue'),
+        meta: { title: '专家管理' }
+      },
+      {
+        path: 'exchange-rules',
+        name: 'ExchangeRules',
+        component: () => import('@/views/ExchangeRules.vue'),
+        meta: { title: '转换规则' }
+      },
+      {
+        path: 'cert-standards',
+        name: 'CertStandards',
+        component: () => import('@/views/CertStandards.vue'),
+        meta: { title: '认证标准' }
+      },
+      {
+        path: 'applications',
+        name: 'Applications',
+        component: () => import('@/views/Applications.vue'),
+        meta: { title: '业务流程' }
       }
     ]
   }

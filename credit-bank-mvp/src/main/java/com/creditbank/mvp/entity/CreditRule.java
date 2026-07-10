@@ -1,6 +1,7 @@
 package com.creditbank.mvp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -18,7 +19,7 @@ public class CreditRule {
 
     private Integer creditValue;
 
-    private String scope;
+    private Long projectId;
 
     private Integer isEnabled;
 
@@ -56,13 +57,9 @@ public class CreditRule {
         this.creditValue = creditValue;
     }
 
-    public String getScope() {
-        return scope;
-    }
+    public Long getProjectId() { return projectId; }
 
-    public void setScope(String scope) {
-        this.scope = scope;
-    }
+    public void setProjectId(Long projectId) { this.projectId = projectId; }
 
     public Integer getIsEnabled() {
         return isEnabled;

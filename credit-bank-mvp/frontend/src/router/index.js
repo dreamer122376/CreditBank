@@ -20,70 +20,22 @@ const routes = [
         meta: { title: '工作台' }
       },
       {
-        path: 'accounts',
-        name: 'Accounts',
+        path: 'users',
+        name: 'Users',
         component: () => import('@/views/Accounts.vue'),
-        meta: { title: '账户管理' }
+        meta: { title: '用户管理' }
       },
       {
         path: 'account/:id',
         name: 'AccountDetail',
         component: () => import('@/views/AccountDetail.vue'),
-        meta: { title: '账户详情' }
+        meta: { title: '用户详情' }
       },
       {
         path: 'rules',
         name: 'PointRules',
         component: () => import('@/views/PointRules.vue'),
         meta: { title: '积分规则' }
-      },
-      {
-        path: 'users',
-        name: 'Users',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '用户管理' }
-      },
-      {
-        path: 'institutions',
-        name: 'Institutions',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '机构管理' }
-      },
-      {
-        path: 'convert-rules',
-        name: 'ConvertRules',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '转换规则' }
-      },
-      {
-        path: 'certification',
-        name: 'Certification',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '认证标准' }
-      },
-      {
-        path: 'process',
-        name: 'Process',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '业务流程' }
-      },
-      {
-        path: 'projects',
-        name: 'Projects',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '项目管理' }
-      },
-      {
-        path: 'activities',
-        name: 'Activities',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '平台活动' }
-      },
-      {
-        path: 'experts',
-        name: 'Experts',
-        component: () => import('@/views/Placeholder.vue'),
-        meta: { title: '专家管理' }
       },
       {
         path: 'transactions',

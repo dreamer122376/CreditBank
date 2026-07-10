@@ -1,17 +1,11 @@
 import { ref } from 'vue'
-
-const MOCK_USERS = [
-  { username: 'admin', password: '123456', realName: '超级管理员', userType: 'SYSTEM_ADMIN', institutionId: null, institutionName: '' },
-  { username: 'instadmin', password: '123456', realName: '李机构', userType: 'INSTITUTION_ADMIN', institutionId: 1, institutionName: '北京开放大学' },
-  { username: 'student', password: '123456', realName: '张三', userType: 'STUDENT', institutionId: 1, institutionName: '北京开放大学' },
-  { username: 'expert', password: '123456', realName: '王教授', userType: 'EXPERT', institutionId: null, institutionName: '清华大学' }
-]
+import { login as apiLogin } from '@/api/user'
 
 const ROLE_NAME = {
-  SYSTEM_ADMIN: '系统管理员',
-  INSTITUTION_ADMIN: '机构管理员',
-  STUDENT: '学生',
-  EXPERT: '专家'
+  admin: '系统管理员',
+  org_admin: '机构管理员',
+  student: '学生',
+  expert: '专家'
 }
 
 const currentUser = ref(null)
@@ -23,14 +17,15 @@ function loadUser() {
   }
 }
 
-function login(username, password) {
-  const user = MOCK_USERS.find(u => u.username === username && u.password === password)
-  if (user) {
-    currentUser.value = { ...user }
+async function login(username, password) {
+  try {
+    const user = await apiLogin(username, password)
+    currentUser.value = user
     localStorage.setItem('cb_user', JSON.stringify(user))
     return true
+  } catch (error) {
+    return false
   }
-  return false
 }
 
 function logout() {
@@ -43,9 +38,11 @@ function register(form) {
     username: form.username,
     password: form.password,
     realName: form.realName,
-    userType: form.userType,
-    institutionId: form.institutionId ? Number(form.institutionId) : null,
-    institutionName: form.institutionName || ''
+    role: form.userType,
+    orgId: form.institutionId ? Number(form.institutionId) : null,
+    expertField: form.institutionName || '',
+    balance: 0,
+    status: 1
   }
   currentUser.value = user
   localStorage.setItem('cb_user', JSON.stringify(user))

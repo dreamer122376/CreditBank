@@ -25,7 +25,7 @@
         <div class="user-area">
           <div class="user-info">
             <div class="name">{{ currentUser?.realName }}</div>
-            <div class="role">{{ ROLE_NAME[currentUser?.userType] }} {{ currentUser?.institutionName ? '· ' + currentUser?.institutionName : '' }}</div>
+            <div class="role">{{ ROLE_NAME[currentUser?.role] }}</div>
           </div>
           <el-dropdown @command="handleCommand">
             <div class="avatar-wrap">
@@ -56,14 +56,7 @@ import { useAuth } from '@/composables/useAuth'
 import {
   HomeFilled,
   UserFilled,
-  OfficeBuilding,
   ScaleToOriginal,
-  Refresh,
-  Medal,
-  DataBoard,
-  FolderOpened,
-  Calendar,
-  User,
   WalletFilled,
   SwitchButton
 } from '@element-plus/icons-vue'
@@ -78,60 +71,40 @@ const currentTitle = computed(() => route.meta.title || '工作台')
 
 const roleTitle = computed(() => {
   const titles = {
-    SYSTEM_ADMIN: '系统管理员控制台',
-    INSTITUTION_ADMIN: '机构管理控制台',
-    STUDENT: '学生中心',
-    EXPERT: '专家评审中心'
+    admin: '系统管理员控制台',
+    org_admin: '机构管理控制台',
+    student: '学生中心',
+    expert: '专家评审中心'
   }
-  return titles[currentUser.value?.userType] || ''
+  return titles[currentUser.value?.role] || ''
 })
 
 const menuItems = computed(() => {
   const menus = {
-    SYSTEM_ADMIN: [
+    admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
-      { path: '/users', title: '管理用户管理', icon: UserFilled },
-      { path: '/institutions', title: '机构管理', icon: OfficeBuilding },
-      { path: '/rules', title: '积分规则管理', icon: ScaleToOriginal },
-      { path: '/convert-rules', title: '转换规则管理', icon: Refresh },
-      { path: '/certification', title: '认证标准管理', icon: Medal },
-      { path: '/process', title: '业务流程管理', icon: DataBoard },
-      { path: '/projects', title: '项目管理', icon: FolderOpened },
-      { path: '/activities', title: '平台活动管理', icon: Calendar },
-      { path: '/experts', title: '专家管理', icon: User },
+      { path: '/users', title: '用户管理', icon: UserFilled },
+      { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/transactions', title: '交易管理', icon: WalletFilled }
     ],
-    INSTITUTION_ADMIN: [
+    org_admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
-      { path: '/institutions', title: '机构信息', icon: OfficeBuilding },
-      { path: '/rules', title: '积分规则管理', icon: ScaleToOriginal },
-      { path: '/process', title: '业务流程管理', icon: DataBoard },
-      { path: '/projects', title: '项目管理', icon: FolderOpened },
-      { path: '/experts', title: '专家管理', icon: User },
-      { path: '/transactions', title: '积分池流水', icon: WalletFilled }
-    ],
-    STUDENT: [
-      { path: '/dashboard', title: '我的主页', icon: HomeFilled },
-      { path: '/institutions', title: '机构主页', icon: OfficeBuilding },
+      { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
-      { path: '/convert-rules', title: '学分转积分', icon: Refresh },
-      { path: '/certification', title: '认证标准', icon: Medal },
-      { path: '/process', title: '我的申请', icon: DataBoard },
-      { path: '/projects', title: '项目报名', icon: FolderOpened },
-      { path: '/activities', title: '参与活动', icon: Calendar },
-      { path: '/experts', title: '专家简介', icon: User },
+      { path: '/transactions', title: '积分流水', icon: WalletFilled }
+    ],
+    student: [
+      { path: '/dashboard', title: '我的主页', icon: HomeFilled },
+      { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/transactions', title: '我的钱包', icon: WalletFilled }
     ],
-    EXPERT: [
+    expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
-      { path: '/process', title: '审批待办', icon: DataBoard },
-      { path: '/projects', title: '项目评审', icon: FolderOpened },
-      { path: '/institutions', title: '聘用机构', icon: OfficeBuilding },
-      { path: '/experts', title: '个人信息', icon: User },
+      { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/transactions', title: '项目流水', icon: WalletFilled }
     ]
   }
-  return menus[currentUser.value?.userType] || []
+  return menus[currentUser.value?.role] || []
 })
 
 function handleCommand(command) {

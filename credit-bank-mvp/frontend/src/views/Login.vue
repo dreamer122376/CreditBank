@@ -37,10 +37,10 @@
             </el-form-item>
             <el-form-item prop="userType">
               <el-select v-model="registerForm.userType" placeholder="请选择角色类型" size="large">
-                <el-option label="学生" value="STUDENT" />
-                <el-option label="机构管理员" value="INSTITUTION_ADMIN" />
-                <el-option label="专家" value="EXPERT" />
-                <el-option label="系统管理员" value="SYSTEM_ADMIN" />
+                <el-option label="学生" value="student" />
+                <el-option label="机构管理员" value="org_admin" />
+                <el-option label="专家" value="expert" />
+                <el-option label="系统管理员" value="admin" />
               </el-select>
             </el-form-item>
             <el-form-item v-if="showInstId">
@@ -80,17 +80,17 @@ const registerForm = ref({
   username: '',
   realName: '',
   password: '',
-  userType: 'STUDENT',
+  userType: 'student',
   institutionId: '',
   institutionName: ''
 })
 
 const showInstId = computed(() => {
-  return registerForm.value.userType === 'STUDENT' || registerForm.value.userType === 'INSTITUTION_ADMIN'
+  return registerForm.value.userType === 'student' || registerForm.value.userType === 'org_admin'
 })
 
 const showInstName = computed(() => {
-  return registerForm.value.userType === 'EXPERT'
+  return registerForm.value.userType === 'expert'
 })
 
 async function handleLogin() {
@@ -101,15 +101,18 @@ async function handleLogin() {
   }
   loading.value = true
   loginMsg.value = ''
-  setTimeout(() => {
-    const success = login(username, password)
+  try {
+    const success = await login(username, password)
     loading.value = false
     if (success) {
       router.push('/dashboard')
     } else {
       loginMsg.value = '账号或密码错误'
     }
-  }, 500)
+  } catch (error) {
+    loading.value = false
+    loginMsg.value = '登录失败，请稍后重试'
+  }
 }
 
 function handleRegister() {

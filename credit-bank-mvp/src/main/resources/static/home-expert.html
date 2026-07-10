@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家主页 · 学分银行</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+    <!-- 侧边栏导航 -->
+    <div class="sidebar">
+        <div class="brand">
+            学分银行
+            <small>专家评审中心</small>
+        </div>
+        <div class="menu">
+            <div class="menu-item active" onclick="location.href='home-expert.html'">我的主页</div>
+            <div class="menu-item" onclick="goFunc('业务流程管理','待审批')">审批待办</div>
+            <div class="menu-item" onclick="goFunc('项目管理')">项目评审</div>
+            <div class="menu-item" onclick="goFunc('机构管理','浏览')">聘用机构</div>
+            <div class="menu-item" onclick="goFunc('专家管理','个人信息')">个人信息</div>
+            <div class="menu-item" onclick="goFunc('交易管理','项目流水')">项目流水</div>
+        </div>
+    </div>
+
+    <!-- 主区域 -->
+    <div class="main">
+        <div class="topbar">
+            <div class="page-title">我的主页</div>
+            <div class="user-area" id="topbarUser"></div>
+        </div>
+
+        <div class="content">
+            <!-- 欢迎区 -->
+            <div class="welcome">
+                <h2 id="welcomeTitle">欢迎回来</h2>
+                <p>专家可查看聘用机构、评审指派的项目、维护个人资料与研究方向。</p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="label">待评审项目</div>
+                    <div class="value">4 <small>个</small></div>
+                </div>
+                <div class="stat-card green">
+                    <div class="label">累计评审项目</div>
+                    <div class="value">86 <small>个</small></div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="label">聘用机构数</div>
+                    <div class="value">3 <small>家</small></div>
+                </div>
+                <div class="stat-card red">
+                    <div class="label">评审积分</div>
+                    <div class="value">3,200</div>
+                </div>
+            </div>
+
+            <!-- 两栏：待评审 + 聘用机构 -->
+            <div class="col-2">
+                <div class="panel">
+                    <div class="panel-title">
+                        待我评审的项目
+                        <span class="more" onclick="goFunc('项目管理','待评审')">查看全部 →</span>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>项目名称</th><th>聘用机构</th><th>指派时间</th><th>状态</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Python数据分析</td><td>北京开放大学</td><td>2026-07-08</td><td><span class="tag tag-orange">待评审</span></td><td><span class="more" onclick="goFunc('项目管理','待评审')">评审</span></td></tr>
+                            <tr><td>会计初级认证</td><td>上海培训中心</td><td>2026-07-07</td><td><span class="tag tag-orange">待评审</span></td><td><span class="more" onclick="goFunc('项目管理','待评审')">评审</span></td></tr>
+                            <tr><td>教师资格证辅导</td><td>北京开放大学</td><td>2026-07-06</td><td><span class="tag tag-orange">待评审</span></td><td><span class="more" onclick="goFunc('项目管理','待评审')">评审</span></td></tr>
+                            <tr><td>前端开发实训</td><td>广州继续教育</td><td>2026-07-05</td><td><span class="tag tag-orange">待评审</span></td><td><span class="more" onclick="goFunc('项目管理','待评审')">评审</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">
+                        聘用我的机构
+                        <span class="more" onclick="goFunc('机构管理','浏览')">查看全部 →</span>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>机构名称</th><th>评审领域</th><th>聘用时间</th><th>状态</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>北京开放大学</td><td>计算机科学</td><td>2026-01-15</td><td><span class="tag tag-green">有效</span></td></tr>
+                            <tr><td>上海培训中心</td><td>数据分析</td><td>2026-03-01</td><td><span class="tag tag-green">有效</span></td></tr>
+                            <tr><td>广州继续教育</td><td>软件工程</td><td>2026-05-20</td><td><span class="tag tag-green">有效</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 最近评审记录 -->
+            <div class="panel">
+                <div class="panel-title">
+                    最近评审记录
+                    <span class="more" onclick="goFunc('项目管理','已评审')">查看全部 →</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>项目名称</th><th>所属机构</th><th>评审结论</th><th>评审意见</th><th>评审时间</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>普通话水平提升</td><td>北京开放大学</td><td><span class="tag tag-green">通过</span></td><td>课程设计合理，符合标准</td><td>2026-07-04</td></tr>
+                        <tr><td>数据分析基础</td><td>上海培训中心</td><td><span class="tag tag-green">通过</span></td><td>建议增加实操案例</td><td>2026-07-02</td></tr>
+                        <tr><td>网页设计入门</td><td>广州继续教育</td><td><span class="tag tag-red">驳回</span></td><td>内容深度不足，需补充</td><td>2026-06-28</td></tr>
+                        <tr><td>数据库原理</td><td>北京开放大学</td><td><span class="tag tag-green">通过</span></td><td>结构完整，达标</td><td>2026-06-25</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+    const user = Auth.requireRole('EXPERT');
+    if (user) {
+        document.getElementById('welcomeTitle').textContent = '欢迎回来，' + user.realName;
+        renderTopbar('topbarUser', user);
+    }
+</script>
+</body>
+</html>

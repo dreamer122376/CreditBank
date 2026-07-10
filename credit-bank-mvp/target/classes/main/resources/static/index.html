@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>学分银行</title>
+    <script>
+        // 根路径统一跳转到登录页（已登录则进入对应角色主页）
+        var user = localStorage.getItem('cb_user');
+        if (user) {
+            var u = JSON.parse(user);
+            var map = {
+                SYSTEM_ADMIN: 'home-system-admin.html',
+                INSTITUTION_ADMIN: 'home-institution-admin.html',
+                STUDENT: 'home-student.html',
+                EXPERT: 'home-expert.html'
+            };
+            location.href = map[u.userType] || 'login.html';
+        } else {
+            location.href = 'login.html';
+        }
+    </script>
+</head>
+<body></body>
+</html>

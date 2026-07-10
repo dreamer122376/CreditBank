@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统管理员主页 · 学分银行</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+    <!-- 侧边栏导航 -->
+    <div class="sidebar">
+        <div class="brand">
+            学分银行
+            <small>系统管理员控制台</small>
+        </div>
+        <div class="menu">
+            <div class="menu-item active" onclick="location.href='home-system-admin.html'">工作台</div>
+            <div class="menu-item" onclick="goFunc('管理用户管理')">管理用户管理</div>
+            <div class="menu-item" onclick="goFunc('机构管理')">机构管理</div>
+            <div class="menu-item" onclick="goFunc('积分规则管理')">积分规则管理</div>
+            <div class="menu-item" onclick="goFunc('转换规则管理')">转换规则管理</div>
+            <div class="menu-item" onclick="goFunc('认证标准管理')">认证标准管理</div>
+            <div class="menu-item" onclick="goFunc('业务流程管理')">业务流程管理</div>
+            <div class="menu-item" onclick="goFunc('项目管理')">项目管理</div>
+            <div class="menu-item" onclick="goFunc('平台活动管理')">平台活动管理</div>
+            <div class="menu-item" onclick="goFunc('专家管理')">专家管理</div>
+            <div class="menu-item" onclick="goFunc('交易管理')">交易管理</div>
+        </div>
+    </div>
+
+    <!-- 主区域 -->
+    <div class="main">
+        <div class="topbar">
+            <div class="page-title">工作台</div>
+            <div class="user-area" id="topbarUser"></div>
+        </div>
+
+        <div class="content">
+            <!-- 欢迎区 -->
+            <div class="welcome">
+                <h2 id="welcomeTitle">欢迎回来</h2>
+                <p>系统管理员负责全局配置与监管，包括机构审核、规则定义、全局对账等核心职能。</p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="label">平台总用户数</div>
+                    <div class="value">1,286 <small>人</small></div>
+                </div>
+                <div class="stat-card green">
+                    <div class="label">入驻机构数</div>
+                    <div class="value">36 <small>家</small></div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="label">待审核事项</div>
+                    <div class="value">8 <small>条</small></div>
+                </div>
+                <div class="stat-card red">
+                    <div class="label">全平台积分总量</div>
+                    <div class="value">458,920</div>
+                </div>
+            </div>
+
+            <!-- 两栏：待办 + 待审核机构 -->
+            <div class="col-2">
+                <div class="panel">
+                    <div class="panel-title">
+                        待办事项
+                        <span class="more" onclick="goFunc('业务流程管理','待办')">查看全部 →</span>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>类型</th><th>发起人</th><th>提交时间</th><th>状态</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>机构入驻审核</td><td>上海培训中心</td><td>2026-07-08 10:22</td><td><span class="tag tag-orange">待审核</span></td></tr>
+                            <tr><td>专家入驻审核</td><td>赵教授</td><td>2026-07-08 09:15</td><td><span class="tag tag-orange">待审核</span></td></tr>
+                            <tr><td>项目合规审核</td><td>深圳职业培训</td><td>2026-07-07 16:40</td><td><span class="tag tag-orange">待审核</span></td></tr>
+                            <tr><td>转换规则修订</td><td>系统</td><td>2026-07-07 14:00</td><td><span class="tag tag-blue">处理中</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">
+                        待审核机构
+                        <span class="more" onclick="goFunc('机构管理','待审核')">查看全部 →</span>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>机构名称</th><th>类型</th><th>申请时间</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>上海培训中心</td><td>培训机构</td><td>2026-07-08</td><td><span class="more" onclick="goFunc('机构管理')">审核</span></td></tr>
+                            <tr><td>广州继续教育学校</td><td>高校</td><td>2026-07-07</td><td><span class="more" onclick="goFunc('机构管理')">审核</span></td></tr>
+                            <tr><td>杭州IT行业协会</td><td>行业协会</td><td>2026-07-06</td><td><span class="more" onclick="goFunc('机构管理')">审核</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 全局积分概览 -->
+            <div class="panel">
+                <div class="panel-title">
+                    全平台积分概览（最近7天）
+                    <span class="more" onclick="goFunc('交易管理','对账')">查看对账 →</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>日期</th><th>加分总量</th><th>扣分总量</th><th>转换转入</th><th>活动奖励</th><th>净增</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>2026-07-09</td><td>+12,400</td><td>-1,200</td><td>+3,600</td><td>+2,800</td><td><span class="tag tag-green">+17,600</span></td></tr>
+                        <tr><td>2026-07-08</td><td>+10,200</td><td>-800</td><td>+2,400</td><td>+3,500</td><td><span class="tag tag-green">+15,300</span></td></tr>
+                        <tr><td>2026-07-07</td><td>+9,800</td><td>-600</td><td>+1,800</td><td>+2,200</td><td><span class="tag tag-green">+13,200</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+    const user = Auth.requireRole('SYSTEM_ADMIN');
+    if (user) {
+        document.getElementById('welcomeTitle').textContent = '欢迎回来，' + user.realName;
+        renderTopbar('topbarUser', user);
+    }
+</script>
+</body>
+</html>

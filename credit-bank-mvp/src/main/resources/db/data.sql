@@ -43,16 +43,6 @@ INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `stat
 (4, 2, 5, '数据分析大赛', '校园数据分析竞赛项目', 0, NOW(), NOW()),
 (5, 1, NULL, '校园安全监测', '校园安全监测系统升级', 2, NOW(), NOW());
 
--- 学生报名项目关系表初始数据（依赖 sys_user.id 和 project.id）
-INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `created_at`) VALUES
-(1, 6, 1, '进行中', DATE_ADD(NOW(), INTERVAL -5 DAY)),
-(2, 6, 2, '已报名', DATE_ADD(NOW(), INTERVAL -2 DAY)),
-(3, 7, 1, '已完成', DATE_ADD(NOW(), INTERVAL -10 DAY)),
-(4, 7, 3, '进行中', DATE_ADD(NOW(), INTERVAL -3 DAY)),
-(5, 8, 1, '已完成', DATE_ADD(NOW(), INTERVAL -12 DAY)),
-(6, 8, 2, '进行中', DATE_ADD(NOW(), INTERVAL -4 DAY)),
-(7, 8, 3, '已报名', DATE_ADD(NOW(), INTERVAL -1 DAY));
-
 -- 积分规则表初始数据（依赖 project.id）
 INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `project_id`) VALUES
 (1, 'COURSE_COMPLETE', '课程完成', 100, 1, NOW(), NULL),

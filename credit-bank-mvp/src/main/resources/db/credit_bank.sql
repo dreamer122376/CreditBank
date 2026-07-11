@@ -259,36 +259,6 @@ LOCK TABLES `project` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `student_project`
---
-
-DROP TABLE IF EXISTS `student_project`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `student_project` (
-                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '报名记录ID',
-                                   `student_id` bigint NOT NULL COMMENT '学生ID，关联sys_user(id)',
-                                   `project_id` bigint NOT NULL COMMENT '项目ID，关联project(id)',
-                                   `status` enum('已报名','进行中','已完成') DEFAULT '已报名' COMMENT '报名状态：已报名，进行中，已完成',
-                                   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
-                                   PRIMARY KEY (`id`),
-                                   UNIQUE KEY `uk_student_project` (`student_id`,`project_id`),
-                                   KEY `idx_project_id` (`project_id`),
-                                   CONSTRAINT `fk_student_project_student` FOREIGN KEY (`student_id`) REFERENCES `sys_user` (`id`) ON DELETE CASCADE,
-                                   CONSTRAINT `fk_student_project_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生报名项目关系表';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `student_project`
---
-
-LOCK TABLES `student_project` WRITE;
-/*!40000 ALTER TABLE `student_project` DISABLE KEYS */;
-/*!40000 ALTER TABLE `student_project` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `sys_user`
 --
 
@@ -308,6 +278,7 @@ CREATE TABLE `sys_user` (
                             `balance` int DEFAULT '0' COMMENT '当前可用总积分',
                             `status` tinyint DEFAULT '1' COMMENT '账号状态：1正常，0冻结',
                             `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
+                            `last_login_at` datetime DEFAULT NULL COMMENT '最后登录时间',
                             PRIMARY KEY (`id`),
                             UNIQUE KEY `uk_username` (`username`),
                             KEY `idx_org_id` (`org_id`)
@@ -321,6 +292,63 @@ CREATE TABLE `sys_user` (
 LOCK TABLES `sys_user` WRITE;
 /*!40000 ALTER TABLE `sys_user` DISABLE KEYS */;
 /*!40000 ALTER TABLE `sys_user` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `campaign_enrollment`
+--
+
+DROP TABLE IF EXISTS `campaign_enrollment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `campaign_enrollment` (
+                                       `id` bigint NOT NULL AUTO_INCREMENT,
+                                       `campaign_id` bigint NOT NULL COMMENT '活动ID',
+                                       `user_id` bigint NOT NULL COMMENT '用户ID',
+                                       `enrolled_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
+                                       PRIMARY KEY (`id`),
+                                       UNIQUE KEY `uk_user_campaign` (`user_id`,`campaign_id`),
+                                       KEY `idx_campaign` (`campaign_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='活动报名记录';
+
+--
+-- Dumping data for table `campaign_enrollment`
+--
+
+LOCK TABLES `campaign_enrollment` WRITE;
+/*!40000 ALTER TABLE `campaign_enrollment` DISABLE KEYS */;
+/*!40000 ALTER TABLE `campaign_enrollment` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `user_op_log`
+--
+
+DROP TABLE IF EXISTS `user_op_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_op_log` (
+                               `id` bigint NOT NULL AUTO_INCREMENT,
+                               `operator_id` bigint NOT NULL COMMENT '操作人ID',
+                               `operator_name` varchar(50) DEFAULT NULL COMMENT '操作人姓名',
+                               `target_user_id` bigint NOT NULL COMMENT '被操作的用户ID',
+                               `target_user_name` varchar(50) DEFAULT NULL COMMENT '被操作的用户名',
+                               `action` varchar(30) NOT NULL COMMENT '操作类型：FREEZE/UNFREEZE/RESET_PW/BATCH_FREEZE/BATCH_UNFREEZE',
+                               `detail` varchar(255) DEFAULT NULL COMMENT '操作详情',
+                               `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+                               PRIMARY KEY (`id`),
+                               KEY `idx_operator` (`operator_id`),
+                               KEY `idx_target` (`target_user_id`),
+                               KEY `idx_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户操作日志';
+
+--
+-- Dumping data for table `user_op_log`
+--
+
+LOCK TABLES `user_op_log` WRITE;
+/*!40000 ALTER TABLE `user_op_log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `user_op_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --

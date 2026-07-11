@@ -26,6 +26,12 @@ const routes = [
         meta: { title: '用户管理' }
       },
       {
+        path: 'users/op-logs',
+        name: 'UserOpLogs',
+        component: () => import('@/views/UserOpLog.vue'),
+        meta: { title: '操作日志' }
+      },
+      {
         path: 'account/:id',
         name: 'AccountDetail',
         component: () => import('@/views/AccountDetail.vue'),

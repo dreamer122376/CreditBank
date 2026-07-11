@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard" v-loading="loading" element-loading-text="加载中...">
+  <div class="dashboard">
     <div class="welcome">
       <h2>欢迎回来，{{ currentUser?.realName }}</h2>
       <p>{{ welcomeText }}</p>
@@ -115,7 +115,6 @@ import { getStatsSummary, getPointOverview, getTodoList, getRecentTransactions }
 
 const { currentUser } = useAuth()
 
-const loading = ref(true)
 const summary = ref(null)
 const todoList = ref([])
 const recentTransactions = ref([])
@@ -203,7 +202,6 @@ onMounted(async () => {
 })
 
 async function loadAllData() {
-  loading.value = true
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
@@ -219,8 +217,6 @@ async function loadAllData() {
     pointOverview.value = overview
   } catch (error) {
     console.error('加载统计数据失败:', error)
-  } finally {
-    loading.value = false
   }
 }
 </script>

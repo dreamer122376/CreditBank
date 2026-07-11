@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.Campaign;
+import com.creditbank.mvp.entity.CampaignEnrollment;
+import com.creditbank.mvp.mapper.CampaignEnrollmentMapper;
 import com.creditbank.mvp.mapper.CampaignMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,9 +28,7 @@ public class CampaignService {
 
     private final CampaignMapper campaignMapper;
 
-    public CampaignService(CampaignMapper campaignMapper) {
-        this.campaignMapper = campaignMapper;
-    }
+    // 构造函数在下面「报名管理」区
 
     /**
      * 分页查询活动列表，支持按状态筛选
@@ -151,6 +151,52 @@ public class CampaignService {
                         .le(Campaign::getStartTime, now)
                         .ge(Campaign::getEndTime, now)
                         .last("limit 1"));
+    }
+
+    // ==================== 报名管理 ====================
+
+    private final CampaignEnrollmentMapper enrollmentMapper;
+
+    public CampaignService(CampaignMapper campaignMapper,
+                           CampaignEnrollmentMapper enrollmentMapper) {
+        this.campaignMapper = campaignMapper;
+        this.enrollmentMapper = enrollmentMapper;
+    }
+
+    /** 参加活动 */
+    public void enroll(Long campaignId, Long userId) {
+        CampaignEnrollment exist = enrollmentMapper.selectOne(
+                new LambdaQueryWrapper<CampaignEnrollment>()
+                        .eq(CampaignEnrollment::getCampaignId, campaignId)
+                        .eq(CampaignEnrollment::getUserId, userId));
+        if (exist != null) {
+            throw new BizException("已报名该活动");
+        }
+        CampaignEnrollment e = new CampaignEnrollment();
+        e.setCampaignId(campaignId);
+        e.setUserId(userId);
+        e.setEnrolledAt(LocalDateTime.now());
+        enrollmentMapper.insert(e);
+    }
+
+    /** 退出活动 */
+    public void leave(Long campaignId, Long userId) {
+        CampaignEnrollment exist = enrollmentMapper.selectOne(
+                new LambdaQueryWrapper<CampaignEnrollment>()
+                        .eq(CampaignEnrollment::getCampaignId, campaignId)
+                        .eq(CampaignEnrollment::getUserId, userId));
+        if (exist == null) {
+            throw new BizException("未报名该活动");
+        }
+        enrollmentMapper.deleteById(exist.getId());
+    }
+
+    /** 检查用户是否报名了指定活动 */
+    public boolean isEnrolled(Long campaignId, Long userId) {
+        return enrollmentMapper.selectCount(
+                new LambdaQueryWrapper<CampaignEnrollment>()
+                        .eq(CampaignEnrollment::getCampaignId, campaignId)
+                        .eq(CampaignEnrollment::getUserId, userId)) > 0;
     }
 
     // ==================== 内部方法 ====================

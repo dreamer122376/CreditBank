@@ -4,10 +4,13 @@
       <template #header>
         <div class="card-header">
           <span>用户详情</span>
-          <el-button type="primary" @click="openEarnDialog">
-            <el-icon><Plus /></el-icon>
-            加分
-          </el-button>
+          <div style="display:flex;gap:10px;">
+            <el-button @click="$router.push('/users')">← 返回列表</el-button>
+            <el-button type="primary" @click="openEarnDialog">
+              <el-icon><Plus /></el-icon>
+              加分
+            </el-button>
+          </div>
         </div>
       </template>
       <el-descriptions :column="4" border>
@@ -18,8 +21,8 @@
           <span class="balance">{{ user?.balance }}</span>
         </el-descriptions-item>
         <el-descriptions-item label="角色">{{ getRoleName(user?.role) }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ user?.createdAt }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ user?.updatedAt }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ fmt(user?.createdAt) }}</el-descriptions-item>
+        <el-descriptions-item label="最后登录">{{ fmt(user?.lastLoginAt) || '从未登录' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="user?.status === 1 ? 'success' : 'danger'">
             {{ user?.status === 1 ? '正常' : '禁用' }}
@@ -48,7 +51,9 @@
         </el-table-column>
         <el-table-column prop="balanceAfter" label="变动后余额" />
         <el-table-column prop="description" label="描述" />
-        <el-table-column prop="createdAt" label="创建时间" />
+        <el-table-column prop="createdAt" label="创建时间">
+          <template #default="scope">{{ fmt(scope.row.createdAt) }}</template>
+        </el-table-column>
       </el-table>
       <div v-if="transactions.length === 0" style="text-align: center; padding: 40px;">
         暂无流水记录
@@ -107,6 +112,7 @@ const BIZ_TYPE_NAME = {
   EXCHANGE: '兑换'
 }
 
+function fmt(t) { if (!t) return ''; return t.length >= 16 ? t.substring(0, 16).replace('T', ' ') : t }
 function getRoleName(role) {
   return ROLE_NAME[role] || role
 }

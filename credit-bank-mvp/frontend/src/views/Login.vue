@@ -102,16 +102,12 @@ async function handleLogin() {
   loading.value = true
   loginMsg.value = ''
   try {
-    const success = await login(username, password)
+    await login(username, password)
     loading.value = false
-    if (success) {
-      router.push('/dashboard')
-    } else {
-      loginMsg.value = '账号或密码错误'
-    }
+    router.push('/dashboard')
   } catch (error) {
     loading.value = false
-    loginMsg.value = '登录失败，请稍后重试'
+    loginMsg.value = error.message || '登录失败，请稍后重试'
   }
 }
 

@@ -63,4 +63,29 @@ public class CampaignController {
         campaignService.delete(id);
         return Result.ok();
     }
+
+    // ==================== 报名 ====================
+
+    /** 参加活动 */
+    @PostMapping("/{id}/enroll")
+    public Result<Void> enroll(@PathVariable Long id,
+                                @RequestHeader("X-Operator-Id") Long userId) {
+        campaignService.enroll(id, userId);
+        return Result.ok();
+    }
+
+    /** 退出活动 */
+    @DeleteMapping("/{id}/enroll")
+    public Result<Void> leave(@PathVariable Long id,
+                               @RequestHeader("X-Operator-Id") Long userId) {
+        campaignService.leave(id, userId);
+        return Result.ok();
+    }
+
+    /** 查询当前用户是否已报名 */
+    @GetMapping("/{id}/enrolled")
+    public Result<Boolean> isEnrolled(@PathVariable Long id,
+                                       @RequestHeader("X-Operator-Id") Long userId) {
+        return Result.ok(campaignService.isEnrolled(id, userId));
+    }
 }

@@ -18,14 +18,9 @@ function loadUser() {
 }
 
 async function login(username, password) {
-  try {
-    const user = await apiLogin(username, password)
-    currentUser.value = user
-    localStorage.setItem('cb_user', JSON.stringify(user))
-    return true
-  } catch (error) {
-    return false
-  }
+  const user = await apiLogin(username, password)
+  currentUser.value = user
+  localStorage.setItem('cb_user', JSON.stringify(user))
 }
 
 function logout() {

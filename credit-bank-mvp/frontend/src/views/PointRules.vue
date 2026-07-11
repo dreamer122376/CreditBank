@@ -1,6 +1,6 @@
 <template>
   <div class="point-rules">
-    <el-card v-loading="loading" element-loading-text="加载中...">
+    <el-card>
       <template #header>
         <span>积分规则列表</span>
       </template>
@@ -39,7 +39,6 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getRules } from '@/api/point'
 
-const loading = ref(true)
 const rules = ref([])
 
 onMounted(async () => {
@@ -47,14 +46,11 @@ onMounted(async () => {
 })
 
 async function loadData() {
-  loading.value = true
   try {
     rules.value = await getRules()
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
-  } finally {
-    loading.value = false
   }
 }
 </script>

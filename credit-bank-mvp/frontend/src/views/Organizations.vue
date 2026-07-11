@@ -1,22 +1,12 @@
 <template>
   <div class="organizations">
-    <el-card v-loading="loading" element-loading-text="加载中...">
+    <el-card>
       <template #header>
         <div class="card-header">
           <span>机构列表</span>
           <el-button type="primary" size="small" @click="openCreate">新增机构</el-button>
         </div>
       </template>
-      <div class="filter-bar">
-        <el-input v-model="searchText" placeholder="搜索机构名称" style="width: 220px;" clearable @keyup.enter="loadData">
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-select v-model="filterStatus" placeholder="筛选状态" style="width: 140px;" clearable @change="loadData">
-          <el-option label="待审核" :value="0" />
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="2" />
-        </el-select>
-      </div>
       <el-table :data="orgs" border style="width: 100%;">
         <el-table-column prop="id" label="机构ID" width="90" />
         <el-table-column prop="name" label="机构名称" />
@@ -73,7 +63,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
 import {
   getOrganizations,
   createOrganization,
@@ -84,23 +73,17 @@ import {
 const STATUS_NAME = { 0: '待审核', 1: '启用', 2: '禁用' }
 const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger' }
 
-const loading = ref(true)
 const orgs = ref([])
 const dialogVisible = ref(false)
-const searchText = ref('')
-const filterStatus = ref('')
 const form = ref({})
 
 onMounted(loadData)
 
 async function loadData() {
-  loading.value = true
   try {
     orgs.value = await getOrganizations()
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -145,11 +128,5 @@ async function changeStatus(row, status) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
 }
 </style>

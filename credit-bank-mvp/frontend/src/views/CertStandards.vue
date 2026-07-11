@@ -1,21 +1,12 @@
 <template>
   <div class="cert-standards">
-    <el-card v-loading="loading" element-loading-text="加载中...">
+    <el-card>
       <template #header>
         <div class="card-header">
           <span>认证标准</span>
           <el-button type="primary" size="small" @click="openCreate">新增标准</el-button>
         </div>
       </template>
-      <div class="filter-bar">
-        <el-input v-model="searchText" placeholder="搜索认证名称" style="width: 220px;" clearable @keyup.enter="loadData">
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-select v-model="filterStatus" placeholder="筛选状态" style="width: 140px;" clearable @change="loadData">
-          <el-option label="启用" :value="1" />
-          <el-option label="停用" :value="0" />
-        </el-select>
-      </div>
       <el-table :data="standards" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="standardName" label="认证名称" />
@@ -80,7 +71,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
 import {
   getCertStandards,
   createCertStandard,
@@ -88,23 +78,17 @@ import {
   toggleCertStandard
 } from '@/api/certStandard'
 
-const loading = ref(true)
 const standards = ref([])
 const dialogVisible = ref(false)
-const searchText = ref('')
-const filterStatus = ref('')
 const form = ref({})
 
 onMounted(loadData)
 
 async function loadData() {
-  loading.value = true
   try {
     standards.value = await getCertStandards()
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -149,12 +133,6 @@ async function toggle(row) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
 }
 
 .points {

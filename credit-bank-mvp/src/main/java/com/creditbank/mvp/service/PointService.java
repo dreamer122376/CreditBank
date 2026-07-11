@@ -37,14 +37,19 @@ public class PointService {
     public SysUser login(String username, String password) {
         SysUser user = sysUserMapper.selectOne(
                 new LambdaQueryWrapper<SysUser>()
-                        .eq(SysUser::getUsername, username)
-                        .eq(SysUser::getStatus, 1));
+                        .eq(SysUser::getUsername, username));
         if (user == null) {
             throw new BizException("用户不存在");
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new BizException("账户已被冻结，请联系管理员");
         }
         if (!user.getPassword().equals(password)) {
             throw new BizException("密码错误");
         }
+        // 更新最后登录时间
+        user.setLastLoginAt(java.time.LocalDateTime.now());
+        sysUserMapper.updateById(user);
         return user;
     }
 
@@ -63,11 +68,12 @@ public class PointService {
             throw new BizException("积分规则不存在或已停用：" + eventCode);
         }
 
-        // 活动倍率加成
+        // 活动倍率加成：仅当用户报名了当前进行中的积分翻倍活动时才生效
         int finalCredit = rule.getCreditValue();
         String campaignDesc = "";
         Campaign activeMultiplierCampaign = campaignService.getActiveMultiplierCampaign();
-        if (activeMultiplierCampaign != null) {
+        if (activeMultiplierCampaign != null
+                && campaignService.isEnrolled(activeMultiplierCampaign.getId(), userId)) {
             BigDecimal multiplied = BigDecimal.valueOf(rule.getCreditValue())
                     .multiply(activeMultiplierCampaign.getMultiplier());
             finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();

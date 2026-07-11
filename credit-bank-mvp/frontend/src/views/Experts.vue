@@ -1,6 +1,6 @@
 <template>
   <div class="experts">
-    <el-card v-loading="loading" element-loading-text="加载中...">
+    <el-card>
       <template #header>
         <div class="card-header">
           <span>专家列表</span>
@@ -70,7 +70,6 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getExperts, createExpert, updateExpert, changeExpertStatus } from '@/api/expert'
 
-const loading = ref(true)
 const experts = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
@@ -78,13 +77,10 @@ const form = ref({})
 onMounted(loadData)
 
 async function loadData() {
-  loading.value = true
   try {
     experts.value = await getExperts()
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
-  } finally {
-    loading.value = false
   }
 }
 

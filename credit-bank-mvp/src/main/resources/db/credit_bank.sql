@@ -88,6 +88,10 @@ DROP TABLE IF EXISTS `campaign`;
 CREATE TABLE `campaign` (
                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '活动ID',
                             `title` varchar(100) NOT NULL COMMENT '活动标题',
+                            `description` text COMMENT '活动简讯/详情描述',
+                            `cover_image` varchar(255) DEFAULT NULL COMMENT '封面图URL',
+                            `images` text COMMENT '多张活动图片，JSON数组',
+                            `organizer` varchar(100) DEFAULT NULL COMMENT '主办方/组织者',
                             `multiplier` decimal(3,1) DEFAULT '1.0' COMMENT '积分倍率（如1.5表示1.5倍）',
                             `project_ids` text COMMENT '适用项目ID，逗号分隔（空代表全平台）',
                             `start_time` datetime NOT NULL COMMENT '活动开始时间',

@@ -3,12 +3,14 @@
     <template v-if="campaign">
       <!-- 封面 -->
       <div class="detail-cover" :style="campaign.coverImage ? { backgroundImage: 'url(' + campaign.coverImage + ')' } : {}">
-        <span v-if="!campaign.coverImage">{{ campaign.title }}</span>
+        <div class="cover-overlay">
+          <span v-if="!campaign.coverImage" class="cover-placeholder">{{ campaign.title }}</span>
+        </div>
       </div>
 
       <!-- 图片轮播 -->
       <div class="detail-carousel" v-if="imageList.length > 0">
-        <el-carousel :interval="4000" type="card" height="320px">
+        <el-carousel :interval="4000" height="400px" trigger="click">
           <el-carousel-item v-for="(img, idx) in imageList" :key="idx">
             <img :src="img" class="carousel-img" />
           </el-carousel-item>
@@ -137,10 +139,31 @@ onMounted(() => { loadDetail() })
 </script>
 
 <style scoped>
-.detail-cover { height: 240px; background-size: cover; background-position: center; border-radius: 10px;
-  background: linear-gradient(135deg, #3b5bdb 0%, #6c8ae4 100%);
-  display: flex; align-items: center; justify-content: center; color: #fff;
-  font-size: 22px; font-weight: 600; margin-bottom: 18px; }
+.detail-cover {
+  height: 300px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  background-color: #3b5bdb;
+  background-image: linear-gradient(135deg, #3b5bdb 0%, #6c8ae4 100%);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.cover-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  /* 底部渐变遮罩，让封面图的底部不显得生硬截断 */
+  background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.3) 100%);
+}
+.cover-placeholder {
+  color: #fff; font-size: 22px; font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3); text-align: center; padding: 24px;
+}
+
+.detail-carousel { margin-bottom: 18px; }
+.carousel-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 .detail-card { margin-bottom: 18px; }
 .detail-title { font-size: 20px; font-weight: 700; margin-bottom: 14px; color: #2c3e50; }
 .meta-item { display: flex; align-items: flex-start; gap: 8px; }

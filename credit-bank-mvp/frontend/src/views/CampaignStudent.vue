@@ -63,13 +63,29 @@ onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-.campaign-card { cursor: pointer; overflow: hidden; }
+.campaign-card { cursor: pointer; overflow: hidden; border-radius: 8px; }
 .campaign-card:hover { transform: translateY(-2px); }
-.card-cover { height: 140px; background-size: cover; background-position: center; position: relative;
-  display: flex; align-items: center; justify-content: center; border-radius: 6px; margin: -20px -20px 0; }
-.cover-text { color: #fff; font-size: 16px; font-weight: 600; padding: 16px; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.card-cover {
+  height: 170px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px 8px 0 0;
+  margin: -20px -20px 0;
+}
+.card-cover::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.35) 100%);
+  border-radius: 8px 8px 0 0;
+}
+.cover-text { color: #fff; font-size: 16px; font-weight: 600; padding: 16px; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.5); position: relative; z-index: 1; }
 .badge-bonus { position: absolute; top: 8px; right: 8px; background: #f59f00; color: #fff;
-  padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; z-index: 2; }
 .card-info { margin-top: 12px; }
 .card-title { font-size: 15px; font-weight: 600; color: #2c3e50; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-meta { font-size: 12px; color: #868e96; margin-bottom: 4px; }

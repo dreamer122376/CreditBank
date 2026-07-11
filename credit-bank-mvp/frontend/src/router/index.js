@@ -102,6 +102,12 @@ const routes = [
         name: 'Profile',
         component: () => import('@/views/Profile.vue'),
         meta: { title: '我的资料' }
+      },
+      {
+        path: 'my-projects',
+        name: 'MyProjects',
+        component: () => import('@/views/MyProjects.vue'),
+        meta: { title: '我的项目' }
       }
     ]
   }

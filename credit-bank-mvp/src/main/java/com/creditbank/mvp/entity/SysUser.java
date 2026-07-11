@@ -32,6 +32,8 @@ public class SysUser {
 
     private Integer status;
 
+    private LocalDateTime lastLoginAt;
+
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -120,6 +122,14 @@ public class SysUser {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     public LocalDateTime getCreatedAt() {

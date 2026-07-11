@@ -70,6 +70,10 @@
           <el-button type="primary" @click="goEdit">编辑</el-button>
           <el-button type="danger" @click="handleDelete">删除</el-button>
         </template>
+        <template v-else-if="campaign.status === 1">
+          <el-button v-if="!enrolled" type="success" @click="handleEnroll" :loading="enrolling">✅ 参加活动</el-button>
+          <el-button v-else type="warning" @click="handleLeave" :loading="leaving">↩️ 退出活动</el-button>
+        </template>
       </div>
     </template>
     <div v-else-if="!loading" style="text-align:center;padding:60px;color:#868e96;">❌ 活动不存在</div>
@@ -81,13 +85,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getCampaignDetail, deleteCampaign } from '@/api/campaign'
+import { getCampaignDetail, deleteCampaign, enrollCampaign, leaveCampaign, isEnrolled } from '@/api/campaign'
 
 const router = useRouter()
 const route = useRoute()
 const { currentUser } = useAuth()
 const loading = ref(true)
 const campaign = ref(null)
+const enrolled = ref(false)
+const enrolling = ref(false)
+const leaving = ref(false)
 
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
@@ -107,6 +114,7 @@ async function loadDetail() {
   loading.value = true
   try {
     campaign.value = await getCampaignDetail(route.params.id)
+    if (!isAdmin.value) await checkEnrolled()
   } catch (e) {
     ElMessage.error('加载失败')
   } finally {
@@ -119,6 +127,34 @@ function goBack() {
 }
 function goEdit() {
   router.push('/campaigns?edit=' + campaign.value.id)
+}
+
+async function checkEnrolled() {
+  try {
+    enrolled.value = await isEnrolled(campaign.value.id)
+  } catch (e) { enrolled.value = false }
+}
+
+async function handleEnroll() {
+  enrolling.value = true
+  try {
+    await enrollCampaign(campaign.value.id)
+    ElMessage.success('报名成功！活动期间积分将享受翻倍')
+    enrolled.value = true
+  } catch (e) {
+    ElMessage.error(e.message || '报名失败')
+  } finally { enrolling.value = false }
+}
+
+async function handleLeave() {
+  leaving.value = true
+  try {
+    await leaveCampaign(campaign.value.id)
+    ElMessage.success('已退出活动')
+    enrolled.value = false
+  } catch (e) {
+    ElMessage.error(e.message || '退出失败')
+  } finally { leaving.value = false }
 }
 async function handleDelete() {
   try {

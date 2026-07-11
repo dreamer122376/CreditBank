@@ -19,24 +19,24 @@ public class PointController {
         this.pointService = pointService;
     }
 
+    // ==================== 认证 ====================
+
     @PostMapping("/user/login")
     public Result<SysUser> login(@RequestBody LoginRequest req) {
         return Result.ok(pointService.login(req.getUsername(), req.getPassword()));
     }
 
-    @GetMapping("/user/list")
-    public Result<List<SysUser>> users() {
-        return Result.ok(pointService.listUsers());
+    @PostMapping("/user/register")
+    public Result<SysUser> register(@RequestBody RegisterRequest req) {
+        return Result.ok(pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
+                req.getRole(), req.getOrgId(), req.getExpertField()));
     }
 
-    @GetMapping("/user/{id}")
-    public Result<SysUser> user(@PathVariable Long id) {
-        return Result.ok(pointService.getUser(id));
-    }
+    // ==================== 积分 ====================
 
-    @GetMapping("/user/{id}/transactions")
-    public Result<List<TransactionLog>> transactions(@PathVariable Long id) {
-        return Result.ok(pointService.listTransactions(id));
+    @PostMapping("/points/earn")
+    public Result<SysUser> earn(@RequestBody EarnRequest req) {
+        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode()));
     }
 
     @GetMapping("/credit-rule/list")
@@ -44,15 +44,11 @@ public class PointController {
         return Result.ok(pointService.listRules());
     }
 
-    @PostMapping("/points/earn")
-    public Result<SysUser> earn(@RequestBody EarnRequest req) {
-        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode()));
-    }
+    // ==================== 流水 ====================
 
-    @PostMapping("/user/register")
-    public Result<SysUser> register(@RequestBody RegisterRequest req) {
-        return Result.ok(pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
-                req.getRole(), req.getOrgId(), req.getExpertField()));
+    @GetMapping("/user/{id}/transactions")
+    public Result<List<TransactionLog>> transactions(@PathVariable Long id) {
+        return Result.ok(pointService.listTransactions(id));
     }
 
     public static class LoginRequest {
@@ -80,21 +76,10 @@ public class PointController {
         private Long userId;
         private String eventCode;
 
-        public Long getUserId() {
-            return userId;
-        }
-
-        public void setUserId(Long userId) {
-            this.userId = userId;
-        }
-
-        public String getEventCode() {
-            return eventCode;
-        }
-
-        public void setEventCode(String eventCode) {
-            this.eventCode = eventCode;
-        }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getEventCode() { return eventCode; }
+        public void setEventCode(String eventCode) { this.eventCode = eventCode; }
     }
 
     public static class RegisterRequest {

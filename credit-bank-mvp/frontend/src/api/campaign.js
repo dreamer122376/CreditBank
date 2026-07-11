@@ -32,6 +32,21 @@ export function deleteCampaign(id) {
   return request.delete('/campaigns/' + id)
 }
 
+// 报名
+export function enrollCampaign(id) {
+  return request.post('/campaigns/' + id + '/enroll')
+}
+
+// 退出活动
+export function leaveCampaign(id) {
+  return request.delete('/campaigns/' + id + '/enroll')
+}
+
+// 检查是否已报名
+export function isEnrolled(id) {
+  return request.get('/campaigns/' + id + '/enrolled')
+}
+
 // 上传图片
 export function uploadImage(file) {
   const formData = new FormData()

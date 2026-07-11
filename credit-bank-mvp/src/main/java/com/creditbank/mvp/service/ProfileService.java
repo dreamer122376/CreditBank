@@ -1,7 +1,9 @@
 package com.creditbank.mvp.service;
 
 import com.creditbank.mvp.common.BizException;
+import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import org.springframework.stereotype.Service;
 
@@ -14,15 +16,23 @@ import org.springframework.stereotype.Service;
 public class ProfileService {
 
     private final SysUserMapper sysUserMapper;
+    private final OrganizationMapper organizationMapper;
 
-    public ProfileService(SysUserMapper sysUserMapper) {
+    public ProfileService(SysUserMapper sysUserMapper, OrganizationMapper organizationMapper) {
         this.sysUserMapper = sysUserMapper;
+        this.organizationMapper = organizationMapper;
     }
 
     public SysUser getProfile(Long userId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
+        }
+        if (user.getOrgId() != null) {
+            Organization org = organizationMapper.selectById(user.getOrgId());
+            if (org != null) {
+                user.setOrgName(org.getName());
+            }
         }
         return user;
     }

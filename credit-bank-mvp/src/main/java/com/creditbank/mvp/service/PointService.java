@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.Campaign;
 import com.creditbank.mvp.entity.CreditRule;
+import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
+import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
 import org.springframework.stereotype.Service;
@@ -22,15 +24,18 @@ public class PointService {
     private final SysUserMapper sysUserMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
+    private final OrganizationMapper organizationMapper;
     private final CampaignService campaignService;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
                         TransactionLogMapper transactionLogMapper,
+                        OrganizationMapper organizationMapper,
                         CampaignService campaignService) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
+        this.organizationMapper = organizationMapper;
         this.campaignService = campaignService;
     }
 
@@ -47,7 +52,12 @@ public class PointService {
         if (!user.getPassword().equals(password)) {
             throw new BizException("密码错误");
         }
-        // 更新最后登录时间
+        if (user.getOrgId() != null) {
+            Organization org = organizationMapper.selectById(user.getOrgId());
+            if (org != null) {
+                user.setOrgName(org.getName());
+            }
+        }
         user.setLastLoginAt(java.time.LocalDateTime.now());
         sysUserMapper.updateById(user);
         return user;

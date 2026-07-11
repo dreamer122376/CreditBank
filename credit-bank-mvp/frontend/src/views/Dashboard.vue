@@ -112,6 +112,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { getStatsSummary, getPointOverview, getTodoList, getRecentTransactions } from '@/api/stats'
+import { getProfile } from '@/api/profile'
 
 const { currentUser } = useAuth()
 
@@ -143,7 +144,7 @@ const statCards = computed(() => {
     ],
     org_admin: [
       { label: '机构积分池余额', value: formatNumber(currentUser.value?.balance || 0), unit: '', color: 'green' },
-      { label: '入驻机构数', value: formatNumber(s.totalOrgs), unit: '家', color: '' },
+      { label: '所属机构', value: currentUser.value?.orgName || '未绑定机构', unit: '', color: '' },
       { label: '平台总用户数', value: formatNumber(s.totalUsers), unit: '人', color: 'orange' },
       { label: '待审核申请', value: formatNumber(s.pendingCount), unit: '条', color: 'red' }
     ],
@@ -205,16 +206,21 @@ async function loadAllData() {
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
-    const [sum, todos, txns, overview] = await Promise.all([
+    const [sum, todos, txns, overview, profile] = await Promise.all([
       getStatsSummary(role, userId),
       getTodoList(role, userId, 4),
       getRecentTransactions(userId, 4),
-      getPointOverview(7)
+      getPointOverview(7),
+      userId ? getProfile(userId) : Promise.resolve(null)
     ])
     summary.value = sum
     todoList.value = todos
     recentTransactions.value = txns
     pointOverview.value = overview
+    if (profile && profile.orgName) {
+      currentUser.value = { ...currentUser.value, orgName: profile.orgName }
+      localStorage.setItem('cb_user', JSON.stringify(currentUser.value))
+    }
   } catch (error) {
     console.error('加载统计数据失败:', error)
   }

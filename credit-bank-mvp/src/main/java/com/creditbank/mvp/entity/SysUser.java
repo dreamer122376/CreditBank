@@ -143,10 +143,21 @@ public class SysUser {
     }
 
     @TableField(exist = false)
+    private String orgName;
+
+    @TableField(exist = false)
     private List<Project> projects;
 
     @TableField(exist = false)
     private List<StudentProject> studentProjects;
+
+    public String getOrgName() {
+        return orgName;
+    }
+
+    public void setOrgName(String orgName) {
+        this.orgName = orgName;
+    }
 
     public List<Project> getProjects() {
         return projects;

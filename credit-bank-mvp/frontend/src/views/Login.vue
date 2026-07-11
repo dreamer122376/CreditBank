@@ -115,15 +115,23 @@ async function handleLogin() {
   }
 }
 
-function handleRegister() {
+async function handleRegister() {
   const { username, password, realName } = registerForm.value
   if (!username || !password || !realName) {
     registerMsg.value = '请填写完整信息'
     return
   }
   registerMsg.value = ''
-  register(registerForm.value)
-  router.push('/dashboard')
+  try {
+    const success = await register(registerForm.value)
+    if (success) {
+      router.push('/dashboard')
+    } else {
+      registerMsg.value = '注册失败，请稍后重试'
+    }
+  } catch (error) {
+    registerMsg.value = '注册失败，请稍后重试'
+  }
 }
 </script>
 

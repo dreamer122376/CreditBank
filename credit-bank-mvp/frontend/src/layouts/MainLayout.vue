@@ -58,6 +58,7 @@ import {
   UserFilled,
   ScaleToOriginal,
   WalletFilled,
+  Promotion,
   SwitchButton
 } from '@element-plus/icons-vue'
 
@@ -85,6 +86,7 @@ const menuItems = computed(() => {
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/campaigns', title: '平台活动管理', icon: Promotion },
       { path: '/transactions', title: '交易管理', icon: WalletFilled }
     ],
     org_admin: [
@@ -96,6 +98,7 @@ const menuItems = computed(() => {
     student: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/transactions', title: '我的钱包', icon: WalletFilled }
     ],
     expert: [

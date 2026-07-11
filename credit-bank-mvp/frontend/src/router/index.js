@@ -42,6 +42,24 @@ const routes = [
         name: 'Transactions',
         component: () => import('@/views/Placeholder.vue'),
         meta: { title: '交易管理' }
+      },
+      {
+        path: 'campaigns',
+        name: 'CampaignManage',
+        component: () => import('@/views/CampaignManage.vue'),
+        meta: { title: '平台活动管理' }
+      },
+      {
+        path: 'campaigns/student',
+        name: 'CampaignStudent',
+        component: () => import('@/views/CampaignStudent.vue'),
+        meta: { title: '参与活动' }
+      },
+      {
+        path: 'campaign/:id',
+        name: 'CampaignDetail',
+        component: () => import('@/views/CampaignDetail.vue'),
+        meta: { title: '活动详情' }
       }
     ]
   }

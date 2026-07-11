@@ -64,8 +64,7 @@ import {
   Refresh,
   Medal,
   Tickets,
-  Promotion,
-  SwitchButton
+  Promotion
 } from '@element-plus/icons-vue'
 
 const router = useRouter()

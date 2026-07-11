@@ -8,6 +8,10 @@ spring:
     username: root
     password: 123456
 
+  sql:
+    init:
+      mode: never
+
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher

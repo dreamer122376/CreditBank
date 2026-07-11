@@ -18,6 +18,10 @@
 --
 -- Table structure for table `admin_role_menu`
 --
+DROP DATABASE IF EXISTS `credit_bank`;
+CREATE DATABASE IF NOT EXISTS `credit_bank` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci;
+USE `credit_bank`;
+
 
 DROP TABLE IF EXISTS `admin_role_menu`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

@@ -46,6 +46,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Redis：缓存支持 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!-- Swagger/OpenAPI：自动生成接口文档，方便全组调接口 -->
         <dependency>
             <groupId>org.springdoc</groupId>

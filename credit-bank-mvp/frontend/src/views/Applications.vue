@@ -1,9 +1,22 @@
 <template>
   <div class="applications">
-    <el-card>
+    <el-card v-loading="loading" element-loading-text="加载中...">
       <template #header>
-        <span>业务流程审批</span>
+        <div class="card-header">
+          <span>业务流程审批</span>
+        </div>
       </template>
+      <div class="filter-bar">
+        <el-input v-model="searchText" placeholder="搜索申请人/机构" style="width: 220px;" clearable @keyup.enter="loadData">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+        <el-select v-model="filterStatus" placeholder="筛选状态" style="width: 140px;" clearable @change="loadData">
+          <el-option label="待机构审核" :value="1" />
+          <el-option label="待专家评审" :value="2" />
+          <el-option label="已通过" :value="3" />
+          <el-option label="已驳回" :value="4" />
+        </el-select>
+      </div>
       <el-table :data="apps" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="bizTypeName" label="业务类型" width="130" />
@@ -52,23 +65,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getApplications, auditApplication } from '@/api/application'
 
 const { currentUser } = useAuth()
 
+const loading = ref(true)
 const apps = ref([])
 const rejectVisible = ref(false)
+const searchText = ref('')
+const filterStatus = ref('')
 const rejectReason = ref('')
 const rejectTarget = ref(null)
 
 onMounted(loadData)
 
 async function loadData() {
+  loading.value = true
   try {
     apps.value = await getApplications(currentUser.value?.role, currentUser.value?.id)
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -116,3 +136,17 @@ function formatTime(time) {
   return time ? String(time).replace('T', ' ') : ''
 }
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+</style>

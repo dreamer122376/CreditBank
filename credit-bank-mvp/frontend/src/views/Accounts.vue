@@ -1,6 +1,6 @@
 <template>
   <div class="accounts">
-    <el-card>
+    <el-card v-loading="loading" element-loading-text="加载中...">
       <template #header>
         <div class="card-header">
           <span>用户列表</span>
@@ -10,6 +10,17 @@
           </el-button>
         </div>
       </template>
+      <div class="filter-bar">
+        <el-input v-model="searchText" placeholder="搜索用户名/姓名" style="width: 220px;" clearable @keyup.enter="loadData">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+        <el-select v-model="filterRole" placeholder="筛选角色" style="width: 140px;" clearable @change="loadData">
+          <el-option label="系统管理员" value="admin" />
+          <el-option label="机构管理员" value="org_admin" />
+          <el-option label="学生" value="student" />
+          <el-option label="专家" value="expert" />
+        </el-select>
+      </div>
       <el-table :data="users" border style="width: 100%;">
         <el-table-column prop="id" label="用户ID" width="100" />
         <el-table-column prop="username" label="用户名" />
@@ -59,14 +70,17 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { getUsers } from '@/api/user'
 import { getRules, earnPoints } from '@/api/point'
 
 const router = useRouter()
 
+const loading = ref(true)
 const users = ref([])
 const rules = ref([])
+const searchText = ref('')
+const filterRole = ref('')
 const earnDialogVisible = ref(false)
 const earning = ref(false)
 
@@ -102,12 +116,15 @@ onMounted(async () => {
 })
 
 async function loadData() {
+  loading.value = true
   try {
     users.value = await getUsers()
     rules.value = await getRules()
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -149,6 +166,12 @@ async function handleEarn() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .balance {

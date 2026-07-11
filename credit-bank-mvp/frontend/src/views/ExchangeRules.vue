@@ -1,6 +1,6 @@
 <template>
   <div class="exchange-rules">
-    <el-card>
+    <el-card v-loading="loading" element-loading-text="加载中...">
       <template #header>
         <div class="card-header">
           <span>积分转换规则</span>
@@ -72,6 +72,7 @@ import {
   toggleExchangeRule
 } from '@/api/exchangeRule'
 
+const loading = ref(true)
 const rules = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
@@ -79,10 +80,13 @@ const form = ref({})
 onMounted(loadData)
 
 async function loadData() {
+  loading.value = true
   try {
     rules.value = await getExchangeRules()
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 

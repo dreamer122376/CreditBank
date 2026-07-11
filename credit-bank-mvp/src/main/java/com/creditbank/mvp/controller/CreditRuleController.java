@@ -6,6 +6,7 @@ import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.service.CreditRuleService;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,35 +40,32 @@ public class CreditRuleController {
     }
 
     @PostMapping("/create")
-    public Result<CreditRule> create(@RequestHeader("X-Operator-Id") Long operatorId,
-                                      @RequestBody CreditRule rule) {
-        checkAdmin(operatorId);
+    public Result<CreditRule> create(@RequestBody CreditRule rule) {
+        checkAdmin();
         return Result.ok(creditRuleService.create(rule));
     }
 
     @PostMapping("/update")
-    public Result<CreditRule> update(@RequestHeader("X-Operator-Id") Long operatorId,
-                                      @RequestBody CreditRule rule) {
-        checkAdmin(operatorId);
+    public Result<CreditRule> update(@RequestBody CreditRule rule) {
+        checkAdmin();
         return Result.ok(creditRuleService.update(rule));
     }
 
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@RequestHeader("X-Operator-Id") Long operatorId,
-                                @PathVariable Long id) {
-        checkAdmin(operatorId);
+    public Result<Void> delete(@PathVariable Long id) {
+        checkAdmin();
         creditRuleService.delete(id);
         return Result.ok();
     }
 
     @PostMapping("/{id}/toggle")
-    public Result<CreditRule> toggle(@RequestHeader("X-Operator-Id") Long operatorId,
-                                      @PathVariable Long id, @RequestBody ToggleRequest request) {
-        checkAdmin(operatorId);
+    public Result<CreditRule> toggle(@PathVariable Long id, @RequestBody ToggleRequest request) {
+        checkAdmin();
         return Result.ok(creditRuleService.toggleEnabled(id, request.getIsEnabled()));
     }
 
-    private void checkAdmin(Long operatorId) {
+    private void checkAdmin() {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
         if (operatorId == null) {
             throw new BizException("未登录");
         }

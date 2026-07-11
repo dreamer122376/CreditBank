@@ -5,6 +5,7 @@ import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.service.StudentProjectService;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,18 +21,20 @@ public class StudentProjectController {
     }
 
     @GetMapping("/my-projects")
-    public Result<List<Project>> getMyProjects(@RequestHeader("X-Operator-Id") Long studentId) {
+    public Result<List<Project>> getMyProjects() {
+        Long studentId = CurrentUserUtil.getCurrentUserId();
         return Result.ok(studentProjectService.getProjectsByStudentId(studentId));
     }
 
     @GetMapping("/my-detail")
-    public Result<SysUser> getMyDetail(@RequestHeader("X-Operator-Id") Long studentId) {
+    public Result<SysUser> getMyDetail() {
+        Long studentId = CurrentUserUtil.getCurrentUserId();
         return Result.ok(studentProjectService.getStudentWithProjects(studentId));
     }
 
     @PostMapping("/register")
-    public Result<StudentProject> register(@RequestParam Long projectId,
-                                           @RequestHeader("X-Operator-Id") Long studentId) {
+    public Result<StudentProject> register(@RequestParam Long projectId) {
+        Long studentId = CurrentUserUtil.getCurrentUserId();
         return Result.ok(studentProjectService.registerProject(studentId, projectId));
     }
 

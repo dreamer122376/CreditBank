@@ -6,6 +6,7 @@ import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.service.UserService;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,8 +43,8 @@ public class UserController {
     /** 编辑用户信息 */
     @PutMapping("/{id}")
     public Result<SysUser> update(@PathVariable Long id,
-                                   @RequestBody SysUser update,
-                                   @RequestHeader("X-Operator-Id") Long operatorId) {
+                                   @RequestBody SysUser update) {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
         return Result.ok(userService.updateUser(id, update, operator));
     }
@@ -53,20 +54,19 @@ public class UserController {
     /** 冻结/解冻单个用户 */
     @PutMapping("/{id}/status")
     public Result<SysUser> updateStatus(@PathVariable Long id,
-                                         @RequestBody Map<String, Integer> body,
-                                         @RequestHeader("X-Operator-Id") Long operatorId) {
+                                         @RequestBody Map<String, Integer> body) {
         Integer status = body.get("status");
         if (status == null || (status != 0 && status != 1)) {
             throw new BizException("status 必须为 0（冻结）或 1（解冻）");
         }
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
         return Result.ok(userService.updateStatus(id, status, operator));
     }
 
     /** 批量冻结/解冻 */
     @PutMapping("/batch-status")
-    public Result<?> batchUpdateStatus(@RequestBody Map<String, Object> body,
-                                        @RequestHeader("X-Operator-Id") Long operatorId) {
+    public Result<?> batchUpdateStatus(@RequestBody Map<String, Object> body) {
         @SuppressWarnings("unchecked")
         List<Long> ids = ((List<Number>) body.get("ids")).stream()
                 .map(Number::longValue).collect(java.util.stream.Collectors.toList());
@@ -77,6 +77,7 @@ public class UserController {
         if (status == null || (status != 0 && status != 1)) {
             throw new BizException("status 必须为 0（冻结）或 1（解冻）");
         }
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
         userService.batchUpdateStatus(ids, status, operator);
         return Result.ok();
@@ -87,12 +88,12 @@ public class UserController {
     /** 管理员重置用户密码 */
     @PutMapping("/{id}/reset-pw")
     public Result<?> resetPassword(@PathVariable Long id,
-                                    @RequestBody Map<String, String> body,
-                                    @RequestHeader("X-Operator-Id") Long operatorId) {
+                                    @RequestBody Map<String, String> body) {
         String newPassword = body.get("newPassword");
         if (newPassword == null || newPassword.trim().isEmpty()) {
             throw new BizException("新密码不能为空");
         }
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
         userService.resetPassword(id, newPassword, operator);
         return Result.ok();

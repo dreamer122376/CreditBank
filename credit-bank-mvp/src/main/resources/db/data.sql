@@ -5,15 +5,16 @@ INSERT INTO `organization` (`id`, `name`, `contact_person`, `contact_phone`, `ad
 (3, '管理学院', '陈七', '13800138008', '教学楼C栋', 0, NOW(), NOW());
 
 -- 系统用户表初始数据（依赖 organization.org_id）
+-- 密码均为 123456（BCrypt加密）
 INSERT INTO `sys_user` (`id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `org_id`, `expert_field`, `balance`, `status`, `created_at`) VALUES
-(1, 'admin', '123456', '系统管理员', '13800138000', 'admin@creditbank.com', 'admin', NULL, NULL, 0, 1, NOW()),
-(2, 'org_admin_1', '123456', '张三', '13800138001', 'zhangsan@org1.com', 'org_admin', 1, NULL, 0, 1, NOW()),
-(3, 'org_admin_2', '123456', '李四', '13800138002', 'lisi@org2.com', 'org_admin', 2, NULL, 0, 1, NOW()),
-(4, 'expert_1', '123456', '王五', '13800138003', 'wangwu@expert.com', 'expert', NULL, '计算机科学', 0, 1, NOW()),
-(5, 'expert_2', '123456', '赵六', '13800138004', 'zhaoliu@expert.com', 'expert', NULL, '软件工程', 0, 1, NOW()),
-(6, 'student_1', '123456', '小明', '13800138005', 'xiaoming@student.com', 'student', 1, NULL, 500, 1, NOW()),
-(7, 'student_2', '123456', '小红', '13800138006', 'xiaohong@student.com', 'student', 2, NULL, 300, 1, NOW()),
-(8, 'student_3', '123456', '小刚', '13800138007', 'xiaogang@student.com', 'student', 1, NULL, 800, 1, NOW());
+(1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '系统管理员', '13800138000', 'admin@creditbank.com', 'admin', NULL, NULL, 0, 1, NOW()),
+(2, 'org_admin_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '张三', '13800138001', 'zhangsan@org1.com', 'org_admin', 1, NULL, 0, 1, NOW()),
+(3, 'org_admin_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '李四', '13800138002', 'lisi@org2.com', 'org_admin', 2, NULL, 0, 1, NOW()),
+(4, 'expert_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '王五', '13800138003', 'wangwu@expert.com', 'expert', NULL, '计算机科学', 0, 1, NOW()),
+(5, 'expert_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '赵六', '13800138004', 'zhaoliu@expert.com', 'expert', NULL, '软件工程', 0, 1, NOW()),
+(6, 'student_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小明', '13800138005', 'xiaoming@student.com', 'student', 1, NULL, 500, 1, NOW()),
+(7, 'student_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小红', '13800138006', 'xiaohong@student.com', 'student', 2, NULL, 300, 1, NOW()),
+(8, 'student_3', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小刚', '13800138007', 'xiaogang@student.com', 'student', 1, NULL, 800, 1, NOW());
 
 -- 管理员角色菜单权限表初始数据（无外键依赖）
 INSERT INTO `admin_role_menu` (`id`, `role_tag`, `menu_code`) VALUES

@@ -4,31 +4,48 @@ import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.service.PointService;
+import com.creditbank.mvp.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 public class PointController {
 
     private final PointService pointService;
+    private final JwtUtil jwtUtil;
 
-    public PointController(PointService pointService) {
+    public PointController(PointService pointService, JwtUtil jwtUtil) {
         this.pointService = pointService;
+        this.jwtUtil = jwtUtil;
     }
 
     // ==================== 认证 ====================
 
     @PostMapping("/user/login")
-    public Result<SysUser> login(@RequestBody LoginRequest req) {
-        return Result.ok(pointService.login(req.getUsername(), req.getPassword()));
+    public Result<Map<String, Object>> login(@RequestBody LoginRequest req) {
+        SysUser user = pointService.login(req.getUsername(), req.getPassword());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", user);
+        return Result.ok(result);
     }
 
     @PostMapping("/user/register")
-    public Result<SysUser> register(@RequestBody RegisterRequest req) {
-        return Result.ok(pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
-                req.getRole(), req.getOrgId(), req.getExpertField()));
+    public Result<Map<String, Object>> register(@RequestBody RegisterRequest req) {
+        SysUser user = pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
+                req.getRole(), req.getOrgId(), req.getExpertField());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", user);
+        return Result.ok(result);
     }
 
     // ==================== 积分 ====================

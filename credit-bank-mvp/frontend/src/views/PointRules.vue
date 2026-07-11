@@ -13,9 +13,10 @@
             <span class="points">+{{ scope.row.creditValue }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="scope" label="适用范围">
+        <el-table-column prop="projectId" label="关联项目">
           <template #default="scope">
-            <el-tag type="info">{{ getScopeName(scope.row.scope) }}</el-tag>
+            <el-tag v-if="scope.row.projectId" type="info">项目 #{{ scope.row.projectId }}</el-tag>
+            <el-tag v-else type="info">通用</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="isEnabled" label="状态" width="100">
@@ -39,16 +40,6 @@ import { ElMessage } from 'element-plus'
 import { getRules } from '@/api/point'
 
 const rules = ref([])
-
-const SCOPE_NAME = {
-  STUDENT: '学生',
-  EXPERT: '专家',
-  ALL: '全部'
-}
-
-function getScopeName(scope) {
-  return SCOPE_NAME[scope] || scope
-}
 
 onMounted(async () => {
   await loadData()

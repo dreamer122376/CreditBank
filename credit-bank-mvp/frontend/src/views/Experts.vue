@@ -12,6 +12,18 @@
         <el-table-column prop="username" label="登录账号" width="140" />
         <el-table-column prop="realName" label="姓名" width="120" />
         <el-table-column prop="expertField" label="擅长领域" />
+        <el-table-column label="评审资质">
+          <template #default="scope">
+            <template v-if="(certMap[scope.row.id] || []).length">
+              <el-tag v-for="cert in certMap[scope.row.id]" :key="cert.id"
+                      class="cert-badge" effect="plain" size="small">
+                <el-icon><Medal /></el-icon>
+                {{ cert.fieldName }}
+              </el-tag>
+            </template>
+            <span v-else class="no-cert">未认证</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column prop="balance" label="积分余额" width="100" />
         <el-table-column prop="status" label="状态" width="90">
@@ -68,9 +80,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Medal } from '@element-plus/icons-vue'
 import { getExperts, createExpert, updateExpert, changeExpertStatus } from '@/api/expert'
+import { getAllCerts } from '@/api/expertCert'
 
 const experts = ref([])
+const certMap = ref({})
 const dialogVisible = ref(false)
 const form = ref({})
 
@@ -79,6 +94,12 @@ onMounted(loadData)
 async function loadData() {
   try {
     experts.value = await getExperts()
+    const certs = await getAllCerts()
+    const map = {}
+    for (const cert of certs) {
+      (map[cert.expertId] = map[cert.expertId] || []).push(cert)
+    }
+    certMap.value = map
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
   }
@@ -125,5 +146,18 @@ async function changeStatus(row, status) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.cert-badge {
+  color: #9a6700;
+  border-color: #d4a72c;
+  background: #fff8e1;
+  font-weight: 600;
+  margin: 2px 4px 2px 0;
+}
+
+.no-cert {
+  color: #adb5bd;
+  font-size: 12px;
 }
 </style>

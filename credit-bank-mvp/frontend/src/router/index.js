@@ -96,6 +96,12 @@ const routes = [
         name: 'CampaignDetail',
         component: () => import('@/views/CampaignDetail.vue'),
         meta: { title: '活动详情' }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/Profile.vue'),
+        meta: { title: '我的资料' }
       }
     ]
   }

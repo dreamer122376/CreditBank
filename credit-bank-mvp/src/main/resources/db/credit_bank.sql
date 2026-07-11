@@ -383,6 +383,27 @@ LOCK TABLES `transaction_log` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `expert_cert`
+--
+
+DROP TABLE IF EXISTS `expert_cert`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `expert_cert` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '认证记录ID',
+  `expert_id` bigint NOT NULL COMMENT '专家用户ID',
+  `cert_standard_id` bigint NOT NULL COMMENT '认证标准ID',
+  `field_name` varchar(100) DEFAULT NULL COMMENT '认证领域名（快照）',
+  `application_id` bigint DEFAULT NULL COMMENT '来源申请单ID',
+  `status` tinyint DEFAULT '1' COMMENT '1有效 0撤销',
+  `issued_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '颁发时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_expert_standard` (`expert_id`,`cert_standard_id`),
+  KEY `idx_expert_id` (`expert_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='专家认证记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Dumping events for database 'credit_bank'
 --
 

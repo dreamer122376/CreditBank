@@ -21,8 +21,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="rejectReason" label="驳回原因" width="140" />
-        <el-table-column label="操作" width="170">
+        <el-table-column label="操作" width="230">
           <template #default="scope">
+            <el-button size="small" @click="openDetail(scope.row)">详情</el-button>
             <template v-if="canAudit(scope.row)">
               <el-button size="small" type="success" @click="audit(scope.row, true)">通过</el-button>
               <el-button size="small" type="danger" @click="openReject(scope.row)">驳回</el-button>
@@ -34,6 +35,36 @@
         暂无申请
       </div>
     </el-card>
+
+    <el-dialog v-model="detailVisible" title="申请详情" width="520px">
+      <el-descriptions :column="1" border v-if="detailRow">
+        <el-descriptions-item label="业务类型">{{ detailRow.bizTypeName }}</el-descriptions-item>
+        <el-descriptions-item label="申请人">{{ detailRow.applicantName }}</el-descriptions-item>
+        <el-descriptions-item v-if="detailForm.fieldName" label="申请领域">
+          {{ detailForm.fieldName }}
+        </el-descriptions-item>
+        <el-descriptions-item v-if="detailForm.reason" label="申请理由">
+          {{ detailForm.reason }}
+        </el-descriptions-item>
+        <el-descriptions-item label="证明材料">
+          <template v-if="detailAttachments.length">
+            <div v-for="(att, i) in detailAttachments" :key="i" class="att-row">
+              <span class="att-name">{{ att.name }}</span>
+              <el-link v-if="isPreviewable(att)" :href="previewUrl(att)" target="_blank"
+                       type="primary">预览</el-link>
+              <el-link :href="downloadUrl(att)" type="primary">下载</el-link>
+            </div>
+          </template>
+          <span v-else style="color: #868e96;">未提供</span>
+        </el-descriptions-item>
+        <el-descriptions-item v-if="detailRow.rejectReason" label="驳回原因">
+          {{ detailRow.rejectReason }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="rejectVisible" title="驳回申请" width="420px">
       <el-form label-width="80px">
@@ -50,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
 import { getApplications, auditApplication } from '@/api/application'
@@ -61,6 +92,40 @@ const apps = ref([])
 const rejectVisible = ref(false)
 const rejectReason = ref('')
 const rejectTarget = ref(null)
+const detailVisible = ref(false)
+const detailRow = ref(null)
+
+const detailForm = computed(() => {
+  try {
+    return detailRow.value?.formData ? JSON.parse(detailRow.value.formData) : {}
+  } catch (e) {
+    return {}
+  }
+})
+
+const detailAttachments = computed(() =>
+  Array.isArray(detailForm.value.attachments) ? detailForm.value.attachments : [])
+
+function openDetail(row) {
+  detailRow.value = row
+  detailVisible.value = true
+}
+
+function fileNameFromUrl(url) {
+  return (url || '').split('?')[0].split('/').pop()
+}
+
+function isPreviewable(att) {
+  return /\.(pdf|jpe?g|png|gif|webp)$/i.test(fileNameFromUrl(att.url))
+}
+
+function previewUrl(att) {
+  return `/api/files/preview/${fileNameFromUrl(att.url)}?name=${encodeURIComponent(att.name)}`
+}
+
+function downloadUrl(att) {
+  return `/api/files/download/${fileNameFromUrl(att.url)}?name=${encodeURIComponent(att.name)}`
+}
 
 onMounted(loadData)
 
@@ -116,3 +181,16 @@ function formatTime(time) {
   return time ? String(time).replace('T', ' ') : ''
 }
 </script>
+
+<style scoped>
+.att-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.8;
+}
+
+.att-name {
+  color: #495057;
+}
+</style>

@@ -149,8 +149,6 @@ const statCards = computed(() => {
     ],
     student: [
       { label: '我的积分余额', value: formatNumber(currentUser.value?.balance || 0), unit: '', color: '' },
-      { label: '平台总用户数', value: formatNumber(s.totalUsers), unit: '人', color: 'green' },
-      { label: '入驻机构数', value: formatNumber(s.totalOrgs), unit: '家', color: 'orange' },
       { label: '待处理申请', value: formatNumber(s.pendingCount), unit: '条', color: 'red' }
     ],
     expert: [

@@ -25,6 +25,11 @@ public class FileService {
             "image/jpeg", "image/png", "image/gif", "image/webp");
     private static final long MAX_SIZE = 5 * 1024 * 1024;
 
+    /** 证明材料：图片 + PDF + Word，供认证申请等场景上传 */
+    private static final List<String> ATTACHMENT_EXTS = Arrays.asList(
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx");
+    private static final long ATTACHMENT_MAX_SIZE = 10 * 1024 * 1024;
+
     private final Path uploadDir;
 
     public FileService() {
@@ -71,6 +76,36 @@ public class FileService {
 
             // 返回 Controller 端点路径，而非静态资源路径
             return "/api/files/view/" + newFileName;
+        } catch (IOException e) {
+            throw new BizException("文件上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 上传证明材料（图片/PDF/Word），按扩展名白名单校验，
+     * 返回下载路径 /api/files/download/{filename}
+     */
+    public String uploadAttachment(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BizException("请选择要上传的文件");
+        }
+        if (file.getSize() > ATTACHMENT_MAX_SIZE) {
+            throw new BizException("文件大小不能超过10MB");
+        }
+        String originalName = file.getOriginalFilename();
+        String ext = "";
+        if (originalName != null && originalName.contains(".")) {
+            ext = originalName.substring(originalName.lastIndexOf(".")).toLowerCase();
+        }
+        if (!ATTACHMENT_EXTS.contains(ext)) {
+            throw new BizException("仅支持 PDF、Word、JPG、PNG、GIF、WebP 格式");
+        }
+
+        try {
+            String newFileName = UUID.randomUUID().toString().replace("-", "") + ext;
+            Path targetPath = uploadDir.resolve(newFileName);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            return "/api/files/download/" + newFileName;
         } catch (IOException e) {
             throw new BizException("文件上传失败：" + e.getMessage());
         }

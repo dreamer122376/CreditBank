@@ -18,6 +18,7 @@ public class ApplicationDetailDTO {
     private String statusName;
     private String statusType;
     private String rejectReason;
+    private String formData;
     private LocalDateTime appliedAt;
     private LocalDateTime updatedAt;
 
@@ -123,6 +124,14 @@ public class ApplicationDetailDTO {
 
     public void setRejectReason(String rejectReason) {
         this.rejectReason = rejectReason;
+    }
+
+    public String getFormData() {
+        return formData;
+    }
+
+    public void setFormData(String formData) {
+        this.formData = formData;
     }
 
     public LocalDateTime getAppliedAt() {

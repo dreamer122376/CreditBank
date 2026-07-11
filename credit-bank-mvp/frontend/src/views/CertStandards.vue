@@ -1,6 +1,24 @@
 <template>
   <div class="cert-standards">
-    <el-card>
+    <el-card class="intro-card">
+      <template #header>
+        <span>认证等级说明</span>
+      </template>
+      <p class="intro-text">
+        认证标准是学员获得能力证书的"毕业门槛"，各等级的差异体现在两个维度：
+        <strong>积分门槛</strong>（等级越高要求的累计积分越多）和<strong>评审要求</strong>
+        （高等级认证需持证专家评审签字，低等级达标即可自动核发）。
+      </p>
+      <ul class="intro-list">
+        <li v-for="s in enabledStandards" :key="s.id">
+          <strong>{{ s.standardName }}</strong>：累计积分满 {{ s.minCredit }} 分可申请，
+          {{ s.needExpertApprove === 1 ? '需持证专家评审签字' : '无需专家评审，达标即发' }}，
+          证书有效期 {{ s.validityDays }} 天
+        </li>
+      </ul>
+    </el-card>
+
+    <el-card style="margin-top: 16px;">
       <template #header>
         <div class="card-header">
           <span>认证标准</span>
@@ -69,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   getCertStandards,
@@ -79,6 +97,11 @@ import {
 } from '@/api/certStandard'
 
 const standards = ref([])
+
+const enabledStandards = computed(() =>
+  [...standards.value]
+    .filter(s => s.isEnabled === 1)
+    .sort((a, b) => a.minCredit - b.minCredit))
 const dialogVisible = ref(false)
 const form = ref({})
 
@@ -138,5 +161,22 @@ async function toggle(row) {
 .points {
   font-weight: 600;
   color: #0b7a4f;
+}
+
+.intro-card :deep(.el-card__body) {
+  padding: 16px 20px;
+}
+
+.intro-text {
+  color: #495057;
+  line-height: 1.8;
+  margin: 0 0 8px;
+}
+
+.intro-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #495057;
+  line-height: 2;
 }
 </style>

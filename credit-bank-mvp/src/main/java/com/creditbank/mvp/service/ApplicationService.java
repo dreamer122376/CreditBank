@@ -302,6 +302,7 @@ public class ApplicationService {
             dto.setStatusName(statusInfo[0]);
             dto.setStatusType(statusInfo[1]);
             dto.setRejectReason(app.getRejectReason());
+            dto.setFormData(app.getFormData());
             dto.setAppliedAt(app.getAppliedAt());
             dto.setUpdatedAt(app.getUpdatedAt());
             result.add(dto);

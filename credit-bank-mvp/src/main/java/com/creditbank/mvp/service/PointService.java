@@ -117,11 +117,6 @@ public class PointService {
                         .orderByDesc(TransactionLog::getId));
     }
 
-    public List<CreditRule> listRules() {
-        return creditRuleMapper.selectList(
-                new LambdaQueryWrapper<CreditRule>().eq(CreditRule::getIsEnabled, 1));
-    }
-
     @Transactional(rollbackFor = Exception.class)
     public SysUser register(String username, String password, String realName, String role, Long orgId, String expertField) {
         SysUser existing = sysUserMapper.selectOne(

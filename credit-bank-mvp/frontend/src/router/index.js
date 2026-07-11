@@ -46,7 +46,7 @@ const routes = [
       {
         path: 'transactions',
         name: 'Transactions',
-        component: () => import('@/views/Placeholder.vue'),
+        component: () => import('@/views/Transactions.vue'),
         meta: { title: '交易管理' }
       },
       {

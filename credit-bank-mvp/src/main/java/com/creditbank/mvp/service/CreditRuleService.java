@@ -30,6 +30,13 @@ public class CreditRuleService {
                 new LambdaQueryWrapper<CreditRule>().orderByDesc(CreditRule::getId));
     }
 
+    public List<CreditRule> listByEnabled(boolean enabled) {
+        return creditRuleMapper.selectList(
+                new LambdaQueryWrapper<CreditRule>()
+                        .eq(CreditRule::getIsEnabled, enabled ? STATUS_ENABLED : STATUS_DISABLED)
+                        .orderByDesc(CreditRule::getId));
+    }
+
     public CreditRule getById(Long id) {
         CreditRule rule = creditRuleMapper.selectById(id);
         if (rule == null) {

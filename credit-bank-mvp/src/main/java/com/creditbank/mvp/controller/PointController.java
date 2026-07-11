@@ -1,7 +1,6 @@
 package com.creditbank.mvp.controller;
 
 import com.creditbank.mvp.common.Result;
-import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.service.PointService;
@@ -37,11 +36,6 @@ public class PointController {
     @PostMapping("/points/earn")
     public Result<SysUser> earn(@RequestBody EarnRequest req) {
         return Result.ok(pointService.earn(req.getUserId(), req.getEventCode()));
-    }
-
-    @GetMapping("/credit-rule/list")
-    public Result<List<CreditRule>> rules() {
-        return Result.ok(pointService.listRules());
     }
 
     // ==================== 流水 ====================

@@ -2,18 +2,21 @@
   <div class="point-rules">
     <el-card>
       <template #header>
-        <span>积分规则列表</span>
+        <div class="card-header">
+          <span>积分规则列表</span>
+          <el-button type="primary" size="small" @click="openCreate">新增规则</el-button>
+        </div>
       </template>
       <el-table :data="rules" border style="width: 100%;">
         <el-table-column prop="id" label="规则ID" width="100" />
         <el-table-column prop="eventCode" label="事件编码" />
         <el-table-column prop="eventName" label="事件名称" />
-        <el-table-column prop="creditValue" label="奖励积分">
+        <el-table-column prop="creditValue" label="奖励积分" width="120">
           <template #default="scope">
             <span class="points">+{{ scope.row.creditValue }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="projectId" label="关联项目">
+        <el-table-column prop="projectId" label="关联项目" width="140">
           <template #default="scope">
             <el-tag v-if="scope.row.projectId" type="info">项目 #{{ scope.row.projectId }}</el-tag>
             <el-tag v-else type="info">通用</el-tag>
@@ -26,36 +29,158 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="220">
+          <template #default="scope">
+            <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
+            <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
+                       @click="toggle(scope.row)">
+              {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
+            </el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
       </el-table>
       <div v-if="rules.length === 0" style="text-align: center; padding: 40px;">
         暂无积分规则
       </div>
     </el-card>
+
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑规则' : '新增规则'" width="480px">
+      <el-form :model="form" label-width="90px">
+        <el-form-item label="事件编码" required>
+          <el-input v-model="form.eventCode" placeholder="如：COURSE_COMPLETE" />
+        </el-form-item>
+        <el-form-item label="事件名称" required>
+          <el-input v-model="form.eventName" placeholder="如：完成课程" />
+        </el-form-item>
+        <el-form-item label="奖励积分" required>
+          <el-input-number v-model="form.creditValue" :min="1" />
+        </el-form-item>
+        <el-form-item label="关联项目">
+          <el-select v-model="form.projectId" placeholder="选择项目（可选）" style="width:100%;">
+            <el-option label="通用规则（不关联项目）" :value="null" />
+            <el-option v-for="p in projects" :key="p.id" :label="p.name" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="form.isEnabled" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="save">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getRules } from '@/api/point'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  getRules,
+  createRule,
+  updateRule,
+  deleteRule,
+  toggleRule,
+  getProjects
+} from '@/api/point'
 
 const rules = ref([])
+const projects = ref([])
+const dialogVisible = ref(false)
+const form = ref({})
 
 onMounted(async () => {
   await loadData()
+  await loadProjects()
 })
 
 async function loadData() {
   try {
     rules.value = await getRules()
   } catch (error) {
-    console.error('加载数据失败:', error)
-    ElMessage.error('加载数据失败')
+    ElMessage.error(error.message || '加载数据失败')
+  }
+}
+
+async function loadProjects() {
+  try {
+    projects.value = await getProjects()
+  } catch (error) {
+    projects.value = []
+  }
+}
+
+function openCreate() {
+  form.value = { eventCode: '', eventName: '', creditValue: 10, projectId: null, isEnabled: 1 }
+  dialogVisible.value = true
+}
+
+function openEdit(row) {
+  form.value = { ...row }
+  dialogVisible.value = true
+}
+
+async function save() {
+  if (!form.value.eventCode) {
+    ElMessage.warning('请输入事件编码')
+    return
+  }
+  if (!form.value.eventName) {
+    ElMessage.warning('请输入事件名称')
+    return
+  }
+  if (!form.value.creditValue || form.value.creditValue <= 0) {
+    ElMessage.warning('奖励积分必须大于0')
+    return
+  }
+  try {
+    if (form.value.id) {
+      await updateRule(form.value)
+    } else {
+      await createRule(form.value)
+    }
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    await loadData()
+  } catch (error) {
+    ElMessage.error(error.message || '保存失败')
+  }
+}
+
+async function toggle(row) {
+  try {
+    const newStatus = row.isEnabled === 1 ? 0 : 1
+    await toggleRule(row.id, newStatus)
+    ElMessage.success('操作成功')
+    await loadData()
+  } catch (error) {
+    ElMessage.error(error.message || '操作失败')
+  }
+}
+
+async function handleDelete(row) {
+  try {
+    await ElMessageBox.confirm('确定要删除规则「' + row.eventName + '」吗？此操作不可恢复。', '确认删除', { type: 'warning' })
+    await deleteRule(row.id)
+    ElMessage.success('已删除')
+    await loadData()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败')
+    }
   }
 }
 </script>
 
 <style scoped>
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .points {
   font-weight: 600;
   color: #0b7a4f;

@@ -2,6 +2,7 @@ package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
+import com.creditbank.mvp.entity.Campaign;
 import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
@@ -11,6 +12,8 @@ import com.creditbank.mvp.mapper.TransactionLogMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -19,13 +22,16 @@ public class PointService {
     private final SysUserMapper sysUserMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
+    private final CampaignService campaignService;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
-                        TransactionLogMapper transactionLogMapper) {
+                        TransactionLogMapper transactionLogMapper,
+                        CampaignService campaignService) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
+        this.campaignService = campaignService;
     }
 
     public SysUser login(String username, String password) {
@@ -57,7 +63,18 @@ public class PointService {
             throw new BizException("积分规则不存在或已停用：" + eventCode);
         }
 
-        Integer newBalance = user.getBalance() + rule.getCreditValue();
+        // 活动倍率加成
+        int finalCredit = rule.getCreditValue();
+        String campaignDesc = "";
+        Campaign activeMultiplierCampaign = campaignService.getActiveMultiplierCampaign();
+        if (activeMultiplierCampaign != null) {
+            BigDecimal multiplied = BigDecimal.valueOf(rule.getCreditValue())
+                    .multiply(activeMultiplierCampaign.getMultiplier());
+            finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
+            campaignDesc = "（活动翻倍 ×" + activeMultiplierCampaign.getMultiplier() + "）";
+        }
+
+        Integer newBalance = user.getBalance() + finalCredit;
         user.setBalance(newBalance);
         int rows = sysUserMapper.updateById(user);
         if (rows == 0) {
@@ -66,10 +83,10 @@ public class PointService {
 
         TransactionLog txn = new TransactionLog();
         txn.setUserId(userId);
-        txn.setAmount(rule.getCreditValue());
+        txn.setAmount(finalCredit);
         txn.setBalanceAfter(newBalance);
         txn.setBizType("REWARD");
-        txn.setDescription(rule.getEventName());
+        txn.setDescription(rule.getEventName() + campaignDesc);
         transactionLogMapper.insert(txn);
 
         return sysUserMapper.selectById(userId);

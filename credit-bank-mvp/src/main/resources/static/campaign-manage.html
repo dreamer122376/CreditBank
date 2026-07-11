@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平台活动管理 · 学分银行</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="brand">
+            学分银行
+            <small>系统管理员控制台</small>
+        </div>
+        <div class="menu">
+            <div class="menu-item" onclick="location.href='home-system-admin.html'">工作台</div>
+            <div class="menu-item" onclick="goFunc('管理用户管理')">管理用户管理</div>
+            <div class="menu-item" onclick="goFunc('机构管理')">机构管理</div>
+            <div class="menu-item" onclick="goFunc('积分规则管理')">积分规则管理</div>
+            <div class="menu-item" onclick="goFunc('转换规则管理')">转换规则管理</div>
+            <div class="menu-item" onclick="goFunc('认证标准管理')">认证标准管理</div>
+            <div class="menu-item" onclick="goFunc('业务流程管理')">业务流程管理</div>
+            <div class="menu-item" onclick="goFunc('项目管理')">项目管理</div>
+            <div class="menu-item active" onclick="location.href='campaign-manage.html'">平台活动管理</div>
+            <div class="menu-item" onclick="goFunc('专家管理')">专家管理</div>
+            <div class="menu-item" onclick="goFunc('交易管理')">交易管理</div>
+        </div>
+    </div>
+
+    <!-- 主区域 -->
+    <div class="main">
+        <div class="topbar">
+            <div class="page-title">平台活动管理</div>
+            <div class="user-area" id="topbarUser"></div>
+        </div>
+
+        <div class="content">
+            <!-- 操作栏 -->
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <div class="filter-tabs" id="filterTabs">
+                        <span class="ftab active" data-status="">全部</span>
+                        <span class="ftab" data-status="0">未开始</span>
+                        <span class="ftab" data-status="1">进行中</span>
+                        <span class="ftab" data-status="2">已结束</span>
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-primary" onclick="openCreateModal()">+ 创建活动</button>
+                </div>
+            </div>
+
+            <!-- 活动卡片列表 -->
+            <div class="campaign-grid" id="campaignGrid">
+                <div class="empty-state">加载中...</div>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 创建/编辑活动弹窗 ========== -->
+<div class="modal-overlay" id="formModal">
+    <div class="modal-box modal-lg">
+        <div class="modal-header">
+            <span class="modal-title" id="modalTitle">创建活动</span>
+            <span class="modal-close" onclick="closeModal()">✕</span>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editId">
+
+            <div class="form-group">
+                <label>活动标题 <span class="required">*</span></label>
+                <input type="text" id="campTitle" placeholder="请输入活动标题" maxlength="100">
+            </div>
+
+            <div class="form-group">
+                <label>活动简介</label>
+                <textarea id="campDesc" rows="4" placeholder="请输入活动简介/详情描述，支持多行文本"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>封面图片</label>
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-placeholder" id="uploadPlaceholder">
+                        <span class="upload-icon">🖼️</span>
+                        <span>点击上传封面图</span>
+                        <small>支持 JPG/PNG/GIF/WebP，不超过 5MB</small>
+                    </div>
+                    <img class="upload-preview" id="uploadPreview" style="display:none;">
+                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+                <input type="hidden" id="coverImageUrl">
+                <div class="upload-status" id="uploadStatus"></div>
+            </div>
+
+            <div class="form-group">
+                <label>主办方</label>
+                <input type="text" id="campOrganizer" placeholder="如：学分银行运营中心" maxlength="100">
+            </div>
+
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>开始时间 <span class="required">*</span></label>
+                    <input type="datetime-local" id="campStartTime">
+                </div>
+                <div class="form-group">
+                    <label>结束时间 <span class="required">*</span></label>
+                    <input type="datetime-local" id="campEndTime">
+                </div>
+            </div>
+
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>积分倍率</label>
+                    <input type="number" id="campMultiplier" value="1.0" step="0.1" min="1.0" max="10.0">
+                    <small class="field-hint">1.0 = 无积分奖励；大于 1.0 = 活动期间积分翻倍</small>
+                </div>
+                <div class="form-group">
+                    <label>适用项目ID</label>
+                    <input type="text" id="campProjectIds" placeholder="多个用逗号分隔，留空=全平台">
+                    <small class="field-hint">只对指定项目生效，留空则全部项目适用</small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-outline" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">确认创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+    const user = Auth.requireRole('SYSTEM_ADMIN');
+    if (user) {
+        renderTopbar('topbarUser', user);
+    }
+
+    let currentPage = 1;
+    let currentStatus = '';
+    const PAGE_SIZE = 6;
+
+    // ========== 页面初始化 ==========
+    function init() {
+        loadCampaigns();
+        bindFilterTabs();
+    }
+
+    function bindFilterTabs() {
+        document.querySelectorAll('#filterTabs .ftab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('#filterTabs .ftab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentStatus = this.dataset.status;
+                currentPage = 1;
+                loadCampaigns();
+            });
+        });
+    }
+
+    // ========== 加载活动列表 ==========
+    function loadCampaigns() {
+        document.getElementById('campaignGrid').innerHTML = '<div class="empty-state">加载中...</div>';
+        let url = '/api/campaigns?page=' + currentPage + '&size=' + PAGE_SIZE;
+        if (currentStatus !== '') {
+            url += '&status=' + currentStatus;
+        }
+        fetch(url)
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) {
+                    renderGrid(res.data);
+                } else {
+                    showError(res.message);
+                }
+            })
+            .catch(e => showError('加载失败：' + e.message));
+    }
+
+    function renderGrid(pageData) {
+        const grid = document.getElementById('campaignGrid');
+        const records = pageData.records;
+
+        if (!records || records.length === 0) {
+            grid.innerHTML = '<div class="empty-state">📭 暂无活动数据</div>';
+            document.getElementById('pagination').innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        records.forEach(c => {
+            const statusClass = c.status === 1 ? 'tag-green' : (c.status === 2 ? 'tag-gray' : 'tag-blue');
+            const statusText = c.status === 1 ? '进行中' : (c.status === 2 ? '已结束' : '未开始');
+            const coverStyle = c.coverImage
+                ? 'background-image:url(' + c.coverImage + ')'
+                : 'background:linear-gradient(135deg, #3b5bdb 0%, #6c8ae4 100%)';
+            const multText = c.multiplier && c.multiplier > 1.0
+                ? '<span class="card-badge-bonus">' + c.multiplier + 'x 积分翻倍</span>'
+                : '';
+
+            html += `
+                <div class="campaign-card" onclick="location.href='campaign-detail.html?id=${c.id}'">
+                    <div class="card-cover" style="${coverStyle}">
+                        ${c.coverImage ? '' : '<span class="card-cover-text">' + escapeHtml(c.title) + '</span>'}
+                        ${multText}
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">${escapeHtml(c.title)}</div>
+                        <div class="card-meta">
+                            <span>🕐 ${formatDate(c.startTime)} ~ ${formatDate(c.endTime)}</span>
+                        </div>
+                        <div class="card-footer">
+                            <span class="tag ${statusClass}">${statusText}</span>
+                            <span class="card-actions" onclick="event.stopPropagation()">
+                                <button class="btn-sm btn-outline" onclick="openEditModal(${c.id})">编辑</button>
+                                <button class="btn-sm btn-danger-outline" onclick="deleteCampaign(${c.id}, '${escapeHtml(c.title).replace(/'/g, "\\'")}')">删除</button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        grid.innerHTML = html;
+        renderPagination(pageData);
+    }
+
+    function renderPagination(pageData) {
+        const pg = document.getElementById('pagination');
+        if (pageData.pages <= 1) { pg.innerHTML = ''; return; }
+        let html = '';
+        html += '<button class="pg-btn" ' + (pageData.current <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (pageData.current - 1) + ')">← 上一页</button>';
+        html += '<span class="pg-info">第 ' + pageData.current + ' / ' + pageData.pages + ' 页（共 ' + pageData.total + ' 条）</span>';
+        html += '<button class="pg-btn" ' + (pageData.current >= pageData.pages ? 'disabled' : '') + ' onclick="goPage(' + (pageData.current + 1) + ')">下一页 →</button>';
+        pg.innerHTML = html;
+    }
+
+    function goPage(p) {
+        currentPage = p;
+        loadCampaigns();
+        document.getElementById('campaignGrid').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ========== 弹窗 ==========
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = '创建活动';
+        document.getElementById('submitBtn').textContent = '确认创建';
+        document.getElementById('editId').value = '';
+        document.getElementById('campTitle').value = '';
+        document.getElementById('campDesc').value = '';
+        document.getElementById('campOrganizer').value = '';
+        document.getElementById('campStartTime').value = '';
+        document.getElementById('campEndTime').value = '';
+        document.getElementById('campMultiplier').value = '1.0';
+        document.getElementById('campProjectIds').value = '';
+        document.getElementById('coverImageUrl').value = '';
+        resetUpload();
+        document.getElementById('formModal').classList.add('show');
+        document.getElementById('uploadStatus').textContent = '';
+    }
+
+    function openEditModal(id) {
+        fetch('/api/campaigns/' + id)
+            .then(r => r.json())
+            .then(res => {
+                if (res.code !== 200) { alert(res.message); return; }
+                const c = res.data;
+                document.getElementById('modalTitle').textContent = '编辑活动';
+                document.getElementById('submitBtn').textContent = '保存修改';
+                document.getElementById('editId').value = c.id;
+                document.getElementById('campTitle').value = c.title || '';
+                document.getElementById('campDesc').value = c.description || '';
+                document.getElementById('campOrganizer').value = c.organizer || '';
+                document.getElementById('campStartTime').value = c.startTime ? c.startTime.replace(' ','T').substring(0,16) : '';
+                document.getElementById('campEndTime').value = c.endTime ? c.endTime.replace(' ','T').substring(0,16) : '';
+                document.getElementById('campMultiplier').value = c.multiplier || 1.0;
+                document.getElementById('campProjectIds').value = c.projectIds || '';
+                document.getElementById('coverImageUrl').value = c.coverImage || '';
+                if (c.coverImage) {
+                    document.getElementById('uploadPlaceholder').style.display = 'none';
+                    document.getElementById('uploadPreview').src = c.coverImage;
+                    document.getElementById('uploadPreview').style.display = 'block';
+                } else {
+                    resetUpload();
+                }
+                document.getElementById('uploadStatus').textContent = '';
+                document.getElementById('formModal').classList.add('show');
+            });
+    }
+
+    function closeModal() {
+        document.getElementById('formModal').classList.remove('show');
+    }
+
+    // ========== 图片上传 ==========
+    let selectedFile = null;
+
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { alert('文件不能超过5MB'); return; }
+        selectedFile = file;
+        // 本地预览
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('uploadPlaceholder').style.display = 'none';
+            document.getElementById('uploadPreview').src = ev.target.result;
+            document.getElementById('uploadPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+        // 自动上传
+        uploadFile();
+    }
+
+    function uploadFile() {
+        if (!selectedFile) return;
+        document.getElementById('uploadStatus').innerHTML = '<span class="uploading">上传中...</span>';
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        fetch('/api/files/upload', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) {
+                    document.getElementById('coverImageUrl').value = res.data;
+                    document.getElementById('uploadStatus').innerHTML = '<span class="upload-ok">✅ 上传成功</span>';
+                } else {
+                    document.getElementById('uploadStatus').innerHTML = '<span class="upload-fail">❌ ' + res.message + '</span>';
+                }
+            })
+            .catch(e => {
+                document.getElementById('uploadStatus').innerHTML = '<span class="upload-fail">❌ 上传失败</span>';
+            });
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('uploadPlaceholder').style.display = 'flex';
+        document.getElementById('uploadPreview').style.display = 'none';
+        document.getElementById('uploadStatus').textContent = '';
+    }
+
+    // ========== 提交 ==========
+    function submitForm() {
+        const id = document.getElementById('editId').value;
+        const title = document.getElementById('campTitle').value.trim();
+        const description = document.getElementById('campDesc').value.trim();
+        const organizer = document.getElementById('campOrganizer').value.trim();
+        const startTime = document.getElementById('campStartTime').value;
+        const endTime = document.getElementById('campEndTime').value;
+        const multiplier = parseFloat(document.getElementById('campMultiplier').value) || 1.0;
+        const projectIds = document.getElementById('campProjectIds').value.trim();
+        const coverImage = document.getElementById('coverImageUrl').value;
+
+        if (!title) { alert('请输入活动标题'); return; }
+        if (!startTime) { alert('请选择开始时间'); return; }
+        if (!endTime) { alert('请选择结束时间'); return; }
+
+        const body = {
+            title: title,
+            description: description,
+            coverImage: coverImage,
+            organizer: organizer,
+            startTime: startTime,
+            endTime: endTime,
+            multiplier: multiplier,
+            projectIds: projectIds
+        };
+
+        const url = id ? '/api/campaigns/' + id : '/api/campaigns';
+        const method = id ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.code === 200) {
+                closeModal();
+                loadCampaigns();
+            } else {
+                alert(res.message);
+            }
+        })
+        .catch(e => alert('操作失败：' + e.message));
+    }
+
+    // ========== 删除 ==========
+    function deleteCampaign(id, title) {
+        if (!confirm('确定要删除活动「' + title + '」吗？\n此操作不可恢复。')) return;
+        fetch('/api/campaigns/' + id, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) {
+                    loadCampaigns();
+                } else {
+                    alert(res.message);
+                }
+            });
+    }
+
+    // ========== 工具函数 ==========
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        if (dateStr.length >= 16) return dateStr.substring(0, 16).replace('T', ' ');
+        return dateStr;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function showError(msg) {
+        document.getElementById('campaignGrid').innerHTML = '<div class="empty-state">❌ ' + escapeHtml(msg) + '</div>';
+    }
+
+    // 点击弹窗遮罩层关闭
+    document.getElementById('formModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    init();
+</script>
+</body>
+</html>

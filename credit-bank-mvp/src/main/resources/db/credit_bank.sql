@@ -85,14 +85,11 @@ CREATE TABLE `campaign` (
                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '活动ID',
                             `title` varchar(100) NOT NULL COMMENT '活动标题',
                             `multiplier` decimal(3,1) DEFAULT '1.0' COMMENT '积分倍率（如1.5表示1.5倍）',
+                            `project_ids` text COMMENT '适用项目ID，逗号分隔（空代表全平台）',
                             `start_time` datetime NOT NULL COMMENT '活动开始时间',
                             `end_time` datetime NOT NULL COMMENT '活动结束时间',
                             `status` tinyint DEFAULT '0' COMMENT '状态：0未开始，1进行中，2已结束',
                             `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                            `description` text,
-                            `cover_image` varchar(255) DEFAULT NULL,
-                            `organizer` varchar(100) DEFAULT NULL,
-                            `images` text COMMENT '多张活动图片，JSON数组',
                             PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='平台活动表';
 /*!40101 SET character_set_client = @saved_cs_client */;

@@ -63,7 +63,9 @@ import {
   Avatar,
   Refresh,
   Medal,
-  Tickets
+  Tickets,
+  Promotion,
+  SwitchButton
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -95,6 +97,7 @@ const menuItems = computed(() => {
       { path: '/exchange-rules', title: '转换规则', icon: Refresh },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '业务流程', icon: Tickets },
+      { path: '/campaigns', title: '平台活动管理', icon: Promotion },
       { path: '/transactions', title: '交易管理', icon: WalletFilled }
     ],
     org_admin: [
@@ -107,6 +110,7 @@ const menuItems = computed(() => {
     student: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/transactions', title: '我的钱包', icon: WalletFilled }
     ],
     expert: [

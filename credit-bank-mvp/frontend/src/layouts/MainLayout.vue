@@ -58,7 +58,12 @@ import {
   UserFilled,
   ScaleToOriginal,
   WalletFilled,
-  SwitchButton
+  SwitchButton,
+  OfficeBuilding,
+  Avatar,
+  Refresh,
+  Medal,
+  Tickets
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -84,13 +89,19 @@ const menuItems = computed(() => {
     admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
+      { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
+      { path: '/experts', title: '专家管理', icon: Avatar },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/exchange-rules', title: '转换规则', icon: Refresh },
+      { path: '/cert-standards', title: '认证标准', icon: Medal },
+      { path: '/applications', title: '业务流程', icon: Tickets },
       { path: '/transactions', title: '交易管理', icon: WalletFilled }
     ],
     org_admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/transactions', title: '积分流水', icon: WalletFilled }
     ],
     student: [
@@ -100,6 +111,7 @@ const menuItems = computed(() => {
     ],
     expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
+      { path: '/applications', title: '项目评审', icon: Tickets },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/transactions', title: '项目流水', icon: WalletFilled }
     ]

@@ -259,6 +259,36 @@ LOCK TABLES `project` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `student_project`
+--
+
+DROP TABLE IF EXISTS `student_project`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `student_project` (
+                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '报名记录ID',
+                                   `student_id` bigint NOT NULL COMMENT '学生ID，关联sys_user(id)',
+                                   `project_id` bigint NOT NULL COMMENT '项目ID，关联project(id)',
+                                   `status` enum('已报名','进行中','已完成') DEFAULT '已报名' COMMENT '报名状态：已报名，进行中，已完成',
+                                   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
+                                   PRIMARY KEY (`id`),
+                                   UNIQUE KEY `uk_student_project` (`student_id`,`project_id`),
+                                   KEY `idx_project_id` (`project_id`),
+                                   CONSTRAINT `fk_student_project_student` FOREIGN KEY (`student_id`) REFERENCES `sys_user` (`id`) ON DELETE CASCADE,
+                                   CONSTRAINT `fk_student_project_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生报名项目关系表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `student_project`
+--
+
+LOCK TABLES `student_project` WRITE;
+/*!40000 ALTER TABLE `student_project` DISABLE KEYS */;
+/*!40000 ALTER TABLE `student_project` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `sys_user`
 --
 

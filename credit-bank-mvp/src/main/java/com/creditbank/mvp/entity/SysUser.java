@@ -1,10 +1,12 @@
 package com.creditbank.mvp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @TableName("sys_user")
 public class SysUser {
@@ -33,6 +35,12 @@ public class SysUser {
     private Integer status;
 
     private LocalDateTime createdAt;
+
+    @TableField(exist = false)
+    private List<Project> projects;
+
+    @TableField(exist = false)
+    private List<StudentProject> studentProjects;
 
     public Long getId() {
         return id;
@@ -128,5 +136,21 @@ public class SysUser {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<Project> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<Project> projects) {
+        this.projects = projects;
+    }
+
+    public List<StudentProject> getStudentProjects() {
+        return studentProjects;
+    }
+
+    public void setStudentProjects(List<StudentProject> studentProjects) {
+        this.studentProjects = studentProjects;
     }
 }

@@ -64,7 +64,8 @@ import {
   Refresh,
   Medal,
   Tickets,
-  Promotion
+  Promotion,
+  Postcard
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -97,6 +98,7 @@ const menuItems = computed(() => {
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '业务流程', icon: Tickets },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
+      { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '交易管理', icon: WalletFilled }
     ],
     org_admin: [
@@ -104,18 +106,21 @@ const menuItems = computed(() => {
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/applications', title: '业务审核', icon: Tickets },
+      { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled }
     ],
     student: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
+      { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '我的钱包', icon: WalletFilled }
     ],
     expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/applications', title: '项目评审', icon: Tickets },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '项目流水', icon: WalletFilled }
     ]
   }

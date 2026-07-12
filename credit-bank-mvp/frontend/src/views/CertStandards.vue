@@ -1,46 +1,50 @@
 <template>
   <div class="cert-standards">
-    <el-card class="intro-card">
-      <template #header>
-        <span>认证等级说明</span>
-      </template>
-      <p class="intro-text">
-        认证标准是学员获得能力证书的"毕业门槛"，各等级的差异体现在两个维度：
-        <strong>积分门槛</strong>（等级越高要求的累计积分越多）和<strong>评审要求</strong>
-        （高等级认证需持证专家评审签字，低等级达标即可自动核发）。
-      </p>
-      <ul class="intro-list">
-        <li v-for="s in enabledStandards" :key="s.id">
-          <strong>{{ s.standardName }}</strong>：累计积分满 {{ s.minCredit }} 分可申请，
-          {{ s.needExpertApprove === 1 ? '需持证专家评审签字' : '无需专家评审，达标即发' }}，
-          证书有效期 {{ s.validityDays }} 天
-        </li>
-      </ul>
-    </el-card>
-
-    <el-card style="margin-top: 16px;">
+    <el-card>
       <template #header>
         <div class="card-header">
-          <span>认证标准</span>
+          <span>认证标准管理</span>
           <el-button type="primary" size="small" @click="openCreate">新增标准</el-button>
         </div>
       </template>
       <el-table :data="standards" border style="width: 100%;">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="standardName" label="认证名称" />
-        <el-table-column prop="minCredit" label="最低积分" width="110">
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column label="认证名称" min-width="180">
           <template #default="scope">
-            <span class="points">{{ scope.row.minCredit }}</span>
+            <span class="standard-name">{{ scope.row.standardName }}</span>
+            <el-tag size="small" type="info" style="margin-left: 6px;">v{{ scope.row.version }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="needExpertApprove" label="专家签字" width="100">
+        <el-table-column prop="orgId" label="机构ID" width="100">
           <template #default="scope">
-            <el-tag :type="scope.row.needExpertApprove === 1 ? 'warning' : 'info'">
-              {{ scope.row.needExpertApprove === 1 ? '需要' : '不需要' }}
+            {{ scope.row.orgId != null ? scope.row.orgId : '—' }}
+            <div class="org-name">{{ scope.row.orgName }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="targetRole" label="适用人员" width="110">
+          <template #default="scope">
+            <el-tag :type="roleTagType(scope.row.targetRole)">
+              {{ ROLE_NAME[scope.row.targetRole] || scope.row.targetRole }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="validityDays" label="有效期(天)" width="110" />
+        <el-table-column label="执行标准" width="110" align="center">
+          <template #default="scope">
+            <el-button size="small" link type="primary" @click="goRequirement(scope.row)">
+              <el-icon><Document /></el-icon> 查看文件
+            </el-button>
+          </template>
+        </el-table-column>
+        <el-table-column label="审批流程" width="120" align="center">
+          <template #default="scope">
+            <el-button size="small" link type="warning"
+                       :disabled="scope.row.needManualAudit === 0"
+                       @click="goFlowManage(scope.row)">
+              <el-icon><Connection /></el-icon>
+              {{ scope.row.needManualAudit === 0 ? '无需审核' : `管理流程(${scope.row.flowStepCount || 0})` }}
+            </el-button>
+          </template>
+        </el-table-column>
         <el-table-column prop="isEnabled" label="状态" width="90">
           <template #default="scope">
             <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'">
@@ -48,7 +52,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="160">
           <template #default="scope">
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
@@ -63,19 +67,33 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑标准' : '新增标准'" width="480px">
-      <el-form :model="form" label-width="110px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑标准' : '新增标准'" width="560px">
+      <el-form :model="form" label-width="120px">
         <el-form-item label="认证名称" required>
-          <el-input v-model="form.standardName" placeholder="如：Java中级开发认证" />
+          <el-input v-model="form.standardName" placeholder="如：计算机能力认证" />
         </el-form-item>
-        <el-form-item label="最低积分" required>
-          <el-input-number v-model="form.minCredit" :min="1" />
+        <el-form-item label="版本号" required>
+          <el-input v-model="form.version" placeholder="如：1.0" style="width: 160px;" />
         </el-form-item>
-        <el-form-item label="需要专家签字">
-          <el-switch v-model="form.needExpertApprove" :active-value="1" :inactive-value="0" />
+        <el-form-item label="归属机构ID">
+          <el-input-number v-model="form.orgId" :min="1" controls-position="right"
+                           placeholder="留空=平台通用" style="width: 200px;" />
+          <span class="form-hint">留空表示平台通用认证</span>
         </el-form-item>
-        <el-form-item label="有效期(天)">
-          <el-input-number v-model="form.validityDays" :min="1" />
+        <el-form-item label="适用人员" required>
+          <el-select v-model="form.targetRole" placeholder="选择适用对象" style="width: 200px;">
+            <el-option label="学生" value="student" />
+            <el-option label="专家" value="expert" />
+            <el-option label="机构" value="org_admin" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="认证要求表述">
+          <el-input v-model="form.requirementText" type="textarea" :rows="6"
+                    placeholder="输入认证要求的执行标准正文（支持换行）" />
+        </el-form-item>
+        <el-form-item label="需要人工审核">
+          <el-switch v-model="form.needManualAudit" :active-value="1" :inactive-value="0" />
+          <span class="form-hint">关闭后申请提交即自动通过，无需配置审批流程</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -87,8 +105,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Document, Connection } from '@element-plus/icons-vue'
 import {
   getCertStandards,
   createCertStandard,
@@ -96,12 +116,16 @@ import {
   toggleCertStandard
 } from '@/api/certStandard'
 
-const standards = ref([])
+const router = useRouter()
 
-const enabledStandards = computed(() =>
-  [...standards.value]
-    .filter(s => s.isEnabled === 1)
-    .sort((a, b) => a.minCredit - b.minCredit))
+const ROLE_NAME = {
+  admin: '系统管理员',
+  org_admin: '机构',
+  expert: '专家',
+  student: '学生'
+}
+
+const standards = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
 
@@ -115,8 +139,20 @@ async function loadData() {
   }
 }
 
+function roleTagType(role) {
+  const map = { student: 'success', expert: 'warning', org_admin: 'primary' }
+  return map[role] || 'info'
+}
+
 function openCreate() {
-  form.value = { standardName: '', minCredit: 100, needExpertApprove: 0, validityDays: 365 }
+  form.value = {
+    standardName: '',
+    version: '1.0',
+    orgId: null,
+    targetRole: 'student',
+    requirementText: '',
+    needManualAudit: 1
+  }
   dialogVisible.value = true
 }
 
@@ -127,6 +163,14 @@ function openEdit(row) {
 
 async function save() {
   try {
+    if (!form.value.standardName?.trim()) {
+      ElMessage.warning('认证名称不能为空')
+      return
+    }
+    if (!form.value.targetRole) {
+      ElMessage.warning('请选择适用人员')
+      return
+    }
     if (form.value.id) {
       await updateCertStandard(form.value)
     } else {
@@ -149,6 +193,14 @@ async function toggle(row) {
     ElMessage.error(error.message || '操作失败')
   }
 }
+
+function goRequirement(row) {
+  router.push(`/cert-standards/${row.id}/requirement`)
+}
+
+function goFlowManage(row) {
+  router.push(`/cert-standards/${row.id}/flow`)
+}
 </script>
 
 <style scoped>
@@ -158,25 +210,20 @@ async function toggle(row) {
   justify-content: space-between;
 }
 
-.points {
+.standard-name {
   font-weight: 600;
-  color: #0b7a4f;
+  color: #2c3e50;
 }
 
-.intro-card :deep(.el-card__body) {
-  padding: 16px 20px;
+.org-name {
+  font-size: 11px;
+  color: #868e96;
+  margin-top: 2px;
 }
 
-.intro-text {
-  color: #495057;
-  line-height: 1.8;
-  margin: 0 0 8px;
-}
-
-.intro-list {
-  margin: 0;
-  padding-left: 20px;
-  color: #495057;
-  line-height: 2;
+.form-hint {
+  color: #868e96;
+  font-size: 12px;
+  margin-left: 8px;
 }
 </style>

@@ -22,6 +22,11 @@ public class CertStandardController {
         return Result.ok(certStandardService.list());
     }
 
+    @GetMapping("/{id}")
+    public Result<CertStandard> getById(@PathVariable Long id) {
+        return Result.ok(certStandardService.getById(id));
+    }
+
     @PostMapping("/create")
     public Result<CertStandard> create(@RequestBody CertStandard standard) {
         return Result.ok(certStandardService.create(standard));

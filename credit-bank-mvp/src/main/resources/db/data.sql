@@ -30,11 +30,22 @@ INSERT INTO `admin_role_menu` (`id`, `role_tag`, `menu_code`) VALUES
 (10, 'expert', 'application_review'),
 (11, 'expert', 'project_list');
 
--- 认证标准表初始数据（无外键依赖）
-INSERT INTO `cert_standard` (`id`, `standard_name`, `min_credit`, `need_expert_approve`, `validity_days`, `is_enabled`, `created_at`) VALUES
-(1, '初级认证', 500, 0, 365, 1, NOW()),
-(2, '中级认证', 1000, 1, 365, 1, NOW()),
-(3, '高级认证', 2000, 1, 365, 1, NOW());
+-- 认证标准表初始数据（无外键依赖，first_node_id 稍后由 cert_audit_flow 回填）
+INSERT INTO `cert_standard` (`id`, `standard_name`, `version`, `org_id`, `target_role`, `requirement_text`, `need_manual_audit`, `first_node_id`, `is_enabled`, `created_at`) VALUES
+(1, '学生初级能力认证', '1.0', NULL, 'student', '一、认证目标\n面向在校学生，验证其基础学习能力与实践参与度。\n\n二、认证要求\n1. 累计积分满 500 分\n2. 参与至少 1 个实践项目\n3. 完成基础课程学习\n\n三、考核方式\n系统自动核验积分达标情况，无需人工评审。', 0, NULL, 1, NOW()),
+(2, '学生中级能力认证', '1.0', NULL, 'student', '一、认证目标\n面向优秀学生，验证其中等专业能力与项目实战能力。\n\n二、认证要求\n1. 累计积分满 1000 分\n2. 参与至少 2 个实践项目且至少 1 个获评优秀\n3. 通过技术面试\n\n三、考核方式\n机构初审 → 专家复审，两级人工审核。', 1, 101, 1, NOW()),
+(3, '专家资质认证', '2.0', NULL, 'expert', '一、认证目标\n认定专家在某领域的评审资质，获得资质后可参与对应认证标准的复审工作。\n\n二、认证要求\n1. 具有相关专业背景，从事相关领域工作 3 年以上\n2. 发表过 2 篇以上相关论文或取得等效成果\n3. 通过管理员资质审核\n\n三、考核方式\n系统管理员终审。', 1, 103, 1, NOW()),
+(4, '机构办学资质认证', '1.0', NULL, 'org_admin', '一、认证目标\n认定机构的办学/培训资质，获得认证后机构可在平台发布认证项目。\n\n二、认证要求\n1. 具备合法办学许可证\n2. 拥有至少 3 名持证专家\n3. 过去一年无重大违规记录\n\n三、考核方式\n系统管理员审核。', 1, 104, 1, NOW());
+
+-- 认证审批流程节点表初始数据
+-- 节点101→102：学生中级能力认证（机构管理员初审 → 专家复审 → 通过）
+-- 节点103：专家资质认证（管理员终审 → 通过）
+-- 节点104：机构办学资质认证（管理员终审 → 通过）
+INSERT INTO `cert_audit_flow` (`id`, `cert_standard_id`, `auditor_id`, `next_node_id`, `created_at`) VALUES
+(101, 2, 2, 102, NOW()),
+(102, 2, 4, NULL, NOW()),
+(103, 3, 1, NULL, NOW()),
+(104, 4, 1, NULL, NOW());
 
 -- 项目表初始数据（依赖 organization.org_id 和 sys_user.id）
 INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `status`, `created_at`, `updated_at`) VALUES

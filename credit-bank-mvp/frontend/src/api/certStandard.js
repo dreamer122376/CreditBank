@@ -4,6 +4,10 @@ export function getCertStandards() {
   return request.get('/cert-standard/list')
 }
 
+export function getCertStandardById(id) {
+  return request.get(`/cert-standard/${id}`)
+}
+
 export function createCertStandard(standard) {
   return request.post('/cert-standard/create', standard)
 }

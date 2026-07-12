@@ -121,12 +121,18 @@ DROP TABLE IF EXISTS `cert_standard`;
 CREATE TABLE `cert_standard` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '认证标准ID',
                                  `standard_name` varchar(100) NOT NULL COMMENT '认证名称',
-                                 `min_credit` int NOT NULL COMMENT '要求的最低总积分',
-                                 `need_expert_approve` tinyint DEFAULT '0' COMMENT '是否需要专家签字：0不需要，1需要',
-                                 `validity_days` int DEFAULT '365' COMMENT '证书有效期（天数）',
+                                 `version` varchar(20) DEFAULT '1.0' COMMENT '版本号',
+                                 `org_id` bigint DEFAULT NULL COMMENT '归属机构ID（NULL=平台通用）',
+                                 `target_role` varchar(20) NOT NULL COMMENT '适用对象：student/expert/org_admin（与 sys_user.role 枚举一致）',
+                                 `requirement_text` text COMMENT '认证要求表述（执行标准正文）',
+                                 `need_manual_audit` tinyint DEFAULT '1' COMMENT '是否需要人工审核：0否（自动通过） 1是',
+                                 `first_node_id` bigint DEFAULT NULL COMMENT '审批流程第一步节点ID（仅 need_manual_audit=1 时有效）',
                                  `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用',
                                  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                 PRIMARY KEY (`id`)
+                                 PRIMARY KEY (`id`),
+                                 KEY `idx_org_id` (`org_id`),
+                                 KEY `idx_target_role` (`target_role`),
+                                 KEY `idx_first_node_id` (`first_node_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='认证标准表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -137,6 +143,35 @@ CREATE TABLE `cert_standard` (
 LOCK TABLES `cert_standard` WRITE;
 /*!40000 ALTER TABLE `cert_standard` DISABLE KEYS */;
 /*!40000 ALTER TABLE `cert_standard` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `cert_audit_flow`
+--
+
+DROP TABLE IF EXISTS `cert_audit_flow`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cert_audit_flow` (
+                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '流程节点ID',
+                                   `cert_standard_id` bigint NOT NULL COMMENT '所属认证标准ID',
+                                   `auditor_id` bigint NOT NULL COMMENT '审核人员用户ID（sys_user.id）',
+                                   `next_node_id` bigint DEFAULT NULL COMMENT '下一步流程节点ID（NULL表示流程结束，即审批通过）',
+                                   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                   PRIMARY KEY (`id`),
+                                   KEY `idx_cert_standard_id` (`cert_standard_id`),
+                                   KEY `idx_auditor_id` (`auditor_id`),
+                                   KEY `idx_next_node_id` (`next_node_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='认证审批流程节点表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `cert_audit_flow`
+--
+
+LOCK TABLES `cert_audit_flow` WRITE;
+/*!40000 ALTER TABLE `cert_audit_flow` DISABLE KEYS */;
+/*!40000 ALTER TABLE `cert_audit_flow` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --

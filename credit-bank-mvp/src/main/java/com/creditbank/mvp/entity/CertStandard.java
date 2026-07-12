@@ -1,6 +1,7 @@
 package com.creditbank.mvp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -14,15 +15,39 @@ public class CertStandard {
 
     private String standardName;
 
-    private Integer minCredit;
+    private String version;
 
-    private Integer needExpertApprove;
+    private Long orgId;
 
-    private Integer validityDays;
+    /** 适用对象：student/expert/org_admin（与 sys_user.role 枚举一致） */
+    private String targetRole;
+
+    /** 认证要求表述（执行标准正文） */
+    private String requirementText;
+
+    /** 是否需要人工审核：0否（自动通过） 1是 */
+    private Integer needManualAudit;
+
+    /** 审批流程第一步节点ID（仅 needManualAudit=1 时有效） */
+    private Long firstNodeId;
 
     private Integer isEnabled;
 
     private LocalDateTime createdAt;
+
+    // ---- 非持久化字段（用于前端展示） ----
+
+    /** 归属机构名称（org_id 关联查询） */
+    @TableField(exist = false)
+    private String orgName;
+
+    /** 第一步审核人姓名（first_node_id → auditor_id 关联查询） */
+    @TableField(exist = false)
+    private String firstAuditorName;
+
+    /** 流程节点总数 */
+    @TableField(exist = false)
+    private Integer flowStepCount;
 
     public Long getId() {
         return id;
@@ -40,28 +65,52 @@ public class CertStandard {
         this.standardName = standardName;
     }
 
-    public Integer getMinCredit() {
-        return minCredit;
+    public String getVersion() {
+        return version;
     }
 
-    public void setMinCredit(Integer minCredit) {
-        this.minCredit = minCredit;
+    public void setVersion(String version) {
+        this.version = version;
     }
 
-    public Integer getNeedExpertApprove() {
-        return needExpertApprove;
+    public Long getOrgId() {
+        return orgId;
     }
 
-    public void setNeedExpertApprove(Integer needExpertApprove) {
-        this.needExpertApprove = needExpertApprove;
+    public void setOrgId(Long orgId) {
+        this.orgId = orgId;
     }
 
-    public Integer getValidityDays() {
-        return validityDays;
+    public String getTargetRole() {
+        return targetRole;
     }
 
-    public void setValidityDays(Integer validityDays) {
-        this.validityDays = validityDays;
+    public void setTargetRole(String targetRole) {
+        this.targetRole = targetRole;
+    }
+
+    public String getRequirementText() {
+        return requirementText;
+    }
+
+    public void setRequirementText(String requirementText) {
+        this.requirementText = requirementText;
+    }
+
+    public Integer getNeedManualAudit() {
+        return needManualAudit;
+    }
+
+    public void setNeedManualAudit(Integer needManualAudit) {
+        this.needManualAudit = needManualAudit;
+    }
+
+    public Long getFirstNodeId() {
+        return firstNodeId;
+    }
+
+    public void setFirstNodeId(Long firstNodeId) {
+        this.firstNodeId = firstNodeId;
     }
 
     public Integer getIsEnabled() {
@@ -78,5 +127,29 @@ public class CertStandard {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getOrgName() {
+        return orgName;
+    }
+
+    public void setOrgName(String orgName) {
+        this.orgName = orgName;
+    }
+
+    public String getFirstAuditorName() {
+        return firstAuditorName;
+    }
+
+    public void setFirstAuditorName(String firstAuditorName) {
+        this.firstAuditorName = firstAuditorName;
+    }
+
+    public Integer getFlowStepCount() {
+        return flowStepCount;
+    }
+
+    public void setFlowStepCount(Integer flowStepCount) {
+        this.flowStepCount = flowStepCount;
     }
 }

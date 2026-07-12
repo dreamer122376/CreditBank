@@ -74,6 +74,18 @@ const routes = [
         meta: { title: '认证标准' }
       },
       {
+        path: 'cert-standards/:id/requirement',
+        name: 'CertRequirement',
+        component: () => import('@/views/CertRequirement.vue'),
+        meta: { title: '执行标准文件' }
+      },
+      {
+        path: 'cert-standards/:id/flow',
+        name: 'CertFlowManage',
+        component: () => import('@/views/CertFlowManage.vue'),
+        meta: { title: '审批流程管理' }
+      },
+      {
         path: 'applications',
         name: 'Applications',
         component: () => import('@/views/Applications.vue'),

@@ -4,38 +4,53 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @TableName("sys_user")
+@Schema(description = "系统用户")
 public class SysUser {
 
     @TableId(type = IdType.AUTO)
+    @Schema(description = "用户ID", example = "1")
     private Long id;
 
+    @Schema(description = "登录账号", example = "admin")
     private String username;
 
+    @Schema(description = "加密后的密码", hidden = true)
     private String password;
 
+    @Schema(description = "真实姓名", example = "系统管理员")
     private String realName;
 
+    @Schema(description = "手机号", example = "13800138000")
     private String phone;
 
+    @Schema(description = "电子邮箱", example = "admin@creditbank.com")
     private String email;
 
+    @Schema(description = "角色：admin/org_admin/expert/student", example = "admin")
     private String role;
 
+    @Schema(description = "所属机构ID", example = "1")
     private Long orgId;
 
+    @Schema(description = "专家擅长领域", example = "计算机科学")
     private String expertField;
 
+    @Schema(description = "当前可用总积分", example = "500")
     private Integer balance;
 
+    @Schema(description = "账号状态：1正常，0冻结", example = "1")
     private Integer status;
 
+    @Schema(description = "最后登录时间")
     private LocalDateTime lastLoginAt;
 
+    @Schema(description = "注册时间")
     private LocalDateTime createdAt;
 
     public Long getId() {

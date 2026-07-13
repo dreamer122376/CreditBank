@@ -145,6 +145,76 @@ public class PointService {
         return sysUserMapper.selectById(userId);
     }
 
+    /**
+     * 项目完成奖励：发放 project.credit_reward，支持活动倍率加成。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser rewardProjectCompletion(Long studentId, Project project, Long operatorId) {
+        if (project == null || project.getCreditReward() == null || project.getCreditReward() <= 0) {
+            return null;
+        }
+
+        SysUser student = sysUserMapper.selectById(studentId);
+        if (student == null) {
+            throw new BizException("学生不存在：" + studentId);
+        }
+
+        int baseCredit = project.getCreditReward();
+        int finalCredit = baseCredit;
+        String campaignDesc = "";
+        Campaign activeMultiplierCampaign = campaignService.getActiveMultiplierCampaign();
+        if (activeMultiplierCampaign != null
+                && campaignService.isEnrolled(activeMultiplierCampaign.getId(), studentId)) {
+            BigDecimal multiplied = BigDecimal.valueOf(baseCredit)
+                    .multiply(activeMultiplierCampaign.getMultiplier());
+            finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
+            campaignDesc = "（活动翻倍 ×" + activeMultiplierCampaign.getMultiplier() + "）";
+        }
+
+        Integer newBalance = student.getBalance() + finalCredit;
+        student.setBalance(newBalance);
+        sysUserMapper.updateById(student);
+
+        TransactionLog txn = new TransactionLog();
+        txn.setUserId(studentId);
+        txn.setAmount(finalCredit);
+        txn.setBalanceAfter(newBalance);
+        txn.setBizType("REWARD");
+        txn.setDescription("完成项目「" + project.getName() + "」获得积分" + campaignDesc);
+        transactionLogMapper.insert(txn);
+
+        Long realOperatorId = operatorId != null ? operatorId : studentId;
+        SysUser operator = sysUserMapper.selectById(realOperatorId);
+        String operatorName = operator != null ? operator.getRealName() : String.valueOf(realOperatorId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                realOperatorId, operatorName, studentId, student.getRealName(),
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
+                "学生「" + student.getRealName() + "」完成项目「" + project.getName() + "」获得 " + finalCredit + " 积分" + campaignDesc + "，当前余额：" + newBalance));
+
+        if (project.getOrgId() != null) {
+            SysUser orgAdmin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, project.getOrgId())
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            if (orgAdmin != null) {
+                int orgNewBalance = orgAdmin.getBalance() - finalCredit;
+                orgAdmin.setBalance(orgNewBalance);
+                sysUserMapper.updateById(orgAdmin);
+
+                TransactionLog orgTxn = new TransactionLog();
+                orgTxn.setUserId(orgAdmin.getId());
+                orgTxn.setAmount(-finalCredit);
+                orgTxn.setBalanceAfter(orgNewBalance);
+                orgTxn.setBizType("REWARD");
+                orgTxn.setDescription("学生完成项目，机构积分池扣减");
+                transactionLogMapper.insert(orgTxn);
+            }
+        }
+
+        return sysUserMapper.selectById(studentId);
+    }
+
     public SysUser getUser(Long id) {
         SysUser user = sysUserMapper.selectById(id);
         if (user == null) {

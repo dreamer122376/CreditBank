@@ -9,7 +9,7 @@
     <!-- 用户表格 -->
     <el-card>
       <el-table :data="users" border style="width: 100%;" @selection-change="handleSelectionChange" ref="tableRef">
-        <el-table-column type="selection" width="50" />
+        <el-table-column type="selection" width="50" :selectable="row => row.role !== 'admin'" />
         <el-table-column prop="id" label="用户ID" width="80" />
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="realName" label="真实姓名" />
@@ -51,9 +51,13 @@
 
     <!-- 批量操作栏 -->
     <div class="batch-bar" v-if="selectedIds.length > 0">
-      <span>已选 <strong>{{ selectedIds.length }}</strong> 项</span>
-      <el-button type="warning" @click="batchFreeze">批量冻结</el-button>
-      <el-button type="success" @click="batchUnfreeze">批量解冻</el-button>
+      <span>已选 <strong>{{ selectedIds.length }}</strong> 项
+        <template v-if="freezeCount > 0 || unfreezeCount > 0">
+          （可冻结 <strong>{{ freezeCount }}</strong> / 可解冻 <strong>{{ unfreezeCount }}</strong>）
+        </template>
+      </span>
+      <el-button type="warning" @click="batchFreeze" :disabled="freezeCount === 0">批量冻结</el-button>
+      <el-button type="success" @click="batchUnfreeze" :disabled="unfreezeCount === 0">批量解冻</el-button>
       <el-button @click="clearSelection">取消选择</el-button>
     </div>
 
@@ -76,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUsers, updateUserStatus, batchUpdateStatus, resetPassword } from '@/api/user'
@@ -95,6 +99,16 @@ const ROLE_TYPE = { admin: 'danger', org_admin: 'warning', student: 'success', e
 function getRoleName(r) { return ROLE_NAME[r] || r }
 function getRoleType(r) { return ROLE_TYPE[r] || 'info' }
 function fmt(t) { if (!t) return ''; return t.length >= 16 ? t.substring(0, 16).replace('T', ' ') : t }
+
+const freezeCount = computed(() => selectedIds.value.filter(id => {
+  const u = users.value.find(u => u.id === id)
+  return u && u.status === 1 && u.role !== 'admin'
+}).length)
+
+const unfreezeCount = computed(() => selectedIds.value.filter(id => {
+  const u = users.value.find(u => u.id === id)
+  return u && u.status === 0 && u.role !== 'admin'
+}).length)
 
 onMounted(() => { loadData() })
 
@@ -134,10 +148,19 @@ async function toggleStatus(row) {
 // ==================== 批量操作 ====================
 
 async function batchFreeze() {
+  // 只冻结当前状态为正常的用户
+  const eligible = selectedIds.value.filter(id => {
+    const u = users.value.find(u => u.id === id)
+    return u && u.status === 1 && u.role !== 'admin'
+  })
+  if (eligible.length === 0) {
+    ElMessage.warning('所选用户均为已冻结或系统管理员，无需操作')
+    return
+  }
   try {
-    await ElMessageBox.confirm(`确定要冻结选中的 ${selectedIds.value.length} 个用户吗？`, '确认批量冻结', { type: 'warning' })
-    await batchUpdateStatus(selectedIds.value, 0)
-    ElMessage.success('批量冻结成功')
+    await ElMessageBox.confirm(`确定要冻结选中的 ${eligible.length} 个用户吗？`, '确认批量冻结', { type: 'warning' })
+    await batchUpdateStatus(eligible, 0)
+    ElMessage.success(`批量冻结成功：${eligible.length} 个`)
     clearSelection()
     await loadData()
   } catch (e) {
@@ -146,9 +169,18 @@ async function batchFreeze() {
 }
 
 async function batchUnfreeze() {
+  // 只解冻当前状态为冻结的用户
+  const eligible = selectedIds.value.filter(id => {
+    const u = users.value.find(u => u.id === id)
+    return u && u.status === 0 && u.role !== 'admin'
+  })
+  if (eligible.length === 0) {
+    ElMessage.warning('所选用户均为正常状态或系统管理员，无需操作')
+    return
+  }
   try {
-    await batchUpdateStatus(selectedIds.value, 1)
-    ElMessage.success('批量解冻成功')
+    await batchUpdateStatus(eligible, 1)
+    ElMessage.success(`批量解冻成功：${eligible.length} 个`)
     clearSelection()
     await loadData()
   } catch (e) {

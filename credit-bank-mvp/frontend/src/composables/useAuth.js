@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { login as apiLogin, register as apiRegister } from '@/api/user'
 
 const ROLE_NAME = {
@@ -46,17 +46,14 @@ async function register(form) {
     orgId: form.institutionId ? Number(form.institutionId) : null,
     expertField: form.institutionName || ''
   }
-  try {
-    const result = await apiRegister(data)
-    currentUser.value = result.user
-    token.value = result.token
-    localStorage.setItem('cb_user', JSON.stringify(result.user))
-    localStorage.setItem('cb_token', result.token)
-    return true
-  } catch (error) {
-    return false
-  }
+  const result = await apiRegister(data)
+  currentUser.value = result.user
+  token.value = result.token
+  localStorage.setItem('cb_user', JSON.stringify(result.user))
+  localStorage.setItem('cb_token', result.token)
 }
+
+const isFrozen = computed(() => currentUser.value?.status === 0)
 
 loadUser()
 
@@ -64,6 +61,7 @@ export function useAuth() {
   return {
     currentUser,
     token,
+    isFrozen,
     ROLE_NAME,
     login,
     logout,

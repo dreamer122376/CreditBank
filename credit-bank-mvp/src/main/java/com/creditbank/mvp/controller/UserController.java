@@ -75,8 +75,7 @@ public class UserController {
         }
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
-        userService.batchUpdateStatus(ids, status, operator);
-        return Result.ok();
+        return Result.ok(userService.batchUpdateStatus(ids, status, operator));
     }
 
     @PutMapping("/{id}/reset-pw")

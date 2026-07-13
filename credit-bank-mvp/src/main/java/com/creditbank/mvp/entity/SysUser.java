@@ -47,6 +47,12 @@ public class SysUser {
     @Schema(description = "账号状态：1正常，0冻结", example = "1")
     private Integer status;
 
+    @Schema(description = "被冻结的时间")
+    private LocalDateTime frozenAt;
+
+    @Schema(description = "冻结操作人ID")
+    private Long frozenBy;
+
     @Schema(description = "最后登录时间")
     private LocalDateTime lastLoginAt;
 
@@ -139,6 +145,22 @@ public class SysUser {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public LocalDateTime getFrozenAt() {
+        return frozenAt;
+    }
+
+    public void setFrozenAt(LocalDateTime frozenAt) {
+        this.frozenAt = frozenAt;
+    }
+
+    public Long getFrozenBy() {
+        return frozenBy;
+    }
+
+    public void setFrozenBy(Long frozenBy) {
+        this.frozenBy = frozenBy;
     }
 
     public LocalDateTime getLastLoginAt() {

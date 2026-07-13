@@ -59,12 +59,12 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             String role = jwtUtil.getRoleFromToken(token);
 
             SysUser user = sysUserMapper.selectById(userId);
-            if (user == null || user.getStatus() != null && user.getStatus() == 0) {
-                response.setStatus(403);
+            if (user == null) {
+                response.setStatus(401);
                 response.setContentType("application/json;charset=UTF-8");
                 Map<String, Object> body = new HashMap<>();
-                body.put("code", 403);
-                body.put("message", "账户已被冻结，请联系管理员");
+                body.put("code", 401);
+                body.put("message", "用户不存在");
                 body.put("data", null);
                 response.getWriter().write(objectMapper.writeValueAsString(body));
                 return false;
@@ -72,6 +72,8 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
             request.setAttribute(CURRENT_USER_ID, userId);
             request.setAttribute(CURRENT_USER_ROLE, role);
+            // 冻结标记：由 FreezePermissionInterceptor 根据此标记做读写控制
+            request.setAttribute("frozen", user.getStatus() != null && user.getStatus() == 0);
 
         } catch (Exception e) {
             response.setStatus(401);

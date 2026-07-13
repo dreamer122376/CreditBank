@@ -44,6 +44,8 @@ public class ProjectService {
         STATUS_NAME.put(STATUS_OFFLINE, "已下架");
     }
 
+    private static final String ENROLLMENT_STATUS_CANCELLED = "已取消";
+
     private final ProjectMapper projectMapper;
     private final OrganizationMapper organizationMapper;
     private final SysUserMapper sysUserMapper;
@@ -79,8 +81,10 @@ public class ProjectService {
         Project project = getById(id);
         ProjectDetailDTO dto = toDetailDTO(project);
 
-        // 填充已报名学生列表
-        List<StudentProject> enrollments = studentProjectMapper.selectByProjectId(id);
+        // 填充已报名学生列表（排除已取消）
+        List<StudentProject> enrollments = studentProjectMapper.selectByProjectId(id).stream()
+                .filter(e -> !ENROLLMENT_STATUS_CANCELLED.equals(e.getStatus()))
+                .collect(Collectors.toList());
         if (!enrollments.isEmpty()) {
             List<Long> studentIds = enrollments.stream()
                     .map(StudentProject::getStudentId)

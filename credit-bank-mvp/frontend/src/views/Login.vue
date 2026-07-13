@@ -119,14 +119,10 @@ async function handleRegister() {
   }
   registerMsg.value = ''
   try {
-    const success = await register(registerForm.value)
-    if (success) {
-      router.push('/dashboard')
-    } else {
-      registerMsg.value = '注册失败，请稍后重试'
-    }
+    await register(registerForm.value)
+    router.push('/dashboard')
   } catch (error) {
-    registerMsg.value = '注册失败，请稍后重试'
+    registerMsg.value = error.message || '注册失败，请稍后重试'
   }
 }
 </script>

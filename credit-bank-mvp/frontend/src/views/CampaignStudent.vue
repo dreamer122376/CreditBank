@@ -34,6 +34,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { getActiveCampaigns } from '@/api/campaign'
 
 const router = useRouter()
@@ -45,7 +46,7 @@ async function loadData() {
   try {
     list.value = await getActiveCampaigns()
   } catch (e) {
-    console.error(e)
+    ElMessage.error('加载活动列表失败')
   } finally {
     loading.value = false
   }

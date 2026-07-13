@@ -137,6 +137,11 @@ public class StudentProjectService {
                         .eq(StudentProject::getStudentId, studentId)
                         .eq(StudentProject::getProjectId, projectId));
         if (existing != null) {
+            if (ENROLLMENT_STATUS_CANCELLED.equals(existing.getStatus())) {
+                existing.setStatus(ENROLLMENT_STATUS_ENROLLED);
+                studentProjectMapper.updateById(existing);
+                return existing;
+            }
             throw new BizException("已报名该项目");
         }
 
@@ -150,7 +155,7 @@ public class StudentProjectService {
     }
 
     /**
-     * 学生取消报名（只有"已报名"状态可以取消）。
+     * 学生取消报名（"已报名"或"进行中"状态可以取消）。
      */
     @Transactional(rollbackFor = Exception.class)
     public void cancelEnrollment(Long studentId, Long projectId) {
@@ -161,7 +166,8 @@ public class StudentProjectService {
         if (enrollment == null) {
             throw new BizException("未报名该项目");
         }
-        if (!ENROLLMENT_STATUS_ENROLLED.equals(enrollment.getStatus())) {
+        if (!ENROLLMENT_STATUS_ENROLLED.equals(enrollment.getStatus())
+                && !ENROLLMENT_STATUS_IN_PROGRESS.equals(enrollment.getStatus())) {
             throw new BizException("当前状态不可取消报名");
         }
         enrollment.setStatus(ENROLLMENT_STATUS_CANCELLED);

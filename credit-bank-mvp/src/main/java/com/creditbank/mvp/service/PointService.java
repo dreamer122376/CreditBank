@@ -45,9 +45,7 @@ public class PointService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
-        if (user.getStatus() != null && user.getStatus() == 0) {
-            throw new BizException("账户已被冻结，请联系管理员");
-        }
+        // 冻结用户允许登录，读写权限由 FreezePermissionInterceptor 控制
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BizException("密码错误");
         }

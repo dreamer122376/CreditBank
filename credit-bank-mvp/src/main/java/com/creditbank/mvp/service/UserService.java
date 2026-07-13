@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户管理业务。负责用户的编辑、冻结/解冻、重置密码、
@@ -72,6 +74,13 @@ public class UserService {
         SysUser user = getUser(id);
         checkAdminProtection(operator, user, status == 0 ? "冻结" : "解冻");
         user.setStatus(status);
+        if (status == 0) {
+            user.setFrozenAt(LocalDateTime.now());
+            user.setFrozenBy(operator.getId());
+        } else {
+            user.setFrozenAt(null);
+            user.setFrozenBy(null);
+        }
         sysUserMapper.updateById(user);
 
         String action = status == 1 ? "UNFREEZE" : "FREEZE";
@@ -81,11 +90,15 @@ public class UserService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void batchUpdateStatus(List<Long> ids, Integer status, SysUser operator) {
+    public Map<String, Object> batchUpdateStatus(List<Long> ids, Integer status, SysUser operator) {
         int skipped = 0;
+        int processed = 0;
         for (Long id : ids) {
             SysUser user = sysUserMapper.selectById(id);
-            if (user == null) continue;
+            if (user == null) {
+                skipped++;
+                continue;
+            }
             // 批量操作中跳过受保护的管理员
             if ("admin".equals(user.getRole())) {
                 skipped++;
@@ -96,14 +109,29 @@ public class UserService {
                 continue;
             }
             user.setStatus(status);
+            if (status == 0) {
+                user.setFrozenAt(LocalDateTime.now());
+                user.setFrozenBy(operator.getId());
+            } else {
+                user.setFrozenAt(null);
+                user.setFrozenBy(null);
+            }
             sysUserMapper.updateById(user);
+            processed++;
         }
         String action = status == 1 ? "BATCH_UNFREEZE" : "BATCH_FREEZE";
-        String detail = (status == 1 ? "批量解冻 " : "批量冻结 ") + ids.size() + " 个用户";
-        if (skipped > 0) detail += "（跳过 " + skipped + " 个管理员）";
+        String detail = (status == 1 ? "批量解冻 " : "批量冻结 ") + processed + " 个用户";
+        if (skipped > 0) detail += "（跳过 " + skipped + " 个）";
         UserOpLog log = buildLog(operator, null, action, detail);
         log.setDetail(detail);
         userOpLogMapper.insert(log);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", ids.size());
+        result.put("processed", processed);
+        result.put("skipped", skipped);
+        result.put("action", action);
+        return result;
     }
 
     // ==================== 重置密码 ====================

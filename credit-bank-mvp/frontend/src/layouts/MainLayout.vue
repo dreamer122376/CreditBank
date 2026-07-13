@@ -66,7 +66,8 @@ import {
   Tickets,
   Promotion,
   Postcard,
-  FolderOpened
+  FolderOpened,
+  Files
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -105,6 +106,7 @@ const menuItems = computed(() => {
     org_admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
+      { path: '/projects', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },

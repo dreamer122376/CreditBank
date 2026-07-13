@@ -120,6 +120,12 @@ const routes = [
         name: 'MyProjects',
         component: () => import('@/views/MyProjects.vue'),
         meta: { title: '我的项目' }
+      },
+      {
+        path: 'projects',
+        name: 'ProjectManage',
+        component: () => import('@/views/ProjectManage.vue'),
+        meta: { title: '项目管理' }
       }
     ]
   }

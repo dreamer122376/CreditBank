@@ -75,43 +75,13 @@
         </el-card>
       </el-col>
     </el-row>
-
-    <el-card style="margin-top: 20px;">
-      <template #header>
-        <div class="card-header">
-          <span>积分概览（最近7天）</span>
-        </div>
-      </template>
-      <el-table :data="pointOverview" border style="width: 100%;">
-        <el-table-column prop="date" label="日期" />
-        <el-table-column label="加分总量">
-          <template #default="scope">+{{ scope.row.earn }}</template>
-        </el-table-column>
-        <el-table-column label="扣分总量">
-          <template #default="scope">-{{ scope.row.spend }}</template>
-        </el-table-column>
-        <el-table-column label="转换转入">
-          <template #default="scope">+{{ scope.row.convert }}</template>
-        </el-table-column>
-        <el-table-column label="活动奖励">
-          <template #default="scope">+{{ scope.row.activity }}</template>
-        </el-table-column>
-        <el-table-column prop="net" label="净增">
-          <template #default="scope">
-            <el-tag :type="scope.row.net >= 0 ? 'success' : 'danger'">
-              {{ scope.row.net >= 0 ? '+' : '' }}{{ scope.row.net }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { getStatsSummary, getPointOverview, getTodoList, getRecentTransactions } from '@/api/stats'
+import { getStatsSummary, getTodoList, getRecentTransactions } from '@/api/stats'
 import { getProfile } from '@/api/profile'
 
 const { currentUser } = useAuth()
@@ -119,7 +89,6 @@ const { currentUser } = useAuth()
 const summary = ref(null)
 const todoList = ref([])
 const recentTransactions = ref([])
-const pointOverview = ref([])
 
 const welcomeText = computed(() => {
   const texts = {
@@ -206,17 +175,15 @@ async function loadAllData() {
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
-    const [sum, todos, txns, overview, profile] = await Promise.all([
+    const [sum, todos, txns, profile] = await Promise.all([
       getStatsSummary(role, userId),
       getTodoList(role, userId, 4),
       getRecentTransactions(userId, 4),
-      getPointOverview(7),
       userId ? getProfile(userId) : Promise.resolve(null)
     ])
     summary.value = sum
     todoList.value = todos
     recentTransactions.value = txns
-    pointOverview.value = overview
     if (profile && profile.orgName) {
       currentUser.value = { ...currentUser.value, orgName: profile.orgName }
       localStorage.setItem('cb_user', JSON.stringify(currentUser.value))

@@ -6,12 +6,6 @@ export function getStatsSummary(role, userId) {
   })
 }
 
-export function getPointOverview(days = 7) {
-  return request.get('/stats/point-overview', {
-    params: { days }
-  })
-}
-
 export function getTodoList(role, userId, limit = 10) {
   return request.get('/stats/todo-list', {
     params: { role, userId, limit }

@@ -58,8 +58,8 @@ export function getTransactions(userId) {
 
 // ==================== 操作日志 ====================
 
-export function getOpLogs(page = 1, size = 10) {
-  return request.get('/users/op-logs', { params: { page, size } })
+export function getOpLogs(params = {}) {
+  return request.get('/users/op-logs', { params })
 }
 
 // ==================== 解冻申诉 ====================

@@ -8,9 +8,11 @@ import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.StudentProjectMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,15 +40,18 @@ public class StudentProjectService {
     private final ProjectService projectService;
     private final SysUserMapper sysUserMapper;
     private final OrganizationMapper organizationMapper;
+    private final UserOpLogMapper userOpLogMapper;
 
     public StudentProjectService(StudentProjectMapper studentProjectMapper,
                                  ProjectService projectService,
                                  SysUserMapper sysUserMapper,
-                                 OrganizationMapper organizationMapper) {
+                                 OrganizationMapper organizationMapper,
+                                 UserOpLogMapper userOpLogMapper) {
         this.studentProjectMapper = studentProjectMapper;
         this.projectService = projectService;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     // ==================== 学生端：我的项目 ====================
@@ -140,6 +145,10 @@ public class StudentProjectService {
             if (ENROLLMENT_STATUS_CANCELLED.equals(existing.getStatus())) {
                 existing.setStatus(ENROLLMENT_STATUS_ENROLLED);
                 studentProjectMapper.updateById(existing);
+                userOpLogMapper.insert(UserOpLog.createLog(
+                        studentId, student.getRealName(), null, null,
+                        UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_PROJECT_ENROLL,
+                        "重新报名项目：" + project.getName()));
                 return existing;
             }
             throw new BizException("已报名该项目");
@@ -151,6 +160,11 @@ public class StudentProjectService {
         enrollment.setStatus(ENROLLMENT_STATUS_ENROLLED);
         enrollment.setCreatedAt(LocalDateTime.now());
         studentProjectMapper.insert(enrollment);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                studentId, student.getRealName(), null, null,
+                UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_PROJECT_ENROLL,
+                "报名项目：" + project.getName()));
         return enrollment;
     }
 
@@ -159,6 +173,10 @@ public class StudentProjectService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void cancelEnrollment(Long studentId, Long projectId) {
+        SysUser student = sysUserMapper.selectById(studentId);
+        if (student == null) {
+            throw new BizException("学生不存在：" + studentId);
+        }
         StudentProject enrollment = studentProjectMapper.selectOne(
                 new LambdaQueryWrapper<StudentProject>()
                         .eq(StudentProject::getStudentId, studentId)
@@ -170,8 +188,14 @@ public class StudentProjectService {
                 && !ENROLLMENT_STATUS_IN_PROGRESS.equals(enrollment.getStatus())) {
             throw new BizException("当前状态不可取消报名");
         }
+        Project project = projectService.getById(projectId);
         enrollment.setStatus(ENROLLMENT_STATUS_CANCELLED);
         studentProjectMapper.updateById(enrollment);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                studentId, student.getRealName(), null, null,
+                UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_PROJECT_LEAVE,
+                "取消报名项目：" + project.getName()));
     }
 
     // ==================== 机构/管理端：状态管理 ====================

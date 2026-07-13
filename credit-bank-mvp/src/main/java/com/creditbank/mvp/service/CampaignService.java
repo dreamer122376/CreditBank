@@ -6,8 +6,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.Campaign;
 import com.creditbank.mvp.entity.CampaignEnrollment;
+import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.CampaignEnrollmentMapper;
 import com.creditbank.mvp.mapper.CampaignMapper;
+import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,8 @@ import java.util.List;
 public class CampaignService {
 
     private final CampaignMapper campaignMapper;
+    private final UserOpLogMapper userOpLogMapper;
+    private final SysUserMapper sysUserMapper;
 
     // 构造函数在下面「报名管理」区
 
@@ -70,7 +76,7 @@ public class CampaignService {
      * 2. 若 multiplier > 1.0，检查是否已有进行中的积分活动
      */
     @Transactional(rollbackFor = Exception.class)
-    public Campaign save(Campaign campaign) {
+    public Campaign save(Campaign campaign, SysUser operator) {
         validateTime(campaign);
         if (campaign.getMultiplier() == null) {
             campaign.setMultiplier(BigDecimal.ONE);
@@ -81,6 +87,11 @@ public class CampaignService {
         // 根据起止时间设置初始状态
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
         campaignMapper.insert(campaign);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CAMPAIGN, UserOpLog.ACTION_CREATE,
+                "创建活动：" + campaign.getTitle()));
         return campaign;
     }
 
@@ -88,7 +99,7 @@ public class CampaignService {
      * 编辑活动
      */
     @Transactional(rollbackFor = Exception.class)
-    public Campaign update(Campaign campaign) {
+    public Campaign update(Campaign campaign, SysUser operator) {
         Campaign existing = getById(campaign.getId());
         validateTime(campaign);
         if (campaign.getMultiplier() == null) {
@@ -100,6 +111,11 @@ public class CampaignService {
         // 重新计算状态
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
         campaignMapper.updateById(campaign);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CAMPAIGN, UserOpLog.ACTION_UPDATE,
+                "编辑活动：" + existing.getTitle()));
         return getById(campaign.getId());
     }
 
@@ -107,9 +123,14 @@ public class CampaignService {
      * 删除活动
      */
     @Transactional(rollbackFor = Exception.class)
-    public void delete(Long id) {
-        getById(id); // 校验存在性，不存在会抛 BizException
+    public void delete(Long id, SysUser operator) {
+        Campaign campaign = getById(id);
         campaignMapper.deleteById(id);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CAMPAIGN, UserOpLog.ACTION_DELETE,
+                "删除活动：" + campaign.getTitle()));
     }
 
     // ==================== 定时任务 ====================
@@ -158,9 +179,13 @@ public class CampaignService {
     private final CampaignEnrollmentMapper enrollmentMapper;
 
     public CampaignService(CampaignMapper campaignMapper,
-                           CampaignEnrollmentMapper enrollmentMapper) {
+                           CampaignEnrollmentMapper enrollmentMapper,
+                           UserOpLogMapper userOpLogMapper,
+                           SysUserMapper sysUserMapper) {
         this.campaignMapper = campaignMapper;
         this.enrollmentMapper = enrollmentMapper;
+        this.userOpLogMapper = userOpLogMapper;
+        this.sysUserMapper = sysUserMapper;
     }
 
     /** 参加活动 */
@@ -172,11 +197,18 @@ public class CampaignService {
         if (exist != null) {
             throw new BizException("已报名该活动");
         }
+        Campaign campaign = getById(campaignId);
+        SysUser user = sysUserMapper.selectById(userId);
         CampaignEnrollment e = new CampaignEnrollment();
         e.setCampaignId(campaignId);
         e.setUserId(userId);
         e.setEnrolledAt(LocalDateTime.now());
         enrollmentMapper.insert(e);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                userId, user != null ? user.getRealName() : String.valueOf(userId), null, null,
+                UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_CAMPAIGN_ENROLL,
+                "报名活动：" + campaign.getTitle()));
     }
 
     /** 退出活动 */
@@ -188,7 +220,14 @@ public class CampaignService {
         if (exist == null) {
             throw new BizException("未报名该活动");
         }
+        Campaign campaign = getById(campaignId);
+        SysUser user = sysUserMapper.selectById(userId);
         enrollmentMapper.deleteById(exist.getId());
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                userId, user != null ? user.getRealName() : String.valueOf(userId), null, null,
+                UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_CAMPAIGN_LEAVE,
+                "取消报名活动：" + campaign.getTitle()));
     }
 
     /** 检查用户是否报名了指定活动 */

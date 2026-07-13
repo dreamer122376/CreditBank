@@ -2,13 +2,11 @@ package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
-import com.creditbank.mvp.entity.Campaign;
-import com.creditbank.mvp.entity.CreditRule;
-import com.creditbank.mvp.entity.SysUser;
-import com.creditbank.mvp.entity.TransactionLog;
+import com.creditbank.mvp.entity.*;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,17 +21,20 @@ public class PointService {
     private final SysUserMapper sysUserMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
+    private final UserOpLogMapper userOpLogMapper;
     private final CampaignService campaignService;
     private final PasswordEncoder passwordEncoder;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
                         TransactionLogMapper transactionLogMapper,
+                        UserOpLogMapper userOpLogMapper,
                         CampaignService campaignService,
                         PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
+        this.userOpLogMapper = userOpLogMapper;
         this.campaignService = campaignService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -68,7 +69,7 @@ public class PointService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public SysUser earn(Long userId, String eventCode) {
+    public SysUser earn(Long userId, String eventCode, Long operatorId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
@@ -109,6 +110,15 @@ public class PointService {
         txn.setRelatedRuleId(rule.getId());
         txn.setDescription(rule.getEventName() + campaignDesc);
         transactionLogMapper.insert(txn);
+
+        // 操作人：管理员手动加分时取 operatorId，否则默认为被加分学生自己
+        Long realOperatorId = operatorId != null ? operatorId : userId;
+        SysUser operator = sysUserMapper.selectById(realOperatorId);
+        String operatorName = operator != null ? operator.getRealName() : String.valueOf(realOperatorId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                realOperatorId, operatorName, userId, user.getRealName(),
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
+                "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + rule.getEventName() + campaignDesc + "，当前余额：" + newBalance));
 
         if (rule.getOrgId() != null) {
             SysUser orgAdmin = sysUserMapper.selectOne(

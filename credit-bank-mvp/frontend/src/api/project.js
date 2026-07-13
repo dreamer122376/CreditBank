@@ -48,26 +48,37 @@ export function getStudentsByProject(projectId) {
 
 // ==================== 管理端 ====================
 
+/** 机构端：本机构项目列表 */
 export function getOrgProjects() {
-  return request.get('/project/my-org')
+  return request.get('/projects/org')
 }
 
-export function getAllProjects() {
-  return request.get('/project/list')
+/** 管理端：项目分页列表 */
+export function getAllProjects(params) {
+  return request.get('/projects', { params })
 }
 
+/** 项目详情（含报名学生） */
 export function getOrgProjectDetail(id) {
-  return request.get('/project/' + id + '/detail')
+  return request.get('/projects/' + id)
 }
 
+/** 创建项目 */
 export function createProject(data) {
-  return request.post('/project/create', data)
+  return request.post('/projects', data)
 }
 
-export function updateProject(data) {
-  return request.post('/project/update', data)
+/** 编辑项目 */
+export function updateProject(id, data) {
+  return request.put('/projects/' + id, data)
 }
 
-export function deleteProject(id) {
-  return request.delete('/project/' + id)
+/** 下架项目 */
+export function offlineProject(id) {
+  return request.post('/projects/' + id + '/offline')
+}
+
+/** 审核项目 */
+export function auditProject(id, data) {
+  return request.post('/projects/' + id + '/audit', data)
 }

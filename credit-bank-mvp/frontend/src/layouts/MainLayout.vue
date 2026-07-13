@@ -152,18 +152,21 @@ const menuItems = computed(() => {
       { path: '/applications', title: '业务流程', icon: Tickets },
       { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
+      { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/profile', title: '我的资料', icon: Postcard },
-      { path: '/transactions', title: '交易管理', icon: WalletFilled }
+      { path: '/transactions', title: '交易管理', icon: WalletFilled },
+      { path: '/op-logs', title: '操作日志', icon: Tickets }
     ],
     org_admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
-      { path: '/projects', title: '项目管理', icon: Files },
+      { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/profile', title: '我的资料', icon: Postcard },
-      { path: '/transactions', title: '积分流水', icon: WalletFilled }
+      { path: '/transactions', title: '积分流水', icon: WalletFilled },
+      { path: '/op-logs', title: '操作日志', icon: Tickets }
     ],
     student: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },

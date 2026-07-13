@@ -1,9 +1,11 @@
 package com.creditbank.mvp.controller;
 
+import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.service.PointService;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import com.creditbank.mvp.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -84,7 +86,15 @@ public class PointController {
     @PostMapping("/points/earn")
     @Operation(summary = "获取积分", description = "根据事件代码获取积分，支持活动倍率加成")
     public Result<SysUser> earn(@RequestBody EarnRequest req) {
-        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode()));
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        SysUser operator = pointService.getUser(operatorId);
+        if ("org_admin".equals(operator.getRole())) {
+            SysUser target = pointService.getUser(req.getUserId());
+            if (!operator.getOrgId().equals(target.getOrgId())) {
+                throw new BizException("只能给本机构学生加分");
+            }
+        }
+        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId));
     }
 
     @GetMapping("/user/{id}/transactions")

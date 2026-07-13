@@ -3,7 +3,9 @@ package com.creditbank.mvp.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.entity.Campaign;
+import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.service.CampaignService;
+import com.creditbank.mvp.service.UserService;
 import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +21,12 @@ import java.util.List;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final UserService userService;
 
-    public CampaignController(CampaignService campaignService) {
+    public CampaignController(CampaignService campaignService,
+                              UserService userService) {
         this.campaignService = campaignService;
+        this.userService = userService;
     }
 
     /** 分页列表（管理端），支持 ?page=1&size=10&status=1 筛选 */
@@ -48,20 +53,23 @@ public class CampaignController {
     /** 新增活动 */
     @PostMapping
     public Result<Campaign> create(@RequestBody Campaign campaign) {
-        return Result.ok(campaignService.save(campaign));
+        SysUser operator = userService.getUser(CurrentUserUtil.getCurrentUserId());
+        return Result.ok(campaignService.save(campaign, operator));
     }
 
     /** 编辑活动 */
     @PutMapping("/{id}")
     public Result<Campaign> update(@PathVariable Long id, @RequestBody Campaign campaign) {
+        SysUser operator = userService.getUser(CurrentUserUtil.getCurrentUserId());
         campaign.setId(id);
-        return Result.ok(campaignService.update(campaign));
+        return Result.ok(campaignService.update(campaign, operator));
     }
 
     /** 删除活动 */
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        campaignService.delete(id);
+        SysUser operator = userService.getUser(CurrentUserUtil.getCurrentUserId());
+        campaignService.delete(id, operator);
         return Result.ok();
     }
 

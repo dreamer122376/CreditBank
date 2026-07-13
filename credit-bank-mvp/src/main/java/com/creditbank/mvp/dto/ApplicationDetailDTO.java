@@ -22,6 +22,14 @@ public class ApplicationDetailDTO {
     private LocalDateTime appliedAt;
     private LocalDateTime updatedAt;
 
+    /** 当前登录人是否可审批本单（后端按角色/审批链算好，前端直接用） */
+    private Boolean canAudit;
+    /** 认证业务：当前停留节点及审核人 */
+    private Long currentNodeId;
+    private String currentAuditorName;
+    /** 认证业务：完整审批链及各步状态 */
+    private java.util.List<FlowStepDTO> flowSteps;
+
     public Long getId() {
         return id;
     }
@@ -148,5 +156,37 @@ public class ApplicationDetailDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getCanAudit() {
+        return canAudit;
+    }
+
+    public void setCanAudit(Boolean canAudit) {
+        this.canAudit = canAudit;
+    }
+
+    public Long getCurrentNodeId() {
+        return currentNodeId;
+    }
+
+    public void setCurrentNodeId(Long currentNodeId) {
+        this.currentNodeId = currentNodeId;
+    }
+
+    public String getCurrentAuditorName() {
+        return currentAuditorName;
+    }
+
+    public void setCurrentAuditorName(String currentAuditorName) {
+        this.currentAuditorName = currentAuditorName;
+    }
+
+    public java.util.List<FlowStepDTO> getFlowSteps() {
+        return flowSteps;
+    }
+
+    public void setFlowSteps(java.util.List<FlowStepDTO> flowSteps) {
+        this.flowSteps = flowSteps;
     }
 }

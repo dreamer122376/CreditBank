@@ -26,6 +26,9 @@ public class Application {
 
     private Integer currentStatus;
 
+    /** 认证业务当前审批节点ID（cert_audit_flow.id），非认证业务为 NULL */
+    private Long currentNodeId;
+
     private String rejectReason;
 
     private LocalDateTime appliedAt;
@@ -94,6 +97,14 @@ public class Application {
 
     public void setCurrentStatus(Integer currentStatus) {
         this.currentStatus = currentStatus;
+    }
+
+    public Long getCurrentNodeId() {
+        return currentNodeId;
+    }
+
+    public void setCurrentNodeId(Long currentNodeId) {
+        this.currentNodeId = currentNodeId;
     }
 
     public String getRejectReason() {

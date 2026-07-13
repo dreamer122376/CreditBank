@@ -116,6 +116,18 @@ const routes = [
         meta: { title: '我的资料' }
       },
       {
+        path: 'my-certs',
+        name: 'ExpertCerts',
+        component: () => import('@/views/ExpertCerts.vue'),
+        meta: { title: '我的资质' }
+      },
+      {
+        path: 'student-certs',
+        name: 'StudentCerts',
+        component: () => import('@/views/StudentCerts.vue'),
+        meta: { title: '学生证书认证' }
+      },
+      {
         path: 'my-projects',
         name: 'MyProjects',
         component: () => import('@/views/MyProjects.vue'),

@@ -1,6 +1,7 @@
 package com.creditbank.mvp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -36,6 +37,10 @@ public class TransactionLog {
 
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
+
+    @TableField(exist = false)
+    @Schema(description = "是否已被撤销")
+    private Boolean reverted;
 
     public Long getId() {
         return id;
@@ -99,5 +104,13 @@ public class TransactionLog {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Boolean getReverted() {
+        return reverted;
+    }
+
+    public void setReverted(Boolean reverted) {
+        this.reverted = reverted;
     }
 }

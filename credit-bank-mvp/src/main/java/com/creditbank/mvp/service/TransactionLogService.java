@@ -35,7 +35,9 @@ public class TransactionLogService {
         SysUser operator = getOperator(operatorId);
         LambdaQueryWrapper<TransactionLog> wrapper = buildWrapper(operator, userId, bizType, startTime, endTime);
         wrapper.orderByDesc(TransactionLog::getCreatedAt);
-        return transactionLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+        Page<TransactionLog> result = transactionLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+        markReverted(result.getRecords());
+        return result;
     }
 
     public List<TransactionLog> list(Long operatorId, Long userId, String bizType,
@@ -43,7 +45,25 @@ public class TransactionLogService {
         SysUser operator = getOperator(operatorId);
         LambdaQueryWrapper<TransactionLog> wrapper = buildWrapper(operator, userId, bizType, startTime, endTime);
         wrapper.orderByDesc(TransactionLog::getCreatedAt);
-        return transactionLogMapper.selectList(wrapper);
+        List<TransactionLog> records = transactionLogMapper.selectList(wrapper);
+        markReverted(records);
+        return records;
+    }
+
+    private void markReverted(List<TransactionLog> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        List<Long> ids = records.stream().map(TransactionLog::getId).collect(Collectors.toList());
+        List<Long> revertedIds = transactionLogMapper.selectList(
+                new LambdaQueryWrapper<TransactionLog>()
+                        .eq(TransactionLog::getBizType, "REFUND")
+                        .in(TransactionLog::getRelatedRuleId, ids)
+                        .select(TransactionLog::getRelatedRuleId)
+        ).stream().map(TransactionLog::getRelatedRuleId).distinct().collect(Collectors.toList());
+        for (TransactionLog log : records) {
+            log.setReverted(revertedIds.contains(log.getId()));
+        }
     }
 
     public TransactionLog getById(Long operatorId, Long id) {

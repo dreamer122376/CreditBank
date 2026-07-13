@@ -58,8 +58,9 @@
         </el-table-column>
         <el-table-column label="操作" width="120" v-if="isAdmin">
           <template #default="scope">
-            <el-button v-if="scope.row.bizType !== 'REFUND'" size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
-            <span v-else style="color:#868e96;font-size:12px;">已撤销</span>
+            <span v-if="scope.row.bizType === 'REFUND'" style="color:#868e96;font-size:12px;">无法撤销</span>
+            <span v-else-if="scope.row.reverted" style="color:#868e96;font-size:12px;">已撤销</span>
+            <el-button v-else size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
           </template>
         </el-table-column>
       </el-table>

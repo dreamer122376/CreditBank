@@ -190,7 +190,6 @@ CREATE TABLE `credit_rule` (
                                `credit_value` int NOT NULL COMMENT '变动值（正数=加分，负数=扣分）',
                                `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用：1启用，0停用',
                                `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                               `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
                                `start_time` datetime COMMENT '规则生效开始时间',
                                `end_time` datetime COMMENT '规则生效结束时间',
                                `project_id` bigint DEFAULT NULL,

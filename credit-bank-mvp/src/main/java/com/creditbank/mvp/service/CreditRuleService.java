@@ -106,7 +106,6 @@ public class CreditRuleService {
             }
         }
         rule.setCreatedAt(exist.getCreatedAt());
-        rule.setUpdatedAt(LocalDateTime.now());
         creditRuleMapper.updateById(rule);
         return creditRuleMapper.selectById(rule.getId());
     }
@@ -124,7 +123,6 @@ public class CreditRuleService {
             throw new BizException("非法的状态值：" + isEnabled);
         }
         exist.setIsEnabled(isEnabled);
-        exist.setUpdatedAt(LocalDateTime.now());
         creditRuleMapper.updateById(exist);
         return exist;
     }

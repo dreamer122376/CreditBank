@@ -34,9 +34,6 @@ public class CreditRule {
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 
-    @Schema(description = "最后修改时间")
-    private LocalDateTime updatedAt;
-
     @Schema(description = "规则生效开始时间")
     private LocalDateTime startTime;
 
@@ -93,14 +90,6 @@ public class CreditRule {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public LocalDateTime getStartTime() {

@@ -101,15 +101,4 @@ INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`
 (5, 'CERT_APPLY', 1, 8, 1, 5, '{"standardId":1,"applyReason":"已完成500积分要求"}', 3, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), NOW()),
 (6, 'EXCHANGE', NULL, 7, 2, NULL, '{"itemId":2,"quantity":1}', 4, '积分不足', DATE_ADD(NOW(), INTERVAL -4 DAY), NOW());
 
--- 交易流水表初始数据（依赖 sys_user.id）
-INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `biz_id`, `description`, `created_at`) VALUES
-(1, 6, 100, 100, 'REWARD', 'course_001', '完成课程获得积分', DATE_ADD(NOW(), INTERVAL -10 DAY)),
-(2, 6, 200, 300, 'REWARD', 'project_001', '参与项目获得积分', DATE_ADD(NOW(), INTERVAL -8 DAY)),
-(3, 6, 100, 400, 'REWARD', 'test_001', '在线测试获得积分', DATE_ADD(NOW(), INTERVAL -6 DAY)),
-(4, 6, 100, 500, 'REWARD', 'course_002', '完成课程获得积分', DATE_ADD(NOW(), INTERVAL -4 DAY)),
-(5, 7, 100, 100, 'REWARD', 'course_001', '完成课程获得积分', DATE_ADD(NOW(), INTERVAL -9 DAY)),
-(6, 7, 200, 300, 'REWARD', 'project_002', '参与项目获得积分', DATE_ADD(NOW(), INTERVAL -5 DAY)),
-(7, 8, 300, 300, 'REWARD', 'project_001', '参与项目获得积分', DATE_ADD(NOW(), INTERVAL -12 DAY)),
-(8, 8, 200, 500, 'REWARD', 'course_003', '完成课程获得积分', DATE_ADD(NOW(), INTERVAL -10 DAY)),
-(9, 8, 100, 600, 'REWARD', 'test_002', '在线测试获得积分', DATE_ADD(NOW(), INTERVAL -8 DAY)),
-(10, 8, 200, 800, 'REWARD', 'project_003', '优秀项目奖励', DATE_ADD(NOW(), INTERVAL -6 DAY));
+

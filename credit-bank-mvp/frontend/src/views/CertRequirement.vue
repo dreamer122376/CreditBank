@@ -1,6 +1,9 @@
 <template>
   <div class="cert-requirement">
     <el-page-header @back="goBack" style="margin-bottom: 16px;">
+      <template #title>
+        <span>返回</span>
+      </template>
       <template #content>
         <span class="page-title">执行标准文件</span>
       </template>

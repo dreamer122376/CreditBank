@@ -435,13 +435,14 @@ CREATE TABLE `transaction_log` (
                                    `user_id` bigint NOT NULL COMMENT '用户ID',
                                    `amount` int NOT NULL COMMENT '变动金额（+增加，-减少）',
                                    `balance_after` int NOT NULL COMMENT '变动后的即时余额快照',
-                                   `biz_type` varchar(30) NOT NULL COMMENT '业务类型：REWARD/EXCHANGE/REFUND/ADMIN',
-                                   `biz_id` varchar(50) DEFAULT NULL COMMENT '关联业务单号',
+                                   `biz_type` ENUM('REWARD', 'EXCHANGE', 'REFUND', 'ADMIN') NOT NULL COMMENT '业务类型：REWARD/EXCHANGE/REFUND/ADMIN',
+                                   `related_rule_id` bigint DEFAULT NULL COMMENT '相关规则ID：REWARD对应积分规则id，EXCHANGE对应兑换规则id，REFUND对应原流水id，ADMIN无意义',
                                    `description` varchar(200) DEFAULT NULL COMMENT '备注说明',
                                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '交易发生时间',
                                    PRIMARY KEY (`id`),
                                    KEY `idx_user_id` (`user_id`),
-                                   KEY `idx_created_at` (`created_at`)
+                                   KEY `idx_created_at` (`created_at`),
+                                   KEY `idx_related_rule_id` (`related_rule_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='交易流水表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 

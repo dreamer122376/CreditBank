@@ -1,6 +1,9 @@
 <template>
   <div class="cert-flow-manage">
     <el-page-header @back="goBack" style="margin-bottom: 16px;">
+      <template #title>
+        <span>返回</span>
+      </template>
       <template #content>
         <span class="page-title">审批流程管理</span>
       </template>

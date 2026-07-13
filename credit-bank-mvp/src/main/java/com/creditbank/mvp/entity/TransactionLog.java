@@ -28,7 +28,8 @@ public class TransactionLog {
     private String bizType;
 
     @Schema(description = "业务ID", example = "project_1")
-    private String bizId;
+    /** 相关规则ID：REWARD对应积分规则id，EXCHANGE对应兑换规则id，REFUND对应原流水id，ADMIN无意义 */
+    private Long relatedRuleId;
 
     @Schema(description = "变动描述", example = "完成项目获得积分")
     private String description;
@@ -76,12 +77,12 @@ public class TransactionLog {
         this.bizType = bizType;
     }
 
-    public String getBizId() {
-        return bizId;
+    public Long getRelatedRuleId() {
+        return relatedRuleId;
     }
 
-    public void setBizId(String bizId) {
-        this.bizId = bizId;
+    public void setRelatedRuleId(Long relatedRuleId) {
+        this.relatedRuleId = relatedRuleId;
     }
 
     public String getDescription() {

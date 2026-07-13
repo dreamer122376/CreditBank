@@ -74,7 +74,7 @@ public class TransactionLogService {
                         log.getAmount(),
                         log.getBalanceAfter(),
                         escapeCsv(log.getBizType()),
-                        escapeCsv(log.getBizId()),
+                        log.getRelatedRuleId() != null ? String.valueOf(log.getRelatedRuleId()) : "",
                         escapeCsv(log.getDescription()),
                         log.getCreatedAt() != null ? log.getCreatedAt().format(formatter) : ""
                 );

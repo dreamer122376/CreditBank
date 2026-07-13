@@ -15,10 +15,13 @@
             <el-tag size="small" type="info" style="margin-left: 6px;">v{{ scope.row.version }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="orgId" label="机构ID" width="100">
+        <el-table-column prop="orgId" label="机构ID" width="120">
           <template #default="scope">
-            {{ scope.row.orgId != null ? scope.row.orgId : '—' }}
-            <div class="org-name">{{ scope.row.orgName }}</div>
+            <template v-if="scope.row.orgId != null">
+              {{ scope.row.orgId }}
+              <div class="org-name">{{ scope.row.orgName }}</div>
+            </template>
+            <span v-else class="org-name" style="color: #67c23a;">全平台通用</span>
           </template>
         </el-table-column>
         <el-table-column prop="targetRole" label="适用人员" width="110">
@@ -45,20 +48,21 @@
             </el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="isEnabled" label="状态" width="90">
+        <el-table-column label="状态" width="140" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'">
-              {{ scope.row.isEnabled === 1 ? '启用' : '停用' }}
-            </el-tag>
+            <div class="status-toggle">
+              <span :class="['toggle-label', scope.row.isEnabled === 0 ? 'active-danger' : '', scope.row.isEnabled === 1 ? 'inactive' : '']">停用</span>
+              <span :class="['toggle-label', scope.row.isEnabled === 1 ? 'active' : '', scope.row.isEnabled === 0 ? 'inactive' : '']">启用</span>
+              <el-switch v-model="scope.row.isEnabled"
+                         :active-value="1"
+                         :inactive-value="0"
+                         @change="toggle(scope.row)" />
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160">
+        <el-table-column label="操作" width="90">
           <template #default="scope">
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
-            <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
-                       @click="toggle(scope.row)">
-              {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -225,5 +229,32 @@ function goFlowManage(row) {
   color: #868e96;
   font-size: 12px;
   margin-left: 8px;
+}
+
+.status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: #c0c4cc;
+  transition: color 0.2s;
+}
+
+.toggle-label.active {
+  color: #67c23a;
+  font-weight: 600;
+}
+
+.toggle-label.active-danger {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+.toggle-label.inactive {
+  color: #c0c4cc;
+  font-weight: normal;
 }
 </style>

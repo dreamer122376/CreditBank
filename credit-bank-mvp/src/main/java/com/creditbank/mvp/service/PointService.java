@@ -95,6 +95,7 @@ public class PointService {
         txn.setAmount(finalCredit);
         txn.setBalanceAfter(newBalance);
         txn.setBizType("REWARD");
+        txn.setRelatedRuleId(rule.getId());
         txn.setDescription(rule.getEventName() + campaignDesc);
         transactionLogMapper.insert(txn);
 

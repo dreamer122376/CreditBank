@@ -30,7 +30,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
                              Object handler) throws Exception {
         String path = request.getRequestURI();
 
-        if (path.equals("/api/user/login") || path.equals("/api/user/register")) {
+        if (path.equals("/api/user/login") || path.equals("/api/user/register") || path.equals("/api/user/test-login") || path.equals("/api/user/test-users")) {
             return true;
         }
         if (!path.startsWith("/api/")) {

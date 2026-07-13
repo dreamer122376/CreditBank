@@ -22,6 +22,7 @@ public class FreezePermissionInterceptor implements HandlerInterceptor {
     private static final Set<String> POST_WHITELIST = Set.of(
             "/api/user/login",
             "/api/user/register",
+            "/api/user/test-login",
             "/api/application/submit"
     );
 

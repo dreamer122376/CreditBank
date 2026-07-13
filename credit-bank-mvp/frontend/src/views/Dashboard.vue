@@ -161,7 +161,7 @@ function getBizTypeName(bizType) {
   const map = {
     REWARD: '奖励',
     EXCHANGE: '兑换',
-    REFUND: '退款',
+    REFUND: '撤销记录',
     ADMIN: '管理员操作'
   }
   return map[bizType] || bizType

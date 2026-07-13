@@ -73,7 +73,7 @@ public class TransactionLogService {
         long revertCount = transactionLogMapper.selectCount(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getRelatedRuleId, transactionId)
-                        .eq(TransactionLog::getBizType, "REVERT"));
+                        .eq(TransactionLog::getBizType, "REFUND"));
         if (revertCount > 0) {
             throw new BizException("该流水已被撤销");
         }
@@ -96,7 +96,7 @@ public class TransactionLogService {
         revertLog.setUserId(original.getUserId());
         revertLog.setAmount(reverseAmount);
         revertLog.setBalanceAfter(newBalance);
-        revertLog.setBizType("REVERT");
+        revertLog.setBizType("REFUND");
         revertLog.setRelatedRuleId(transactionId);
         revertLog.setDescription("管理员撤销流水 #" + transactionId + "：" + original.getDescription());
         revertLog.setCreatedAt(LocalDateTime.now());

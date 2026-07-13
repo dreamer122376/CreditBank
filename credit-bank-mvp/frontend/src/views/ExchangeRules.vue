@@ -16,7 +16,13 @@
           </template>
         </el-table-column>
         <el-table-column prop="stock" label="库存" width="100" />
-        <el-table-column prop="dailyLimit" label="每日限兑" width="100" />
+        <el-table-column prop="perUserLimit" label="每人限兑" width="100" />
+        <el-table-column prop="orgId" label="归属" width="140">
+          <template #default="scope">
+            <span v-if="scope.row.orgId" style="color: #409eff;">机构 {{ scope.row.orgId }}</span>
+            <span v-else style="color: #909399;">全平台通用</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="isEnabled" label="状态" width="90">
           <template #default="scope">
             <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'">
@@ -50,8 +56,11 @@
         <el-form-item label="库存">
           <el-input-number v-model="form.stock" :min="0" />
         </el-form-item>
-        <el-form-item label="每日限兑">
-          <el-input-number v-model="form.dailyLimit" :min="1" />
+        <el-form-item label="每人限兑">
+          <el-input-number v-model="form.perUserLimit" :min="1" />
+        </el-form-item>
+        <el-form-item label="归属机构">
+          <el-input-number v-model="form.orgId" :min="1" :precision="0" placeholder="留空为全平台通用" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -87,7 +96,7 @@ async function loadData() {
 }
 
 function openCreate() {
-  form.value = { itemName: '', requiredCredit: 100, stock: 9999, dailyLimit: 1 }
+  form.value = { itemName: '', requiredCredit: 100, stock: 9999, perUserLimit: 1, orgId: null }
   dialogVisible.value = true
 }
 

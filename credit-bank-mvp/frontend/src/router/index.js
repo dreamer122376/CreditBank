@@ -92,6 +92,12 @@ const routes = [
         meta: { title: '业务流程' }
       },
       {
+        path: 'cert-applications',
+        name: 'CertApplications',
+        component: () => import('@/views/CertApplications.vue'),
+        meta: { title: '证书申请审核' }
+      },
+      {
         path: 'campaigns',
         name: 'CampaignManage',
         component: () => import('@/views/CampaignManage.vue'),
@@ -126,6 +132,18 @@ const routes = [
         name: 'StudentCerts',
         component: () => import('@/views/StudentCerts.vue'),
         meta: { title: '学生证书认证' }
+      },
+      {
+        path: 'my-certificates',
+        name: 'MyCertificates',
+        component: () => import('@/views/StudentCerts.vue'),
+        meta: { title: '我的证书' }
+      },
+      {
+        path: 'student-certificate/:id',
+        name: 'StudentCertificate',
+        component: () => import('@/views/StudentCertificate.vue'),
+        meta: { title: '证书详情' }
       },
       {
         path: 'projects',

@@ -100,6 +100,7 @@ const menuItems = computed(() => {
       { path: '/exchange-rules', title: '转换规则', icon: Refresh },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '业务流程', icon: Tickets },
+      { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '交易管理', icon: WalletFilled }
@@ -110,6 +111,7 @@ const menuItems = computed(() => {
       { path: '/projects', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/applications', title: '业务审核', icon: Tickets },
+      { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled }
     ],
@@ -118,6 +120,7 @@ const menuItems = computed(() => {
       { path: '/projects', title: '项目报名', icon: Collection },
       { path: '/my-projects', title: '我的项目', icon: FolderOpened },
       { path: '/student-certs', title: '学生证书认证', icon: Medal },
+      { path: '/my-certificates', title: '我的证书', icon: Postcard },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/profile', title: '我的资料', icon: Postcard },
@@ -126,6 +129,7 @@ const menuItems = computed(() => {
     expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/applications', title: '项目评审', icon: Tickets },
+      { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/my-certs', title: '我的资质', icon: Medal },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/profile', title: '我的资料', icon: Postcard },

@@ -62,19 +62,22 @@ public class ApplicationService {
     private final ExpertCertMapper expertCertMapper;
     private final CertStandardMapper certStandardMapper;
     private final CertAuditFlowMapper certAuditFlowMapper;
+    private final StudentCertService studentCertService;
 
     public ApplicationService(ApplicationMapper applicationMapper,
                               SysUserMapper sysUserMapper,
                               OrganizationMapper organizationMapper,
                               ExpertCertMapper expertCertMapper,
                               CertStandardMapper certStandardMapper,
-                              CertAuditFlowMapper certAuditFlowMapper) {
+                              CertAuditFlowMapper certAuditFlowMapper,
+                              StudentCertService studentCertService) {
         this.applicationMapper = applicationMapper;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.expertCertMapper = expertCertMapper;
         this.certStandardMapper = certStandardMapper;
         this.certAuditFlowMapper = certAuditFlowMapper;
+        this.studentCertService = studentCertService;
     }
 
     // ==================== 查询 ====================
@@ -253,7 +256,9 @@ public class ApplicationService {
         if ("EXPERT_CERT".equals(app.getBizType())) {
             issueExpertCert(app);
         }
-        // CERT_APPLY（学生证书）暂只置状态，证书落地待学生证书表就绪后接入
+        if ("CERT_APPLY".equals(app.getBizType())) {
+            studentCertService.issueForApplication(app);
+        }
     }
 
     private void issueExpertCert(Application app) {

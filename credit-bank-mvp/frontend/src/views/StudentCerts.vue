@@ -27,8 +27,37 @@
           <template #default="{ row }"><el-tag :type="row.statusType">{{ row.statusName }}</el-tag></template>
         </el-table-column>
         <el-table-column prop="rejectReason" label="驳回原因" min-width="160" />
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button v-if="certForApply(row)" size="small" type="primary" plain @click="viewCert(certForApply(row))">
+              查看证书
+            </el-button>
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
       </el-table>
       <el-empty v-if="!myApplies.length" description="还没有认证申请" />
+    </el-card>
+
+    <el-card style="margin-top: 16px;">
+      <template #header><span>我的证书</span></template>
+      <el-table :data="myCerts" border style="width: 100%;">
+        <el-table-column prop="certNo" label="证书编号" width="190" />
+        <el-table-column prop="certName" label="证书名称" min-width="180" />
+        <el-table-column prop="orgName" label="发证机构" min-width="150" />
+        <el-table-column label="颁发时间" width="170">
+          <template #default="{ row }">{{ formatTime(row.issuedAt) }}</template>
+        </el-table-column>
+        <el-table-column label="有效期至" width="170">
+          <template #default="{ row }">{{ formatTime(row.validUntil) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button size="small" type="primary" plain @click="viewCert(row)">查看证书</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!myCerts.length" description="暂无已发放证书" />
     </el-card>
 
     <el-dialog v-model="applyVisible" title="申请学生证书认证" width="580px">
@@ -61,16 +90,20 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Right } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getApplications, submitApplication } from '@/api/application'
 import { getCertStandards } from '@/api/certStandard'
 import { getAuditFlow } from '@/api/auditFlow'
+import { getStudentCerts } from '@/api/studentCert'
 
+const router = useRouter()
 const { currentUser } = useAuth()
 const standards = ref([])
 const myApplies = ref([])
+const myCerts = ref([])
 const applyVisible = ref(false)
 const flowPreview = ref([])
 const applyForm = ref({ certStandardId: null, reason: '' })
@@ -87,6 +120,7 @@ async function loadAll() {
     standards.value = await getCertStandards()
     const applications = await getApplications(user.role, user.id)
     myApplies.value = applications.filter(app => app.bizType === 'CERT_APPLY' && app.applicantId === user.id)
+    myCerts.value = await getStudentCerts(user.id, user.role, user.id)
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
   }
@@ -150,6 +184,24 @@ function standardName(row) {
 function doneSteps(row) {
   return row.flowSteps.filter(step => step.state === 'done').length
 }
+
+function viewCert(row) {
+  router.push(`/student-certificate/${row.id}`)
+}
+
+function certForApply(app) {
+  if (app.currentStatus !== 3 && app.statusName !== '已通过') {
+    return null
+  }
+  const standardId = parseForm(app).certStandardId || parseForm(app).standardId
+  return myCerts.value.find(cert =>
+    cert.applicationId === app.id ||
+    (standardId && cert.certStandardId === standardId))
+}
+
+function formatTime(time) {
+  return time ? String(time).replace('T', ' ') : '—'
+}
 </script>
 
 <style scoped>
@@ -159,4 +211,5 @@ function doneSteps(row) {
 .flow-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; }
 .flow-node { background: #f1f3f5; border-radius: 4px; padding: 3px 10px; color: #495057; }
 .flow-arrow { color: #909399; }
+.muted { color: #adb5bd; font-size: 12px; }
 </style>

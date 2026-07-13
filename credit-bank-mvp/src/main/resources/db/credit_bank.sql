@@ -476,6 +476,34 @@ CREATE TABLE `expert_cert` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `student_cert`
+--
+
+DROP TABLE IF EXISTS `student_cert`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `student_cert` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '学生证书ID',
+  `student_id` bigint NOT NULL COMMENT '学生用户ID',
+  `cert_standard_id` bigint NOT NULL COMMENT '认证标准ID',
+  `application_id` bigint DEFAULT NULL COMMENT '来源申请单ID',
+  `cert_no` varchar(50) NOT NULL COMMENT '证书编号',
+  `student_name` varchar(50) NOT NULL COMMENT '学生姓名快照',
+  `cert_name` varchar(100) NOT NULL COMMENT '证书名称快照',
+  `org_name` varchar(100) DEFAULT NULL COMMENT '发证机构快照',
+  `verify_code` varchar(32) NOT NULL COMMENT '核验码',
+  `status` tinyint DEFAULT '1' COMMENT '1有效 0撤销',
+  `issued_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '颁发时间',
+  `valid_until` datetime DEFAULT NULL COMMENT '有效期至',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_student_standard` (`student_id`,`cert_standard_id`),
+  UNIQUE KEY `uk_cert_no` (`cert_no`),
+  KEY `idx_student_id` (`student_id`),
+  KEY `idx_application_id` (`application_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生证书发放记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Dumping events for database 'credit_bank'
 --
 

@@ -1,52 +1,53 @@
 <template>
-  <div class="applications">
+  <div class="cert-applications">
     <el-card>
       <template #header>
-        <span>业务流程审批</span>
+        <div class="card-header">
+          <span>证书申请审核</span>
+          <el-tag type="info" effect="plain">仅显示证书类申请</el-tag>
+        </div>
       </template>
+
       <el-table :data="apps" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="bizTypeName" label="业务类型" width="130" />
-        <el-table-column prop="applicantName" label="申请人" width="100" />
-        <el-table-column prop="orgName" label="所属机构" />
-        <el-table-column prop="appliedAt" label="提交时间" width="170">
-          <template #default="scope">
-            {{ formatTime(scope.row.appliedAt) }}
-          </template>
+        <el-table-column prop="bizTypeName" label="申请类型" width="140" />
+        <el-table-column label="认证标准" min-width="180">
+          <template #default="{ row }">{{ certTitle(row) }}</template>
         </el-table-column>
-        <el-table-column prop="statusName" label="状态" width="150">
-          <template #default="scope">
-            <el-tag :type="scope.row.statusType">{{ scope.row.statusName }}</el-tag>
+        <el-table-column prop="applicantName" label="申请人" width="100" />
+        <el-table-column prop="orgName" label="所属机构" min-width="140" />
+        <el-table-column prop="appliedAt" label="提交时间" width="170">
+          <template #default="{ row }">{{ formatTime(row.appliedAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="statusName" label="状态" width="160">
+          <template #default="{ row }">
+            <el-tag :type="row.statusType">{{ row.statusName }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="审批进度" width="120">
-          <template #default="scope">
-            <span v-if="scope.row.flowSteps && scope.row.flowSteps.length">
-              {{ doneSteps(scope.row) }}/{{ scope.row.flowSteps.length }} 步
-            </span>
-            <span v-else-if="isCertBiz(scope.row)" class="muted">自动通过型</span>
-            <span v-else class="muted">管理员单审</span>
+          <template #default="{ row }">
+            <span v-if="row.flowSteps?.length">{{ doneSteps(row) }}/{{ row.flowSteps.length }} 步</span>
+            <span v-else class="muted">自动通过型</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="230">
-          <template #default="scope">
-            <el-button size="small" @click="openDetail(scope.row)">详情</el-button>
-            <template v-if="scope.row.canAudit">
-              <el-button size="small" type="success" @click="audit(scope.row, true)">通过</el-button>
-              <el-button size="small" type="danger" @click="openReject(scope.row)">驳回</el-button>
+          <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row)">详情</el-button>
+            <template v-if="row.canAudit">
+              <el-button size="small" type="success" @click="audit(row, true)">通过</el-button>
+              <el-button size="small" type="danger" @click="openReject(row)">驳回</el-button>
             </template>
           </template>
         </el-table-column>
       </el-table>
-      <div v-if="apps.length === 0" style="text-align: center; padding: 40px;">
-        暂无申请
-      </div>
+      <el-empty v-if="!apps.length" description="暂无证书申请" />
     </el-card>
 
-    <el-dialog v-model="detailVisible" title="申请详情" width="620px">
+    <el-dialog v-model="detailVisible" title="证书申请详情" width="680px">
       <template v-if="detailRow">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="业务类型">{{ detailRow.bizTypeName }}</el-descriptions-item>
+          <el-descriptions-item label="申请类型">{{ detailRow.bizTypeName }}</el-descriptions-item>
+          <el-descriptions-item label="认证标准">{{ certTitle(detailRow) }}</el-descriptions-item>
           <el-descriptions-item label="申请人">{{ detailRow.applicantName }}</el-descriptions-item>
           <el-descriptions-item v-if="detailRow.orgName" label="所属机构">
             {{ detailRow.orgName }}
@@ -54,15 +55,14 @@
           <el-descriptions-item v-if="detailForm.fieldName" label="申请领域">
             {{ detailForm.fieldName }}
           </el-descriptions-item>
-          <el-descriptions-item v-if="detailForm.reason || detailForm.applyReason" label="申请理由">
+          <el-descriptions-item v-if="detailForm.reason || detailForm.applyReason" label="申请说明">
             {{ detailForm.reason || detailForm.applyReason }}
           </el-descriptions-item>
           <el-descriptions-item label="证明材料">
             <template v-if="detailAttachments.length">
               <div v-for="(att, i) in detailAttachments" :key="i" class="att-row">
                 <span class="att-name">{{ att.name }}</span>
-                <el-link v-if="isPreviewable(att)" :href="previewUrl(att)" target="_blank"
-                         type="primary">预览</el-link>
+                <el-link v-if="isPreviewable(att)" :href="previewUrl(att)" target="_blank" type="primary">预览</el-link>
                 <el-link :href="downloadUrl(att)" type="primary">下载</el-link>
               </div>
             </template>
@@ -73,7 +73,7 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <template v-if="detailRow.flowSteps && detailRow.flowSteps.length">
+        <template v-if="detailRow.flowSteps?.length">
           <el-divider content-position="left">审批流程</el-divider>
           <el-steps align-center>
             <el-step v-for="s in detailRow.flowSteps" :key="s.nodeId"
@@ -88,7 +88,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="rejectVisible" title="驳回申请" width="420px">
+    <el-dialog v-model="rejectVisible" title="驳回证书申请" width="420px">
       <el-form label-width="80px">
         <el-form-item label="驳回原因" required>
           <el-input v-model="rejectReason" type="textarea" :rows="3" placeholder="请填写驳回原因" />
@@ -103,10 +103,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
-import { getApplications, auditApplication } from '@/api/application'
+import { auditApplication, getApplications } from '@/api/application'
+
+const CERT_BIZ_TYPES = ['CERT_APPLY', 'EXPERT_CERT']
 
 const { currentUser } = useAuth()
 
@@ -117,14 +119,7 @@ const rejectTarget = ref(null)
 const detailVisible = ref(false)
 const detailRow = ref(null)
 
-const detailForm = computed(() => {
-  try {
-    return detailRow.value?.formData ? JSON.parse(detailRow.value.formData) : {}
-  } catch (e) {
-    return {}
-  }
-})
-
+const detailForm = computed(() => parseForm(detailRow.value))
 const detailAttachments = computed(() =>
   Array.isArray(detailForm.value.attachments) ? detailForm.value.attachments : [])
 
@@ -133,7 +128,7 @@ onMounted(loadData)
 async function loadData() {
   try {
     const list = await getApplications(currentUser.value?.role, currentUser.value?.id)
-    apps.value = list.filter(app => !isCertBiz(app))
+    apps.value = list.filter(app => CERT_BIZ_TYPES.includes(app.bizType))
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
   }
@@ -169,12 +164,22 @@ async function confirmReject() {
   rejectVisible.value = false
 }
 
-function doneSteps(row) {
-  return row.flowSteps.filter(s => s.state === 'done').length
+function parseForm(row) {
+  try {
+    return row?.formData ? JSON.parse(row.formData) : {}
+  } catch (_) {
+    return {}
+  }
 }
 
-function isCertBiz(row) {
-  return row.bizType === 'CERT_APPLY' || row.bizType === 'EXPERT_CERT'
+function certTitle(row) {
+  const form = parseForm(row)
+  const standardId = form.certStandardId || form.standardId
+  return form.standardName || form.fieldName || (standardId ? `认证标准 #${standardId}` : '—')
+}
+
+function doneSteps(row) {
+  return row.flowSteps.filter(s => s.state === 'done').length
 }
 
 function stepStatus(s) {
@@ -204,6 +209,12 @@ function downloadUrl(att) {
 </script>
 
 <style scoped>
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .att-row {
   display: flex;
   align-items: center;

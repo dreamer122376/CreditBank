@@ -126,11 +126,11 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (sql.trim().isEmpty()) {
             return;
         }
-        String upperSql = sql.toUpperCase();
-        if (upperSql.contains("DROP DATABASE") || upperSql.contains("DROP SCHEMA") || upperSql.contains("DROP TABLE")) {
-            logger.warn("跳过危险SQL，避免启动时删除已有数据: {}", sql.substring(0, Math.min(100, sql.length())));
-            return;
-        }
+//        String upperSql = sql.toUpperCase();
+//        if (upperSql.contains("DROP DATABASE") || upperSql.contains("DROP SCHEMA") || upperSql.contains("DROP TABLE")) {
+//            logger.warn("跳过危险SQL，避免启动时删除已有数据: {}", sql.substring(0, Math.min(100, sql.length())));
+//            return;
+//        }
         try (Statement statement = connection.createStatement()) {
             statement.execute(sql);
         } catch (SQLException e) {

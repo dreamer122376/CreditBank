@@ -1,6 +1,7 @@
 package com.creditbank.mvp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -20,9 +21,12 @@ public class ExchangeRule {
 
     private Integer stock;
 
-    private Integer dailyLimit;
+    @TableField("per_user_limit")
+    private Integer perUserLimit;
 
     private Integer isEnabled;
+
+    private Long orgId;
 
     private LocalDateTime createdAt;
 
@@ -66,12 +70,12 @@ public class ExchangeRule {
         this.stock = stock;
     }
 
-    public Integer getDailyLimit() {
-        return dailyLimit;
+    public Integer getPerUserLimit() {
+        return perUserLimit;
     }
 
-    public void setDailyLimit(Integer dailyLimit) {
-        this.dailyLimit = dailyLimit;
+    public void setPerUserLimit(Integer perUserLimit) {
+        this.perUserLimit = perUserLimit;
     }
 
     public Integer getIsEnabled() {
@@ -80,6 +84,14 @@ public class ExchangeRule {
 
     public void setIsEnabled(Integer isEnabled) {
         this.isEnabled = isEnabled;
+    }
+
+    public Long getOrgId() {
+        return orgId;
+    }
+
+    public void setOrgId(Long orgId) {
+        this.orgId = orgId;
     }
 
     public LocalDateTime getCreatedAt() {

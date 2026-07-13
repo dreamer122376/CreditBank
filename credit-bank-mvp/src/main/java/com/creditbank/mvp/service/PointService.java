@@ -99,6 +99,28 @@ public class PointService {
         txn.setDescription(rule.getEventName() + campaignDesc);
         transactionLogMapper.insert(txn);
 
+        if (rule.getOrgId() != null) {
+            SysUser orgAdmin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, rule.getOrgId())
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            if (orgAdmin != null) {
+                int orgNewBalance = orgAdmin.getBalance() - finalCredit;
+                orgAdmin.setBalance(orgNewBalance);
+                sysUserMapper.updateById(orgAdmin);
+
+                TransactionLog orgTxn = new TransactionLog();
+                orgTxn.setUserId(orgAdmin.getId());
+                orgTxn.setAmount(-finalCredit);
+                orgTxn.setBalanceAfter(orgNewBalance);
+                orgTxn.setBizType("REWARD");
+                orgTxn.setRelatedRuleId(rule.getId());
+                orgTxn.setDescription("学生获得积分，机构积分池扣减");
+                transactionLogMapper.insert(orgTxn);
+            }
+        }
+
         return sysUserMapper.selectById(userId);
     }
 

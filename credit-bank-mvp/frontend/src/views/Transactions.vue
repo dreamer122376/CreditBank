@@ -21,6 +21,7 @@
               <el-option label="奖励积分" value="REWARD" />
               <el-option label="积分兑换" value="EXCHANGE" />
               <el-option label="报名项目" value="ENROLL" />
+              <el-option label="撤销记录" value="REFUND" />
             </el-select>
           </el-form-item>
           <el-form-item label="时间范围">
@@ -55,6 +56,12 @@
             <span v-if="scope.row.createdAt">{{ fmt(scope.row.createdAt) }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="120" v-if="isAdmin">
+          <template #default="scope">
+            <el-button v-if="scope.row.bizType !== 'REFUND'" size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
+            <span v-else style="color:#868e96;font-size:12px;">已撤销</span>
+          </template>
+        </el-table-column>
       </el-table>
 
       <div v-if="!loading && list.length === 0" style="text-align:center;padding:60px;color:#868e96;">
@@ -66,14 +73,56 @@
         <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="total" :page-size="pageSize" v-model:current-page="currentPage" @current-change="loadData" />
       </div>
     </el-card>
+
+    <el-dialog v-model="revertVisible" title="确认撤销流水" width="480px" :close-on-click-modal="false">
+      <div v-if="revertItem">
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#868e96;">流水ID</span>
+            <span>{{ revertItem.id }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#868e96;">用户ID</span>
+            <span>{{ revertItem.userId }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#868e96;">原金额</span>
+            <span :class="revertItem.amount > 0 ? 'text-success' : 'text-danger'" style="font-weight:600;">
+              {{ revertItem.amount > 0 ? '+' : '' }}{{ revertItem.amount }}
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="color:#868e96;">描述</span>
+            <span>{{ revertItem.description }}</span>
+          </div>
+        </div>
+        <div style="background:#fff3cd;padding:12px;border-radius:4px;margin-bottom:16px;">
+          <div style="color:#856404;font-weight:600;margin-bottom:4px;">撤销后将：</div>
+          <div style="color:#856404;font-size:13px;">
+            <ul style="margin:0;padding-left:20px;">
+              <li>生成一条反向流水，金额为 <span :class="-revertItem.amount > 0 ? 'text-success' : 'text-danger'">{{ -revertItem.amount > 0 ? '+' : '' }}{{-revertItem.amount}}</span></li>
+              <li>用户余额将 {{ -revertItem.amount > 0 ? '增加' : '减少' }} {{ Math.abs(revertItem.amount) }} 积分</li>
+              <li>原流水记录保持不变，不可再次撤销</li>
+            </ul>
+          </div>
+        </div>
+        <div style="color:#d93026;font-size:13px;">
+          ⚠️ 此操作不可逆，请谨慎操作！
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="revertVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleRevert" :loading="reverting">确认撤销</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { ElMessage } from 'element-plus'
-import { getTransactions, exportTransactions } from '@/api/transaction'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getTransactions, exportTransactions, revertTransaction } from '@/api/transaction'
 
 const { currentUser } = useAuth()
 
@@ -92,15 +141,24 @@ const filters = ref({
 
 const dateRange = ref([])
 
+const revertVisible = ref(false)
+const revertItem = ref(null)
+const reverting = ref(false)
+
 const BIZ_TYPE_MAP = {
   REWARD: { name: '奖励积分', type: 'success' },
   EXCHANGE: { name: '积分兑换', type: 'warning' },
-  ENROLL: { name: '报名项目', type: 'info' }
+  ENROLL: { name: '报名项目', type: 'info' },
+  REFUND: { name: '撤销记录', type: 'danger' }
 }
 
 const showUserIdFilter = computed(() => {
   const role = currentUser.value?.role
   return role === 'admin' || role === 'org_admin'
+})
+
+const isAdmin = computed(() => {
+  return currentUser.value?.role === 'admin'
 })
 
 const pageTitle = computed(() => {
@@ -172,6 +230,26 @@ async function handleExport() {
     exportTransactions(filters.value)
   } catch (e) {
     ElMessage.error('导出失败：' + (e.message || '未知错误'))
+  }
+}
+
+function openRevertConfirm(row) {
+  revertItem.value = row
+  revertVisible.value = true
+}
+
+async function handleRevert() {
+  if (!revertItem.value) return
+  reverting.value = true
+  try {
+    await revertTransaction(revertItem.value.id)
+    ElMessage.success('撤销成功，已生成反向补差流水')
+    revertVisible.value = false
+    await loadData()
+  } catch (e) {
+    ElMessage.error(e.message || '撤销失败')
+  } finally {
+    reverting.value = false
   }
 }
 </script>

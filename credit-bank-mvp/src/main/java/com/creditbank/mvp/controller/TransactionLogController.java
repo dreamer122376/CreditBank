@@ -58,4 +58,10 @@ public class TransactionLogController {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         return Result.ok(transactionLogService.getById(operatorId, id));
     }
+
+    @PostMapping("/{id}/revert")
+    public Result<TransactionLog> revert(@PathVariable Long id) {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        return Result.ok(transactionLogService.revert(operatorId, id));
+    }
 }

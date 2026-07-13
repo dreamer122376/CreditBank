@@ -193,8 +193,10 @@ CREATE TABLE `credit_rule` (
                                `start_time` datetime COMMENT '规则生效开始时间',
                                `end_time` datetime COMMENT '规则生效结束时间',
                                `project_id` bigint DEFAULT NULL,
+                               `org_id` bigint DEFAULT NULL COMMENT '所属机构ID（NULL=平台通用）',
                                PRIMARY KEY (`id`),
                                KEY `fk_credit_rule_project` (`project_id`),
+                               KEY `idx_org_id` (`org_id`),
                                CONSTRAINT `fk_credit_rule_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='积分规则表';
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -221,10 +223,12 @@ CREATE TABLE `exchange_rule` (
                                  `item_icon` varchar(200) DEFAULT NULL COMMENT '商品图标URL',
                                  `required_credit` int NOT NULL COMMENT '兑换所需积分数量',
                                  `stock` int DEFAULT '9999' COMMENT '总库存数量',
-                                 `daily_limit` int DEFAULT '1' COMMENT '每人每日限兑次数',
+                                 `per_user_limit` int DEFAULT '1' COMMENT '每人限兑次数',
                                  `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用',
+                                 `org_id` bigint DEFAULT NULL COMMENT '所属机构ID（NULL=平台通用）',
                                  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                 PRIMARY KEY (`id`)
+                                 PRIMARY KEY (`id`),
+                                 KEY `idx_org_id` (`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='积分转换规则表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 

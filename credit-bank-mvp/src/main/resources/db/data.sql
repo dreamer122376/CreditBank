@@ -67,16 +67,16 @@ INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `crea
 
 
 -- 积分规则表初始数据（依赖 project.id）
-INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `project_id`) VALUES
-(1, 'COURSE_COMPLETE', '课程完成', 100, 1, NOW(), NULL),
-(2, 'PROJECT_PARTICIPATE', '校园APP开发项目参与', 200, 1, NOW(), 1),
-(3, 'PROJECT_PARTICIPATE', '智能教室系统参与', 200, 1, NOW(), 2),
-(4, 'PROJECT_PARTICIPATE', '工程模拟平台参与', 250, 1, NOW(), 3),
-(5, 'PROJECT_EXCELLENT', '校园APP开发优秀', 500, 1, NOW(), 1),
-(6, 'PROJECT_EXCELLENT', '数据分析大赛优秀', 600, 1, NOW(), 4),
-(7, 'ONLINE_TEST', '在线测试', 50, 1, NOW(), NULL),
-(8, 'ATTENDANCE', '签到打卡', 10, 1, NOW(), NULL),
-(9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), NULL);
+INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `updated_at`, `start_time`, `end_time`, `project_id`) VALUES
+(1, 'COURSE_COMPLETE', '课程完成', 100, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL),
+(2, 'PROJECT_PARTICIPATE', '校园APP开发项目参与', 200, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1),
+(3, 'PROJECT_PARTICIPATE', '智能教室系统参与', 200, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 2),
+(4, 'PROJECT_PARTICIPATE', '工程模拟平台参与', 250, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 3),
+(5, 'PROJECT_EXCELLENT', '校园APP开发优秀', 500, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1),
+(6, 'PROJECT_EXCELLENT', '数据分析大赛优秀', 600, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 4),
+(7, 'ONLINE_TEST', '在线测试', 50, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL),
+(8, 'ATTENDANCE', '签到打卡', 10, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL),
+(9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL);
 
 -- 积分转换规则表初始数据（无外键依赖）
 INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `daily_limit`, `is_enabled`, `created_at`) VALUES

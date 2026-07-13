@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>积分规则列表</span>
-          <el-button type="primary" size="small" @click="openCreate">新增规则</el-button>
+          <el-button v-if="currentUser?.role === 'admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
       <el-table :data="rules" border style="width: 100%;">
@@ -29,7 +29,17 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220">
+        <el-table-column prop="startTime" label="开始时间" width="180">
+          <template #default="scope">
+            {{ formatDateTime(scope.row.startTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="endTime" label="结束时间" width="180">
+          <template #default="scope">
+            {{ formatDateTime(scope.row.endTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column v-if="currentUser?.role === 'admin'" label="操作" width="220">
           <template #default="scope">
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
@@ -62,6 +72,12 @@
             <el-option v-for="p in projects" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="开始时间">
+          <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间" style="width:100%;" />
+        </el-form-item>
+        <el-form-item label="结束时间">
+          <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width:100%;" />
+        </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.isEnabled" :active-value="1" :inactive-value="0" />
         </el-form-item>
@@ -85,6 +101,9 @@ import {
   toggleRule,
   getProjects
 } from '@/api/point'
+import { useAuth } from '@/composables/useAuth'
+
+const { currentUser } = useAuth()
 
 const rules = ref([])
 const projects = ref([])
@@ -113,8 +132,16 @@ async function loadProjects() {
 }
 
 function openCreate() {
-  form.value = { eventCode: '', eventName: '', creditValue: 10, projectId: null, isEnabled: 1 }
+  const now = new Date()
+  const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+  form.value = { eventCode: '', eventName: '', creditValue: 10, projectId: null, isEnabled: 1, startTime: now, endTime: oneYearLater }
   dialogVisible.value = true
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function openEdit(row) {

@@ -2,14 +2,15 @@ package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
+import com.creditbank.mvp.dto.StudentCertVerifyDTO;
 import com.creditbank.mvp.entity.Application;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.StudentCert;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
-import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.StudentCertMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,7 +46,6 @@ public class StudentCertService {
         this.organizationMapper = organizationMapper;
     }
 
-    /** 审批终审通过后发证。重复调用保持幂等，避免重复发同一张证。 */
     public StudentCert issueForApplication(Application app) {
         if (app == null || !"CERT_APPLY".equals(app.getBizType())) {
             throw new BizException("只能为学生证书认证申请发证");
@@ -108,10 +108,80 @@ public class StudentCertService {
         if (cert == null || cert.getStatus() == null || cert.getStatus() != 1) {
             throw new BizException("证书不存在或已失效：" + id);
         }
-        if (!"admin".equals(role) && (userId == null || !userId.equals(cert.getStudentId()))) {
-            throw new BizException("无权查看该证书");
-        }
+        ensureCanViewCert(cert, role, userId);
         return cert;
+    }
+
+    public StudentCert getByApplication(Long applicationId, String role, Long userId) {
+        StudentCert cert = studentCertMapper.selectOne(
+                new LambdaQueryWrapper<StudentCert>()
+                        .eq(StudentCert::getApplicationId, applicationId)
+                        .last("LIMIT 1"));
+        if (cert == null) {
+            throw new BizException("该申请尚未生成证书");
+        }
+        ensureCanViewCert(cert, role, userId);
+        return cert;
+    }
+
+    public StudentCert revoke(Long id, String role, Long userId, String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BizException("作废证书必须填写原因");
+        }
+        StudentCert cert = studentCertMapper.selectById(id);
+        if (cert == null) {
+            throw new BizException("证书不存在：" + id);
+        }
+        if (cert.getStatus() != null && cert.getStatus() == 0) {
+            throw new BizException("证书已作废，无需重复操作");
+        }
+        ensureCanRevokeCert(cert, role, userId);
+        cert.setStatus(0);
+        cert.setRevokeReason(reason.trim());
+        cert.setRevokedAt(LocalDateTime.now());
+        studentCertMapper.updateById(cert);
+        return studentCertMapper.selectById(id);
+    }
+
+    public StudentCertVerifyDTO verify(String certNo, String verifyCode) {
+        if (certNo == null || certNo.trim().isEmpty()
+                || verifyCode == null || verifyCode.trim().isEmpty()) {
+            throw new BizException("请输入证书编号和核验码");
+        }
+        StudentCert cert = studentCertMapper.selectOne(
+                new LambdaQueryWrapper<StudentCert>()
+                        .eq(StudentCert::getCertNo, certNo.trim())
+                        .eq(StudentCert::getVerifyCode, verifyCode.trim())
+                        .last("LIMIT 1"));
+        if (cert == null) {
+            throw new BizException("证书不存在或核验码错误");
+        }
+
+        StudentCertVerifyDTO dto = new StudentCertVerifyDTO();
+        dto.setCertNo(cert.getCertNo());
+        dto.setStudentName(cert.getStudentName());
+        dto.setCertName(cert.getCertName());
+        dto.setOrgName(cert.getOrgName());
+        dto.setIssuedAt(cert.getIssuedAt());
+        dto.setValidUntil(cert.getValidUntil());
+        dto.setRevokedAt(cert.getRevokedAt());
+
+        if (cert.getStatus() == null || cert.getStatus() != 1) {
+            dto.setValid(false);
+            dto.setStatus("REVOKED");
+            dto.setMessage("该证书已作废");
+            return dto;
+        }
+        if (cert.getValidUntil() != null && cert.getValidUntil().isBefore(LocalDateTime.now())) {
+            dto.setValid(false);
+            dto.setStatus("EXPIRED");
+            dto.setMessage("该证书已过有效期");
+            return dto;
+        }
+        dto.setValid(true);
+        dto.setStatus("VALID");
+        dto.setMessage("证书真实有效");
+        return dto;
     }
 
     private void ensureIssuedForApprovedApplications(Long studentId) {
@@ -123,6 +193,38 @@ public class StudentCertService {
         for (Application app : approvedApps) {
             issueForApplication(app);
         }
+    }
+
+    private void ensureCanViewCert(StudentCert cert, String role, Long userId) {
+        if ("admin".equals(role)) {
+            return;
+        }
+        if ("student".equals(role) && userId != null && userId.equals(cert.getStudentId())) {
+            return;
+        }
+        Application app = cert.getApplicationId() == null ? null : applicationMapper.selectById(cert.getApplicationId());
+        SysUser user = userId == null ? null : sysUserMapper.selectById(userId);
+        if ("org_admin".equals(role) && app != null && user != null
+                && user.getOrgId() != null && user.getOrgId().equals(app.getOrgId())) {
+            return;
+        }
+        if ("expert".equals(role) && app != null && userId != null && userId.equals(app.getExpertId())) {
+            return;
+        }
+        throw new BizException("无权查看该证书");
+    }
+
+    private void ensureCanRevokeCert(StudentCert cert, String role, Long userId) {
+        if ("admin".equals(role)) {
+            return;
+        }
+        Application app = cert.getApplicationId() == null ? null : applicationMapper.selectById(cert.getApplicationId());
+        SysUser user = userId == null ? null : sysUserMapper.selectById(userId);
+        if ("org_admin".equals(role) && app != null && user != null
+                && user.getOrgId() != null && user.getOrgId().equals(app.getOrgId())) {
+            return;
+        }
+        throw new BizException("只有系统管理员或所属机构管理员可以作废证书");
     }
 
     private String resolveOrgName(CertStandard standard, SysUser student) {

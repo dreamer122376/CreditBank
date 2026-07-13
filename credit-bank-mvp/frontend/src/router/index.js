@@ -8,6 +8,12 @@ const routes = [
     component: () => import('@/views/Login.vue')
   },
   {
+    path: '/certificate-verify',
+    name: 'CertificateVerify',
+    component: () => import('@/views/CertificateVerify.vue'),
+    meta: { public: true, title: '证书验真' }
+  },
+  {
     path: '/',
     name: 'Layout',
     component: () => import('@/layouts/MainLayout.vue'),
@@ -174,7 +180,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { currentUser } = useAuth()
-  if (to.path === '/login') {
+  if (to.path === '/login' || to.meta?.public) {
     next()
   } else if (!currentUser.value) {
     next('/login')

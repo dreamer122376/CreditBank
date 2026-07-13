@@ -500,6 +500,8 @@ CREATE TABLE `student_cert` (
   `org_name` varchar(100) DEFAULT NULL COMMENT '发证机构快照',
   `verify_code` varchar(32) NOT NULL COMMENT '核验码',
   `status` tinyint DEFAULT '1' COMMENT '1有效 0撤销',
+  `revoke_reason` varchar(200) DEFAULT NULL COMMENT '作废原因',
+  `revoked_at` datetime DEFAULT NULL COMMENT '作废时间',
   `issued_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '颁发时间',
   `valid_until` datetime DEFAULT NULL COMMENT '有效期至',
   PRIMARY KEY (`id`),

@@ -39,6 +39,10 @@ public class StudentCert {
     /** 1有效，0撤销 */
     private Integer status;
 
+    private String revokeReason;
+
+    private LocalDateTime revokedAt;
+
     private LocalDateTime issuedAt;
 
     private LocalDateTime validUntil;
@@ -121,6 +125,22 @@ public class StudentCert {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getRevokeReason() {
+        return revokeReason;
+    }
+
+    public void setRevokeReason(String revokeReason) {
+        this.revokeReason = revokeReason;
+    }
+
+    public LocalDateTime getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(LocalDateTime revokedAt) {
+        this.revokedAt = revokedAt;
     }
 
     public LocalDateTime getIssuedAt() {

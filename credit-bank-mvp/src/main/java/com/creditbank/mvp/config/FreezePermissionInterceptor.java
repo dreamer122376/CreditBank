@@ -43,7 +43,7 @@ public class FreezePermissionInterceptor implements HandlerInterceptor {
         }
 
         // POST 白名单放行（登录/注册/提交申诉）
-        if ("POST".equals(method) && POST_WHITELIST.contains(path)) {
+        if ("POST".equals(method) && (POST_WHITELIST.contains(path) || path.matches("/api/application/\\d+/resubmit"))) {
             return true;
         }
 

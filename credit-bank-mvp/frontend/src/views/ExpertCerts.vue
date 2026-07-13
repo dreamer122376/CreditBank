@@ -3,8 +3,14 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>我的评审资质</span>
-          <el-button type="primary" size="small" @click="openApply">申请领域认证</el-button>
+          <div>
+            <span class="title">我的评审资质</span>
+            <span class="subtitle">通过领域认证后，可参与对应标准的证书审核</span>
+          </div>
+          <el-button type="primary" size="small" @click="openApply">
+            <el-icon><Plus /></el-icon>
+            申请领域认证
+          </el-button>
         </div>
       </template>
 
@@ -14,84 +20,93 @@
           {{ cert.fieldName }}
         </el-tag>
       </div>
-      <div v-else class="empty-tip">
-        暂无评审资质。通过领域认证后，你才能被指派评审对应认证标准的申请。
-      </div>
+      <el-empty v-else description="暂无评审资质" />
     </el-card>
 
     <el-card style="margin-top: 16px;">
       <template #header>
-        <span>认证申请记录</span>
+        <span class="title">认证申请记录</span>
       </template>
       <el-table :data="myApplies" border style="width: 100%;">
-        <el-table-column prop="id" label="申请单号" width="90" />
-        <el-table-column label="申请领域" width="160">
-          <template #default="scope">{{ parseForm(scope.row).fieldName || '—' }}</template>
+        <el-table-column prop="id" label="申请单号" width="100" />
+        <el-table-column label="申请领域" min-width="160">
+          <template #default="{ row }">{{ certTitle(row) }}</template>
         </el-table-column>
-        <el-table-column label="证明材料" min-width="200">
-          <template #default="scope">
-            <template v-if="attachmentsOf(scope.row).length">
-              <div v-for="(att, i) in attachmentsOf(scope.row)" :key="i" class="att-row">
+        <el-table-column label="证明材料" min-width="220">
+          <template #default="{ row }">
+            <template v-if="attachmentsOf(row).length">
+              <div v-for="(att, index) in attachmentsOf(row)" :key="index" class="att-row">
                 <span class="att-name">{{ att.name }}</span>
-                <el-link v-if="isPreviewable(att)" :href="previewUrl(att)" target="_blank"
-                         type="primary">预览</el-link>
+                <el-link v-if="isPreviewable(att)" :href="previewUrl(att)" target="_blank" type="primary">预览</el-link>
                 <el-link :href="downloadUrl(att)" type="primary">下载</el-link>
               </div>
             </template>
-            <span v-else class="empty-tip">未提供</span>
+            <span v-else class="muted">未提供</span>
           </template>
         </el-table-column>
-        <el-table-column label="审批进度" width="110">
-          <template #default="scope">
-            <span v-if="scope.row.flowSteps && scope.row.flowSteps.length">
-              {{ doneSteps(scope.row) }}/{{ scope.row.flowSteps.length }} 步
-            </span>
-            <span v-else class="empty-tip">—</span>
+        <el-table-column label="审核进度" width="120">
+          <template #default="{ row }">
+            <span v-if="row.flowSteps?.length">{{ doneSteps(row) }}/{{ row.flowSteps.length }} 步</span>
+            <span v-else class="muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="statusName" label="状态" width="150">
-          <template #default="scope">
-            <el-tag :type="scope.row.statusType">{{ scope.row.statusName }}</el-tag>
+        <el-table-column prop="statusName" label="状态" width="140">
+          <template #default="{ row }">
+            <el-tag :type="row.statusType">{{ row.statusName }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="rejectReason" label="驳回原因" />
+        <el-table-column label="说明" min-width="180">
+          <template #default="{ row }">
+            <span v-if="row.rejectReason" class="reject-text">{{ row.rejectReason }}</span>
+            <span v-else>{{ parseForm(row).reason || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="canResubmit(row)" size="small" type="warning" plain @click="openResubmit(row)">
+              <el-icon><RefreshRight /></el-icon>
+              重新提交
+            </el-button>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
       </el-table>
-      <div v-if="myApplies.length === 0" style="text-align: center; padding: 24px; color: #868e96;">
-        暂无申请记录
-      </div>
+      <el-empty v-if="myApplies.length === 0" description="暂无申请记录" />
     </el-card>
 
-    <!-- 申请认证对话框 -->
-    <el-dialog v-model="applyVisible" title="申请领域认证" width="580px">
+    <el-dialog v-model="applyVisible" :title="editingApplication ? '重新提交领域认证' : '申请领域认证'" width="620px">
       <el-form :model="applyForm" label-width="100px" label-position="left">
         <el-form-item label="认证标准" required>
-          <el-select v-model="applyForm.certStandardId" placeholder="选择要申请的认证标准"
-                     style="width: 100%;" @change="loadFlowPreview">
-            <el-option v-for="s in applicableStandards" :key="s.id"
-                       :label="s.standardName" :value="s.id" />
+          <el-select
+            v-model="applyForm.certStandardId"
+            placeholder="选择要申请的认证标准"
+            style="width: 100%;"
+            @change="loadFlowPreview"
+          >
+            <el-option v-for="standard in applicableStandards" :key="standard.id" :label="standard.standardName" :value="standard.id" />
           </el-select>
           <div v-if="selectedStandard" class="standard-hint">{{ standardDesc(selectedStandard) }}</div>
         </el-form-item>
         <el-form-item v-if="flowPreview.length" label="审核流程">
           <div class="flow-preview">
-            <span v-for="(n, i) in flowPreview" :key="n.id" class="flow-node">
-              第{{ i + 1 }}步 {{ n.auditorName || ('用户#' + n.auditorId) }}
-              <el-icon v-if="i < flowPreview.length - 1" class="flow-arrow"><Right /></el-icon>
-            </span>
+            <template v-for="(node, index) in flowPreview" :key="node.id">
+              <span class="flow-node">第 {{ index + 1 }} 步 {{ node.auditorName || `用户#${node.auditorId}` }}</span>
+              <el-icon v-if="index < flowPreview.length - 1" class="flow-arrow"><Right /></el-icon>
+            </template>
           </div>
         </el-form-item>
         <el-form-item label="领域名称">
           <el-input v-model="applyForm.fieldName" placeholder="默认使用认证标准名称" />
         </el-form-item>
         <el-form-item label="申请理由" required>
-          <el-input v-model="applyForm.reason" type="textarea" :rows="3"
-                    placeholder="说明你的相关背景与资历" />
+          <el-input v-model="applyForm.reason" type="textarea" :rows="3" placeholder="说明你的相关背景、成果或补充说明" />
         </el-form-item>
         <el-form-item label="证明材料">
           <el-upload
             style="width: 100%;"
             action="/api/files/upload-attachment"
             name="file"
+            :headers="uploadHeaders"
             :limit="5"
             :file-list="uploadList"
             :before-upload="beforeUpload"
@@ -100,31 +115,34 @@
             :on-error="onUploadError"
           >
             <el-button size="small">
-              <el-icon><Paperclip /></el-icon>&nbsp;上传文件
+              <el-icon><Paperclip /></el-icon>
+              上传文件
             </el-button>
             <template #tip>
-              <div class="upload-tip">支持 PDF、Word、图片，单个不超过 10MB，最多 5 个（论文、获奖证书等）</div>
+              <div class="upload-tip">支持 PDF、Word、图片，单个不超过 10MB，最多 5 个</div>
             </template>
           </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="applyVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitApply">提交申请</el-button>
+        <el-button type="primary" @click="submitApply">
+          {{ editingApplication ? '重新提交' : '提交申请' }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Medal, Paperclip, Right } from '@element-plus/icons-vue'
+import { Medal, Paperclip, Plus, RefreshRight, Right } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getCertsByExpert } from '@/api/expertCert'
 import { getCertStandards } from '@/api/certStandard'
 import { getAuditFlow } from '@/api/auditFlow'
-import { getApplications, submitApplication } from '@/api/application'
+import { getApplications, resubmitApplication, submitApplication } from '@/api/application'
 
 const { currentUser } = useAuth()
 
@@ -132,21 +150,27 @@ const certs = ref([])
 const standards = ref([])
 const myApplies = ref([])
 const applyVisible = ref(false)
+const editingApplication = ref(null)
 const applyForm = ref({ certStandardId: null, fieldName: '', reason: '', attachments: [] })
 const uploadList = ref([])
 const flowPreview = ref([])
 
 const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx']
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('cb_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
 
-// 只列适用对象为专家的标准，且已持证的不再出现
 const applicableStandards = computed(() => {
-  const held = new Set(certs.value.map(c => c.certStandardId))
-  return standards.value.filter(s =>
-    s.isEnabled === 1 && s.targetRole === 'expert' && !held.has(s.id))
+  const held = new Set(certs.value.map(cert => cert.certStandardId))
+  return standards.value.filter(standard => {
+    const selected = standard.id === applyForm.value.certStandardId
+    return standard.isEnabled === 1 && standard.targetRole === 'expert' && (selected || !held.has(standard.id))
+  })
 })
 
 const selectedStandard = computed(() =>
-  standards.value.find(s => s.id === applyForm.value.certStandardId))
+  standards.value.find(standard => standard.id === applyForm.value.certStandardId))
 
 onMounted(loadAll)
 
@@ -157,37 +181,52 @@ async function loadAll() {
     certs.value = await getCertsByExpert(id)
     standards.value = await getCertStandards()
     const applies = await getApplications(currentUser.value?.role, id)
-    myApplies.value = applies.filter(
-      a => a.bizType === 'EXPERT_CERT' && a.applicantId === id)
+    myApplies.value = applies.filter(app => app.bizType === 'EXPERT_CERT' && app.applicantId === id)
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
   }
 }
 
-function standardDesc(s) {
-  const audit = s.needManualAudit === 1
-    ? `需人工审核${s.flowStepCount ? `（${s.flowStepCount} 级流程）` : ''}`
+function standardDesc(standard) {
+  const audit = standard.needManualAudit === 1
+    ? `需人工审核${standard.flowStepCount ? `（${standard.flowStepCount} 级流程）` : ''}`
     : '达标自动通过'
-  const header = `${s.standardName} v${s.version || '1.0'} · ${audit}`
-  return s.requirementText ? `${header}\n${s.requirementText}` : header
+  const header = `${standard.standardName} v${standard.version || '1.0'} · ${audit}`
+  return standard.requirementText ? `${header}\n${standard.requirementText}` : header
 }
 
 async function loadFlowPreview() {
   flowPreview.value = []
-  const s = selectedStandard.value
-  if (!s || s.needManualAudit !== 1) return
+  const standard = selectedStandard.value
+  if (!standard || standard.needManualAudit !== 1) return
   try {
-    flowPreview.value = await getAuditFlow(s.id)
-  } catch (e) {
+    flowPreview.value = await getAuditFlow(standard.id)
+  } catch (_) {
     flowPreview.value = []
   }
 }
 
 function openApply() {
+  editingApplication.value = null
   applyForm.value = { certStandardId: null, fieldName: '', reason: '', attachments: [] }
   uploadList.value = []
   flowPreview.value = []
   applyVisible.value = true
+}
+
+async function openResubmit(row) {
+  editingApplication.value = row
+  const form = parseForm(row)
+  const attachments = Array.isArray(form.attachments) ? form.attachments : []
+  applyForm.value = {
+    certStandardId: form.certStandardId || form.standardId || null,
+    fieldName: form.fieldName || '',
+    reason: form.reason || '',
+    attachments: attachments.map((att, index) => ({ ...att, uid: att.uid || att.url || `${att.name}-${index}` }))
+  }
+  uploadList.value = applyForm.value.attachments.map(att => ({ name: att.name, url: att.url, uid: att.uid }))
+  applyVisible.value = true
+  await loadFlowPreview()
 }
 
 function beforeUpload(file) {
@@ -206,24 +245,20 @@ function beforeUpload(file) {
 
 function onUploadSuccess(response, file) {
   if (response.code === 200) {
-    // 用 uid 精确标识，避免同名文件误删
     applyForm.value.attachments.push({ uid: file.uid, name: file.name, url: response.data })
   } else {
     ElMessage.error(response.message || '上传失败')
-    // 只移除失败文件，已上传成功的保持不变
-    uploadList.value = uploadList.value.filter(f => f.uid !== file.uid)
+    uploadList.value = uploadList.value.filter(item => item.uid !== file.uid)
   }
 }
 
 function onUploadRemove(file) {
-  // 用 uid 精确删除：即使多个文件同名，也只删当前移除的那个
-  applyForm.value.attachments = applyForm.value.attachments.filter(a => a.uid !== file.uid)
+  applyForm.value.attachments = applyForm.value.attachments.filter(att => att.uid !== file.uid)
 }
 
 function onUploadError(err, file) {
-  // 服务器端校验失败（如超10MB/格式不对）：只移除失败文件，保留已上传好的
   ElMessage.error(err?.message || '上传失败，请重试')
-  uploadList.value = uploadList.value.filter(f => f.uid !== file.uid)
+  uploadList.value = uploadList.value.filter(item => item.uid !== file.uid)
 }
 
 async function submitApply() {
@@ -235,18 +270,24 @@ async function submitApply() {
     ElMessage.warning('请填写申请理由')
     return
   }
+  const payload = JSON.stringify({
+    certStandardId: applyForm.value.certStandardId,
+    fieldName: applyForm.value.fieldName.trim(),
+    reason: applyForm.value.reason.trim(),
+    attachments: applyForm.value.attachments
+  })
   try {
-    await submitApplication({
-      bizType: 'EXPERT_CERT',
-      applicantId: currentUser.value.id,
-      formData: JSON.stringify({
-        certStandardId: applyForm.value.certStandardId,
-        fieldName: applyForm.value.fieldName.trim(),
-        reason: applyForm.value.reason.trim(),
-        attachments: applyForm.value.attachments
+    if (editingApplication.value) {
+      await resubmitApplication(editingApplication.value.id, currentUser.value.id, payload)
+      ElMessage.success('申请已重新提交')
+    } else {
+      await submitApplication({
+        bizType: 'EXPERT_CERT',
+        applicantId: currentUser.value.id,
+        formData: payload
       })
-    })
-    ElMessage.success('申请已提交')
+      ElMessage.success('申请已提交')
+    }
     applyVisible.value = false
     await loadAll()
   } catch (error) {
@@ -256,19 +297,29 @@ async function submitApply() {
 
 function parseForm(row) {
   try {
-    return row.formData ? JSON.parse(row.formData) : {}
-  } catch (e) {
+    return row?.formData ? JSON.parse(row.formData) : {}
+  } catch (_) {
     return {}
   }
 }
 
+function certTitle(row) {
+  const form = parseForm(row)
+  const id = form.certStandardId || form.standardId
+  return form.fieldName || form.standardName || standards.value.find(standard => standard.id === id)?.standardName || (id ? `认证标准 #${id}` : '-')
+}
+
 function attachmentsOf(row) {
-  const atts = parseForm(row).attachments
-  return Array.isArray(atts) ? atts : []
+  const attachments = parseForm(row).attachments
+  return Array.isArray(attachments) ? attachments : []
 }
 
 function doneSteps(row) {
-  return row.flowSteps.filter(s => s.state === 'done').length
+  return row.flowSteps?.filter(step => step.state === 'done').length || 0
+}
+
+function canResubmit(row) {
+  return row.currentStatus === 4
 }
 
 function fileNameFromUrl(url) {
@@ -293,6 +344,18 @@ function downloadUrl(att) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.subtitle {
+  margin-left: 10px;
+  color: #868e96;
+  font-size: 13px;
 }
 
 .badge-wall {
@@ -313,18 +376,6 @@ function downloadUrl(att) {
   gap: 4px;
 }
 
-.empty-tip {
-  color: #868e96;
-  font-size: 13px;
-}
-
-.upload-tip {
-  color: #868e96;
-  font-size: 12px;
-  line-height: 1.6;
-  margin-top: 4px;
-}
-
 .standard-hint {
   color: #868e96;
   font-size: 12px;
@@ -343,7 +394,7 @@ function downloadUrl(att) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   font-size: 13px;
   color: #495057;
 }
@@ -370,5 +421,21 @@ function downloadUrl(att) {
 
 .att-name {
   color: #495057;
+}
+
+.muted {
+  color: #adb5bd;
+  font-size: 12px;
+}
+
+.reject-text {
+  color: #c0392b;
+}
+
+.upload-tip {
+  color: #868e96;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 4px;
 }
 </style>

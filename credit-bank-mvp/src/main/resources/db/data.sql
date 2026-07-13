@@ -102,8 +102,8 @@ INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`
 (6, 'EXCHANGE', NULL, 7, 2, NULL, '{"itemId":2,"quantity":1}', 4, NULL, '积分不足', DATE_ADD(NOW(), INTERVAL -4 DAY), NOW());
 
 -- 学生证书发放记录初始数据（对应已通过的申请单 5）
-INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `issued_at`, `valid_until`) VALUES
-(1, 8, 1, 5, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0005'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
+INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES
+(1, 8, 1, 5, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0005'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
 -- 交易流水表初始数据（依赖 sys_user.id 和 credit_rule.id）
 -- REWARD 类型：平台通用规则只生成学生流水；机构专属规则同步生成 ATTACHMENT 附加流水（机构积分池扣减）
 INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES

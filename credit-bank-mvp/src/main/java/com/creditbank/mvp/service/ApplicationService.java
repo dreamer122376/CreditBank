@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -133,6 +134,9 @@ public class ApplicationService {
         if (applicant == null) {
             throw new BizException("申请人不存在：" + app.getApplicantId());
         }
+        if (app.getOrgId() == null) {
+            app.setOrgId(applicant.getOrgId());
+        }
 
         app.setId(null);
         app.setRejectReason(null);
@@ -158,6 +162,61 @@ public class ApplicationService {
         }
 
         applicationMapper.insert(app);
+        return applicationMapper.selectById(app.getId());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Application resubmit(Long id, Long userId, String formData) {
+        Application app = applicationMapper.selectById(id);
+        if (app == null) {
+            throw new BizException("申请不存在：" + id);
+        }
+        if (userId == null || !userId.equals(app.getApplicantId())) {
+            throw new BizException("只能重新提交自己的申请");
+        }
+        int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_DRAFT;
+        if (status != STATUS_REJECTED) {
+            throw new BizException("只有已驳回的申请可以重新提交");
+        }
+        SysUser applicant = sysUserMapper.selectById(app.getApplicantId());
+        if (applicant == null) {
+            throw new BizException("申请人不存在：" + app.getApplicantId());
+        }
+        if (app.getOrgId() == null) {
+            app.setOrgId(applicant.getOrgId());
+        }
+
+        if (formData != null && !formData.trim().isEmpty()) {
+            app.setFormData(formData);
+        }
+        app.setRejectReason(null);
+        app.setCurrentNodeId(null);
+
+        if (isCertBiz(app.getBizType())) {
+            CertStandard standard = loadStandardForSubmit(app, applicant);
+            if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
+                app.setCurrentStatus(STATUS_APPROVED);
+            } else {
+                if (standard.getFirstNodeId() == null) {
+                    throw new BizException("该认证标准尚未配置审批流程，请联系管理员在流程管理中配置");
+                }
+                app.setCurrentNodeId(standard.getFirstNodeId());
+                app.setCurrentStatus(STATUS_IN_REVIEW);
+            }
+        } else {
+            app.setCurrentStatus(STATUS_IN_REVIEW);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        app.setAppliedAt(now);
+        app.setUpdatedAt(now);
+        int rows = applicationMapper.updateById(app);
+        if (rows == 0) {
+            throw new BizException("申请重新提交失败");
+        }
+        if (app.getCurrentStatus() == STATUS_APPROVED) {
+            onApproved(app);
+        }
         return applicationMapper.selectById(app.getId());
     }
 

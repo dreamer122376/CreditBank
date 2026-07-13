@@ -2,6 +2,7 @@
   <div class="certificate-page">
     <div class="toolbar">
       <el-button @click="router.back()">返回</el-button>
+      <el-button v-if="canRevoke" type="danger" plain @click="revokeCert">作废证书</el-button>
       <el-button type="primary" @click="printCert">打印证书</el-button>
     </div>
 
@@ -16,9 +17,7 @@
         <div class="watermark">CB</div>
 
         <header class="cert-header">
-          <div class="issuer-mark">
-            <span>CB</span>
-          </div>
+          <div class="issuer-mark">CB</div>
           <div class="issuer-copy">
             <strong>学分银行认证中心</strong>
             <small>Credit Bank Credential Office</small>
@@ -47,54 +46,15 @@
         </main>
 
         <div class="stamp-layer" aria-hidden="true">
-          <svg class="seal-svg bank-seal" viewBox="0 0 180 180" role="img">
-            <defs>
-              <path id="bankSealArc" d="M 34 92 A 56 56 0 0 1 146 92" />
-              <filter id="bankSealRoughen">
-                <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="8" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.1" />
-              </filter>
-            </defs>
-            <g filter="url(#bankSealRoughen)">
-              <circle class="seal-outer" cx="90" cy="90" r="76" />
-              <circle class="seal-inner" cx="90" cy="90" r="61" />
-              <text class="seal-arc">
-                <textPath href="#bankSealArc" startOffset="50%" text-anchor="middle">学 分 银 行 认 证 中 心</textPath>
-              </text>
-              <text class="seal-star" x="90" y="90" text-anchor="middle">★</text>
-              <text class="seal-main" x="90" y="118" text-anchor="middle">认证专用章</text>
-              <line class="seal-line" x1="47" y1="126" x2="133" y2="126" />
-              <text class="seal-sub" x="90" y="141" text-anchor="middle">CREDIT BANK</text>
-            </g>
-          </svg>
-
-          <svg class="seal-svg org-seal" viewBox="0 0 180 180" role="img">
-            <defs>
-              <path id="orgSealArc" d="M 34 92 A 56 56 0 0 1 146 92" />
-              <filter id="orgSealRoughen">
-                <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="13" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1" />
-              </filter>
-            </defs>
-            <g filter="url(#orgSealRoughen)">
-              <circle class="seal-outer" cx="90" cy="90" r="76" />
-              <circle class="seal-inner" cx="90" cy="90" r="61" />
-              <text class="seal-arc org-arc">
-                <textPath href="#orgSealArc" startOffset="50%" text-anchor="middle">{{ sealOrgName }}</textPath>
-              </text>
-              <text class="seal-star" x="90" y="90" text-anchor="middle">★</text>
-              <text class="seal-main" x="90" y="118" text-anchor="middle">机构认证章</text>
-              <line class="seal-line" x1="47" y1="126" x2="133" y2="126" />
-              <text class="seal-sub" x="90" y="141" text-anchor="middle">AUTHORIZED</text>
-            </g>
-          </svg>
+          <SealSvg class="bank-seal" title="学分银行认证中心" main="认证专用章" sub="CREDIT BANK" />
+          <SealSvg class="org-seal" :title="sealOrgName" main="机构认证章" sub="AUTHORIZED" />
         </div>
 
         <footer class="cert-footer">
           <div class="signature-block">
-            <div class="signature-line"></div>
             <label>发证机构</label>
             <strong>{{ cert.orgName || '学分银行平台' }}</strong>
+            <div class="signature-line"></div>
           </div>
 
           <div class="verify-panel">
@@ -106,9 +66,13 @@
               <label>有效期至</label>
               <strong>{{ formatDate(cert.validUntil) }}</strong>
             </div>
-            <div class="verify-code">
+            <div>
               <label>核验码</label>
               <strong>{{ cert.verifyCode }}</strong>
+            </div>
+            <div class="verify-link">
+              <label>验真入口</label>
+              <span>{{ verifyUrl }}</span>
             </div>
           </div>
         </footer>
@@ -118,11 +82,43 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
-import { getStudentCert } from '@/api/studentCert'
+import { getStudentCert, revokeStudentCert } from '@/api/studentCert'
+
+const SealSvg = defineComponent({
+  props: {
+    title: { type: String, required: true },
+    main: { type: String, required: true },
+    sub: { type: String, required: true }
+  },
+  setup(props) {
+    const arcId = `sealArc-${Math.random().toString(36).slice(2)}`
+    const filterId = `sealRough-${Math.random().toString(36).slice(2)}`
+    return () => h('svg', { class: 'seal-svg', viewBox: '0 0 180 180' }, [
+      h('defs', [
+        h('path', { id: arcId, d: 'M 34 92 A 56 56 0 0 1 146 92' }),
+        h('filter', { id: filterId }, [
+          h('feTurbulence', { type: 'fractalNoise', baseFrequency: '0.9', numOctaves: '2', seed: '11', result: 'noise' }),
+          h('feDisplacementMap', { in: 'SourceGraphic', in2: 'noise', scale: '1' })
+        ])
+      ]),
+      h('g', { filter: `url(#${filterId})` }, [
+        h('circle', { class: 'seal-outer', cx: '90', cy: '90', r: '76' }),
+        h('circle', { class: 'seal-inner', cx: '90', cy: '90', r: '61' }),
+        h('text', { class: 'seal-arc' }, [
+          h('textPath', { href: `#${arcId}`, startOffset: '50%', 'text-anchor': 'middle' }, spacedTitle(props.title))
+        ]),
+        h('text', { class: 'seal-star', x: '90', y: '90', 'text-anchor': 'middle' }, '★'),
+        h('text', { class: 'seal-main', x: '90', y: '118', 'text-anchor': 'middle' }, props.main),
+        h('line', { class: 'seal-line', x1: '47', y1: '126', x2: '133', y2: '126' }),
+        h('text', { class: 'seal-sub', x: '90', y: '141', 'text-anchor': 'middle' }, props.sub)
+      ])
+    ])
+  }
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -130,9 +126,20 @@ const { currentUser } = useAuth()
 const cert = ref(null)
 const loading = ref(true)
 
-const sealOrgName = computed(() => {
-  const name = cert.value?.orgName || '学分银行平台'
-  return name.length <= 8 ? name.split('').join(' ') : name
+const sealOrgName = computed(() => cert.value?.orgName || '学分银行平台')
+
+const canRevoke = computed(() => {
+  const role = currentUser.value?.role
+  return cert.value && (role === 'admin' || role === 'org_admin')
+})
+
+const verifyUrl = computed(() => {
+  if (!cert.value) return ''
+  const query = new URLSearchParams({
+    certNo: cert.value.certNo || '',
+    verifyCode: cert.value.verifyCode || ''
+  })
+  return `${window.location.origin}/certificate-verify?${query.toString()}`
 })
 
 onMounted(loadCert)
@@ -147,13 +154,36 @@ async function loadCert() {
   }
 }
 
+function spacedTitle(text) {
+  return text && text.length <= 10 ? text.split('').join(' ') : text
+}
+
 function formatDate(time) {
-  if (!time) return '—'
-  return String(time).slice(0, 10)
+  return time ? String(time).slice(0, 10) : '-'
 }
 
 function printCert() {
   window.print()
+}
+
+async function revokeCert() {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入作废原因。作废后该证书将无法继续作为有效证书验真。', '作废证书', {
+      confirmButtonText: '确认作废',
+      cancelButtonText: '取消',
+      inputType: 'textarea',
+      inputPattern: /\S+/,
+      inputErrorMessage: '请填写作废原因',
+      type: 'warning'
+    })
+    await revokeStudentCert(cert.value.id, currentUser.value?.role, currentUser.value?.id, value)
+    ElMessage.success('证书已作废')
+    router.back()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '作废失败')
+    }
+  }
 }
 </script>
 
@@ -222,28 +252,28 @@ function printCert() {
   pointer-events: none;
 }
 
-.corner.top-left {
+.top-left {
   top: 28px;
   left: 28px;
   border-top: 3px solid;
   border-left: 3px solid;
 }
 
-.corner.top-right {
+.top-right {
   top: 28px;
   right: 28px;
   border-top: 3px solid;
   border-right: 3px solid;
 }
 
-.corner.bottom-left {
+.bottom-left {
   bottom: 28px;
   left: 28px;
   border-bottom: 3px solid;
   border-left: 3px solid;
 }
 
-.corner.bottom-right {
+.bottom-right {
   right: 28px;
   bottom: 28px;
   border-right: 3px solid;
@@ -345,7 +375,6 @@ h1 {
   font-family: "SimSun", "Songti SC", serif;
   font-size: 48px;
   font-weight: 700;
-  letter-spacing: 0;
 }
 
 .title-rule {
@@ -394,9 +423,9 @@ h1 {
 .stamp-layer {
   position: absolute;
   z-index: 4;
-  left: 52%;
-  bottom: 112px;
-  width: 360px;
+  left: 61%;
+  bottom: 138px;
+  width: 340px;
   height: 164px;
   display: flex;
   align-items: center;
@@ -405,7 +434,7 @@ h1 {
   transform: translateX(-50%);
 }
 
-.seal-svg {
+:deep(.seal-svg) {
   width: 158px;
   height: 158px;
   color: rgba(174, 31, 29, 0.84);
@@ -414,51 +443,41 @@ h1 {
   overflow: visible;
 }
 
-.bank-seal,
-.org-seal {
-  transform: rotate(0deg);
-}
-
-.org-seal {
+:deep(.org-seal) {
   color: rgba(186, 42, 34, 0.82);
 }
 
-.seal-outer,
-.seal-inner {
+:deep(.seal-outer),
+:deep(.seal-inner) {
   fill: none;
   stroke: currentColor;
 }
 
-.seal-outer {
+:deep(.seal-outer) {
   stroke-width: 5.2;
 }
 
-.seal-inner {
+:deep(.seal-inner) {
   stroke-width: 1.8;
   stroke-dasharray: 2 2.8;
 }
 
-.seal-arc {
+:deep(.seal-arc) {
   fill: currentColor;
   font-family: "KaiTi", "STKaiti", "SimKai", "SimSun", serif;
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 2px;
-}
-
-.org-arc {
-  font-size: 14px;
   letter-spacing: 1.4px;
 }
 
-.seal-star {
+:deep(.seal-star) {
   fill: currentColor;
   font-family: "SimSun", serif;
   font-size: 37px;
   font-weight: 700;
 }
 
-.seal-main {
+:deep(.seal-main) {
   fill: currentColor;
   font-family: "KaiTi", "STKaiti", "SimKai", "SimSun", serif;
   font-size: 17px;
@@ -466,37 +485,44 @@ h1 {
   letter-spacing: 2px;
 }
 
-.seal-line {
+:deep(.seal-line) {
   stroke: currentColor;
   stroke-width: 1.4;
 }
 
-.seal-sub {
+:deep(.seal-sub) {
   fill: currentColor;
   font-family: "Times New Roman", Georgia, serif;
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0;
 }
 
 .cert-footer {
+  z-index: 5;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1.2fr;
   align-items: end;
-  gap: 84px;
+  gap: 72px;
   margin-top: 72px;
   text-align: left;
 }
 
 .signature-block {
+  display: flex;
+  flex-direction: column;
   padding-left: 16px;
+  margin-bottom: 42px;
 }
 
 .signature-line {
   width: 210px;
-  height: 1px;
-  margin-bottom: 12px;
+  height: 2px;
+  flex: 0 0 2px;
+  margin-top: 9px;
   background: #173b67;
+}
+
+.signature-block label {
 }
 
 .signature-block strong {
@@ -520,15 +546,15 @@ h1 {
   font-size: 14px;
 }
 
-.verify-code {
+.verify-link {
   grid-column: 1 / -1;
 }
 
-.verify-code strong {
+.verify-link span {
+  display: block;
   color: #173b67;
-  font-family: "Times New Roman", Georgia, serif;
-  font-size: 16px;
-  letter-spacing: 0;
+  font-size: 12px;
+  word-break: break-all;
 }
 
 @media print {

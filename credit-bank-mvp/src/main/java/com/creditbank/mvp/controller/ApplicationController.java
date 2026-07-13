@@ -34,6 +34,11 @@ public class ApplicationController {
         return Result.ok(applicationService.audit(id, req.getRole(), req.getUserId(), req.isApprove(), req.getReason()));
     }
 
+    @PostMapping("/{id}/resubmit")
+    public Result<Application> resubmit(@PathVariable Long id, @RequestBody ResubmitRequest req) {
+        return Result.ok(applicationService.resubmit(id, req.getUserId(), req.getFormData()));
+    }
+
     public static class AuditRequest {
         private String role;
         private Long userId;
@@ -70,6 +75,27 @@ public class ApplicationController {
 
         public void setReason(String reason) {
             this.reason = reason;
+        }
+    }
+
+    public static class ResubmitRequest {
+        private Long userId;
+        private String formData;
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public void setUserId(Long userId) {
+            this.userId = userId;
+        }
+
+        public String getFormData() {
+            return formData;
+        }
+
+        public void setFormData(String formData) {
+            this.formData = formData;
         }
     }
 }

@@ -42,6 +42,7 @@ public class ApplicationService {
         BIZ_TYPE_NAME.put("EXCHANGE", "学分转换申请");
         BIZ_TYPE_NAME.put("CERT_APPLY", "证书认证申请");
         BIZ_TYPE_NAME.put("EXPERT_CERT", "专家认证申请");
+        BIZ_TYPE_NAME.put("UNFREEZE", "账号解冻申请");
 
         STATUS_MAP.put(STATUS_DRAFT, new String[]{"草稿", "info"});
         STATUS_MAP.put(STATUS_ORG_AUDIT, new String[]{"待机构审核", "warning"});

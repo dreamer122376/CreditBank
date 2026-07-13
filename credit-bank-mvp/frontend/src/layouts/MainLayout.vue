@@ -170,7 +170,6 @@ const menuItems = computed(() => {
       { path: '/projects', title: '项目报名', icon: Collection },
       { path: '/my-projects', title: '我的项目', icon: FolderOpened },
       { path: '/student-certs', title: '学生证书认证', icon: Medal },
-      { path: '/my-certificates', title: '我的证书', icon: Postcard },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/profile', title: '我的资料', icon: Postcard },

@@ -134,12 +134,6 @@ const routes = [
         meta: { title: '学生证书认证' }
       },
       {
-        path: 'my-certificates',
-        name: 'MyCertificates',
-        component: () => import('@/views/StudentCerts.vue'),
-        meta: { title: '我的证书' }
-      },
-      {
         path: 'student-certificate/:id',
         name: 'StudentCertificate',
         component: () => import('@/views/StudentCertificate.vue'),

@@ -4,7 +4,12 @@
 
 **/dist/
 
+uploads/
+**/uploads/
+
 **/.idea/
+.claude/
+
 *.iml
 *.ipr
 *.iws

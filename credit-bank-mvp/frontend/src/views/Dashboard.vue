@@ -178,7 +178,9 @@ function getBizTypeName(bizType) {
     REWARD: '奖励',
     EXCHANGE: '兑换',
     REFUND: '撤销记录',
-    ADMIN: '管理员操作'
+    ADMIN: '管理员操作',
+    ATTACHMENT: '附加流水',
+    UPDATE_ADJUST: '更新补差'
   }
   return map[bizType] || bizType
 }

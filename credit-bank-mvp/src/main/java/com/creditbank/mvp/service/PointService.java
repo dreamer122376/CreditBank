@@ -135,8 +135,8 @@ public class PointService {
                 orgTxn.setUserId(orgAdmin.getId());
                 orgTxn.setAmount(-finalCredit);
                 orgTxn.setBalanceAfter(orgNewBalance);
-                orgTxn.setBizType("REWARD");
-                orgTxn.setRelatedRuleId(rule.getId());
+                orgTxn.setBizType("ATTACHMENT");
+                orgTxn.setRelatedRuleId(txn.getId());
                 orgTxn.setDescription("学生获得积分，机构积分池扣减");
                 transactionLogMapper.insert(orgTxn);
             }

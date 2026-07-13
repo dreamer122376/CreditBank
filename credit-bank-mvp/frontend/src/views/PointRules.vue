@@ -39,13 +39,14 @@
             {{ formatDateTime(scope.row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column v-if="currentUser?.role === 'admin'" label="操作" width="220">
+        <el-table-column v-if="currentUser?.role === 'admin'" label="操作" width="280">
           <template #default="scope">
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
                        @click="toggle(scope.row)">
               {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
             </el-button>
+            <el-button size="small" type="warning" plain @click="handleAdjust(scope.row)">补差</el-button>
             <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -99,6 +100,7 @@ import {
   updateRule,
   deleteRule,
   toggleRule,
+  adjustRule,
   getProjects
 } from '@/api/point'
 import { useAuth } from '@/composables/useAuth'
@@ -196,6 +198,30 @@ async function handleDelete(row) {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.message || '删除失败')
+    }
+  }
+}
+
+async function handleAdjust(row) {
+  try {
+    await ElMessageBox.confirm(
+      '确定对规则「' + row.eventName + '」执行补差吗？<br><br>' +
+      '系统将检查该规则生效日期范围内已有的奖励流水，<br>' +
+      '若金额与当前规则值不一致，将自动生成补差流水。<br><br>' +
+      '<span style="color:#d93026;">此操作不可撤销，请确认规则积分值已设置正确。</span>',
+      '确认补差',
+      { type: 'warning', confirmButtonText: '执行补差', dangerouslyUseHTMLString: true }
+    )
+    const res = await adjustRule(row.id)
+    const count = res.adjustedCount
+    if (count > 0) {
+      ElMessage.success('补差完成，共处理 ' + count + ' 条流水')
+    } else {
+      ElMessage.info('无需补差，所有流水均已同步')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '补差失败')
     }
   }
 }

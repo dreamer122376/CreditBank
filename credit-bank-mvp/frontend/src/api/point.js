@@ -30,5 +30,5 @@ export function toggleRule(id, isEnabled) {
 }
 
 export function getProjects() {
-  return request.get('/project/list')
+  return request.get('/projects/active')
 }

@@ -116,6 +116,18 @@ const routes = [
         meta: { title: '我的资料' }
       },
       {
+        path: 'projects',
+        name: 'ProjectStudent',
+        component: () => import('@/views/ProjectStudent.vue'),
+        meta: { title: '项目报名' }
+      },
+      {
+        path: 'project/:id',
+        name: 'ProjectDetail',
+        component: () => import('@/views/ProjectDetail.vue'),
+        meta: { title: '项目详情' }
+      },
+      {
         path: 'my-projects',
         name: 'MyProjects',
         component: () => import('@/views/MyProjects.vue'),

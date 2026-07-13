@@ -1,22 +1,21 @@
 <template>
-  <div class="my-projects">
-    <h3 style="margin-bottom:18px;">我报名的项目</h3>
+  <div class="project-student">
+    <h3 style="margin-bottom:18px;">可报名的项目</h3>
 
     <el-row :gutter="18" v-loading="loading">
-      <el-col :span="8" v-for="item in list" :key="item.enrollmentId" style="margin-bottom: 18px;">
-        <el-card class="project-card" shadow="hover" @click="goDetail(item.projectId)">
+      <el-col :span="8" v-for="item in list" :key="item.id" style="margin-bottom: 18px;">
+        <el-card class="project-card" shadow="hover" @click="goDetail(item.id)">
           <div class="card-cover">
-            <span class="cover-text">{{ item.projectName }}</span>
-            <span v-if="item.status" class="badge-status">{{ item.status }}</span>
+            <span class="cover-text">{{ item.name }}</span>
+            <span v-if="item.creditReward > 0" class="badge-bonus">+{{ item.creditReward }} 积分</span>
           </div>
           <div class="card-info">
-            <div class="card-title">{{ item.projectName }}</div>
+            <div class="card-title">{{ item.name }}</div>
             <div class="card-meta">🏛️ {{ item.orgName || '未知机构' }}</div>
             <div class="card-meta">👨‍🏫 {{ item.expertName || '暂未指定' }}</div>
-            <div class="card-meta">📅 报名时间：{{ fmt(item.enrolledAt) }}</div>
             <div class="card-desc">{{ (item.description || '').substring(0, 80) }}{{ (item.description || '').length > 80 ? '...' : '' }}</div>
             <div class="card-footer">
-              <el-tag :type="statusType(item.status)" size="small">{{ item.status }}</el-tag>
+              <el-tag :type="statusType(item.status)" size="small">{{ item.statusName }}</el-tag>
               <span style="color:#3b5bdb;font-size:13px;">查看详情 →</span>
             </div>
           </div>
@@ -26,8 +25,8 @@
 
     <div v-if="!loading && list.length === 0" style="text-align:center;padding:60px;color:#868e96;">
       <div style="font-size:48px;margin-bottom:12px;">📋</div>
-      <h3>暂无报名项目</h3>
-      <p>您还没有报名任何项目，快去项目报名页面看看吧。</p>
+      <h3>暂无可报名项目</h3>
+      <p>当前没有已上架的项目，请关注后续项目通知。</p>
     </div>
   </div>
 </template>
@@ -36,7 +35,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getMyProjects } from '@/api/project'
+import { getActiveProjects } from '@/api/project'
 
 const router = useRouter()
 const loading = ref(true)
@@ -45,7 +44,7 @@ const list = ref([])
 async function loadData() {
   loading.value = true
   try {
-    list.value = await getMyProjects()
+    list.value = await getActiveProjects()
   } catch (e) {
     ElMessage.error(e.message || '加载失败')
   } finally {
@@ -53,19 +52,14 @@ async function loadData() {
   }
 }
 
-function goDetail(projectId) {
-  router.push('/project/' + projectId)
-}
-
-function fmt(t) {
-  if (!t) return ''
-  return t.length >= 16 ? t.substring(0, 16).replace('T', ' ') : t
+function goDetail(id) {
+  router.push('/project/' + id)
 }
 
 function statusType(status) {
-  if (status === '已完成') return 'success'
-  if (status === '进行中') return 'warning'
-  if (status === '已报名') return 'primary'
+  if (status === 1) return 'success'
+  if (status === 0) return 'warning'
+  if (status === 2) return 'danger'
   return 'info'
 }
 
@@ -77,7 +71,7 @@ onMounted(() => { loadData() })
 .project-card:hover { transform: translateY(-2px); }
 .card-cover {
   height: 170px;
-  background: linear-gradient(135deg, #2b8a3e 0%, #69db7c 100%);
+  background: linear-gradient(135deg, #3b5bdb 0%, #6c8ae4 100%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -95,7 +89,7 @@ onMounted(() => { loadData() })
   border-radius: 8px 8px 0 0;
 }
 .cover-text { color: #fff; font-size: 16px; font-weight: 600; padding: 16px; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.5); position: relative; z-index: 1; }
-.badge-status { position: absolute; top: 8px; right: 8px; background: #f59f00; color: #fff;
+.badge-bonus { position: absolute; top: 8px; right: 8px; background: #f59f00; color: #fff;
   padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; z-index: 2; }
 .card-info { margin-top: 12px; }
 .card-title { font-size: 15px; font-weight: 600; color: #2c3e50; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

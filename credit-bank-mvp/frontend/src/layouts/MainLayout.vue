@@ -66,7 +66,8 @@ import {
   Tickets,
   Promotion,
   Postcard,
-  FolderOpened
+  FolderOpened,
+  Collection
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -112,6 +113,7 @@ const menuItems = computed(() => {
     ],
     student: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
+      { path: '/projects', title: '项目报名', icon: Collection },
       { path: '/my-projects', title: '我的项目', icon: FolderOpened },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },

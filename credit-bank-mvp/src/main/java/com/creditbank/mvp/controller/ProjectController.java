@@ -1,108 +1,153 @@
 package com.creditbank.mvp.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.creditbank.mvp.common.Result;
+import com.creditbank.mvp.dto.ProjectDetailDTO;
+import com.creditbank.mvp.dto.ProjectEnrollmentDTO;
+import com.creditbank.mvp.dto.ProjectListDTO;
 import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.SysUser;
-import com.creditbank.mvp.mapper.ProjectMapper;
-import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.service.ProjectService;
 import com.creditbank.mvp.service.StudentProjectService;
+import com.creditbank.mvp.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 项目模块 REST 接口。
+ *
+ * 学生端：浏览已上架项目、查看详情、报名、查看我的项目、取消报名
+ * 机构端：创建/编辑本机构项目、查看本机构项目
+ * 管理端：分页列表、审核、下架
+ */
 @RestController
-@RequestMapping("/api/project")
+@RequestMapping("/api/projects")
 public class ProjectController {
 
-    private final ProjectMapper projectMapper;
-    private final SysUserMapper sysUserMapper;
+    private final ProjectService projectService;
     private final StudentProjectService studentProjectService;
+    private final UserService userService;
 
-    public ProjectController(ProjectMapper projectMapper,
-                             SysUserMapper sysUserMapper,
-                             StudentProjectService studentProjectService) {
-        this.projectMapper = projectMapper;
-        this.sysUserMapper = sysUserMapper;
+    public ProjectController(ProjectService projectService,
+                             StudentProjectService studentProjectService,
+                             UserService userService) {
+        this.projectService = projectService;
         this.studentProjectService = studentProjectService;
+        this.userService = userService;
     }
 
-    @GetMapping("/list")
-    public Result<List<Project>> list() {
-        return Result.ok(projectMapper.selectList(
-                new LambdaQueryWrapper<Project>().orderByDesc(Project::getId)));
+    // ==================== 学生端 ====================
+
+    /** 学生端：查询所有已上架项目 */
+    @GetMapping("/active")
+    public Result<List<ProjectListDTO>> listActive() {
+        return Result.ok(projectService.listActive());
     }
 
-    /** 机构管理员：查询本机构下的项目 */
-    @GetMapping("/my-org")
-    public Result<List<Project>> listByOrg(@RequestHeader(value = "X-Operator-Id", required = false) Long userId) {
-        if (userId == null) {
-            return Result.ok(projectMapper.selectList(
-                    new LambdaQueryWrapper<Project>().orderByDesc(Project::getId)));
-        }
-        SysUser user = sysUserMapper.selectById(userId);
-        if (user == null || user.getOrgId() == null) {
-            return Result.ok(projectMapper.selectList(
-                    new LambdaQueryWrapper<Project>().orderByDesc(Project::getId)));
-        }
-        List<Project> projects = projectMapper.selectList(
-                new LambdaQueryWrapper<Project>()
-                        .eq(Project::getOrgId, user.getOrgId())
-                        .orderByDesc(Project::getId));
-        return Result.ok(projects);
-    }
-
+    /** 项目详情（学生端查看时可选传 studentId 标记是否已报名） */
     @GetMapping("/{id}")
-    public Result<Project> detail(@PathVariable Long id) {
-        return Result.ok(projectMapper.selectById(id));
+    public Result<ProjectDetailDTO> detail(@PathVariable Long id,
+                                           @RequestParam(required = false) Long studentId) {
+        return Result.ok(projectService.getDetail(id, studentId));
     }
 
-    /** 项目详情（含报名学生列表） */
-    @GetMapping("/{id}/detail")
-    public Result<Project> detailWithStudents(@PathVariable Long id) {
-        return Result.ok(studentProjectService.getProjectWithStudents(id));
-    }
-
-    /** 新增项目 */
-    @PostMapping("/create")
-    public Result<Project> create(@RequestBody Project project,
-                                  @RequestHeader(value = "X-Operator-Id", required = false) Long userId) {
-        if (userId != null) {
-            SysUser user = sysUserMapper.selectById(userId);
-            if (user != null && user.getOrgId() != null) {
-                project.setOrgId(user.getOrgId());
-            }
-        }
-        if (project.getStatus() == null) {
-            project.setStatus(0);
-        }
-        project.setCreatedAt(LocalDateTime.now());
-        project.setUpdatedAt(LocalDateTime.now());
-        projectMapper.insert(project);
-        return Result.ok(project);
-    }
-
-    /** 编辑项目 */
-    @PostMapping("/update")
-    public Result<Project> update(@RequestBody Project project) {
-        Project existing = projectMapper.selectById(project.getId());
-        if (existing == null) {
-            return Result.fail("项目不存在");
-        }
-        if (project.getName() != null) existing.setName(project.getName());
-        if (project.getDescription() != null) existing.setDescription(project.getDescription());
-        if (project.getStatus() != null) existing.setStatus(project.getStatus());
-        if (project.getExpertId() != null) existing.setExpertId(project.getExpertId());
-        existing.setUpdatedAt(LocalDateTime.now());
-        projectMapper.updateById(existing);
-        return Result.ok(existing);
-    }
-
-    /** 删除项目 */
-    @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
-        projectMapper.deleteById(id);
+    /** 学生报名项目 */
+    @PostMapping("/{id}/enroll")
+    public Result<?> enroll(@PathVariable Long id,
+                            @RequestHeader("X-Operator-Id") Long studentId) {
+        studentProjectService.enroll(studentId, id);
         return Result.ok();
+    }
+
+    /** 学生取消报名 */
+    @DeleteMapping("/{id}/enroll")
+    public Result<?> cancelEnroll(@PathVariable Long id,
+                                  @RequestHeader("X-Operator-Id") Long studentId) {
+        studentProjectService.cancelEnrollment(studentId, id);
+        return Result.ok();
+    }
+
+    /** 我的项目列表 */
+    @GetMapping("/my")
+    public Result<List<ProjectEnrollmentDTO>> myProjects(@RequestHeader("X-Operator-Id") Long studentId) {
+        return Result.ok(studentProjectService.getMyProjects(studentId));
+    }
+
+    // ==================== 机构端 ====================
+
+    /** 机构端：本机构项目列表 */
+    @GetMapping("/org")
+    public Result<List<ProjectListDTO>> listByOrg(@RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(projectService.listByOrgId(operator.getOrgId()));
+    }
+
+    /** 机构端：创建项目 */
+    @PostMapping
+    public Result<Project> create(@RequestBody Project project,
+                                  @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(projectService.create(project, operator));
+    }
+
+    /** 机构端：编辑项目 */
+    @PutMapping("/{id}")
+    public Result<Project> update(@PathVariable Long id,
+                                  @RequestBody Project project,
+                                  @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(projectService.update(id, project, operator));
+    }
+
+    // ==================== 管理端 ====================
+
+    /** 管理端：项目分页列表 */
+    @GetMapping
+    public Result<Page<ProjectListDTO>> page(
+            @RequestHeader("X-Operator-Id") Long operatorId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(projectService.page(operator.getRole(), operator.getOrgId(), status, page, size));
+    }
+
+    /** 管理端：审核项目 */
+    @PostMapping("/{id}/audit")
+    public Result<Project> audit(@PathVariable Long id,
+                                 @RequestBody AuditRequest req,
+                                 @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(projectService.audit(id, req.isApprove(), req.getReason(), operator));
+    }
+
+    /** 管理端：下架项目 */
+    @PostMapping("/{id}/offline")
+    public Result<Project> offline(@PathVariable Long id,
+                                   @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(projectService.offline(id, operator));
+    }
+
+    public static class AuditRequest {
+        private boolean approve;
+        private String reason;
+
+        public boolean isApprove() {
+            return approve;
+        }
+
+        public void setApprove(boolean approve) {
+            this.approve = approve;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
+        }
     }
 }

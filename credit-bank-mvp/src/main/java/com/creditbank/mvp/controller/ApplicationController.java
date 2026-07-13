@@ -31,11 +31,12 @@ public class ApplicationController {
 
     @PostMapping("/{id}/audit")
     public Result<Application> audit(@PathVariable Long id, @RequestBody AuditRequest req) {
-        return Result.ok(applicationService.audit(id, req.getRole(), req.isApprove(), req.getReason()));
+        return Result.ok(applicationService.audit(id, req.getRole(), req.getUserId(), req.isApprove(), req.getReason()));
     }
 
     public static class AuditRequest {
         private String role;
+        private Long userId;
         private boolean approve;
         private String reason;
 
@@ -45,6 +46,14 @@ public class ApplicationController {
 
         public void setRole(String role) {
             this.role = role;
+        }
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public void setUserId(Long userId) {
+            this.userId = userId;
         }
 
         public boolean isApprove() {

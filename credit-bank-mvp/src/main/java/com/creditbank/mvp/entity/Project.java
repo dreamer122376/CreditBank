@@ -22,6 +22,10 @@ public class Project {
 
     private String description;
 
+    private Integer creditReward;
+
+    private Integer creditPrice;
+
     private Integer status;
 
     private LocalDateTime createdAt;
@@ -72,6 +76,22 @@ public class Project {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Integer getCreditReward() {
+        return creditReward;
+    }
+
+    public void setCreditReward(Integer creditReward) {
+        this.creditReward = creditReward;
+    }
+
+    public Integer getCreditPrice() {
+        return creditPrice;
+    }
+
+    public void setCreditPrice(Integer creditPrice) {
+        this.creditPrice = creditPrice;
     }
 
     public Integer getStatus() {

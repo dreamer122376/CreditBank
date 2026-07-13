@@ -67,6 +67,7 @@ import {
   Promotion,
   Postcard,
   FolderOpened,
+  Collection,
   Files
 } from '@element-plus/icons-vue'
 
@@ -114,7 +115,9 @@ const menuItems = computed(() => {
     ],
     student: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
+      { path: '/projects', title: '项目报名', icon: Collection },
       { path: '/my-projects', title: '我的项目', icon: FolderOpened },
+      { path: '/student-certs', title: '学生证书认证', icon: Medal },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/profile', title: '我的资料', icon: Postcard },
@@ -123,6 +126,7 @@ const menuItems = computed(() => {
     expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/applications', title: '项目评审', icon: Tickets },
+      { path: '/my-certs', title: '我的资质', icon: Medal },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '项目流水', icon: WalletFilled }

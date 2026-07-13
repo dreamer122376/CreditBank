@@ -48,12 +48,12 @@ INSERT INTO `cert_audit_flow` (`id`, `cert_standard_id`, `auditor_id`, `next_nod
 (104, 4, 1, NULL, NOW());
 
 -- 项目表初始数据（依赖 organization.org_id 和 sys_user.id）
-INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 4, '校园APP开发项目', '开发一款面向学生的校园服务APP', 1, NOW(), NOW()),
-(2, 1, 5, '智能教室系统', '基于物联网的智能教室管理系统', 1, NOW(), NOW()),
-(3, 2, 4, '工程模拟平台', '土木工程模拟仿真平台开发', 1, NOW(), NOW()),
-(4, 2, 5, '数据分析大赛', '校园数据分析竞赛项目', 0, NOW(), NOW()),
-(5, 1, NULL, '校园安全监测', '校园安全监测系统升级', 2, NOW(), NOW());
+INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `credit_reward`, `credit_price`, `status`, `created_at`, `updated_at`) VALUES
+(1, 1, 4, '校园APP开发项目', '开发一款面向学生的校园服务APP', 200, 0, 1, NOW(), NOW()),
+(2, 1, 5, '智能教室系统', '基于物联网的智能教室管理系统', 150, 0, 1, NOW(), NOW()),
+(3, 2, 4, '工程模拟平台', '土木工程模拟仿真平台开发', 250, 0, 1, NOW(), NOW()),
+(4, 2, 5, '数据分析大赛', '校园数据分析竞赛项目', 300, 0, 0, NOW(), NOW()),
+(5, 1, NULL, '校园安全监测', '校园安全监测系统升级', 100, 0, 2, NOW(), NOW());
 
 -- 学生报名项目关系表初始数据（依赖 sys_user.id 和 project.id）
 INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `created_at`) VALUES
@@ -67,16 +67,16 @@ INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `crea
 
 
 -- 积分规则表初始数据（依赖 project.id）
-INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `project_id`) VALUES
-(1, 'COURSE_COMPLETE', '课程完成', 100, 1, NOW(), NULL),
-(2, 'PROJECT_PARTICIPATE', '校园APP开发项目参与', 200, 1, NOW(), 1),
-(3, 'PROJECT_PARTICIPATE', '智能教室系统参与', 200, 1, NOW(), 2),
-(4, 'PROJECT_PARTICIPATE', '工程模拟平台参与', 250, 1, NOW(), 3),
-(5, 'PROJECT_EXCELLENT', '校园APP开发优秀', 500, 1, NOW(), 1),
-(6, 'PROJECT_EXCELLENT', '数据分析大赛优秀', 600, 1, NOW(), 4),
-(7, 'ONLINE_TEST', '在线测试', 50, 1, NOW(), NULL),
-(8, 'ATTENDANCE', '签到打卡', 10, 1, NOW(), NULL),
-(9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), NULL);
+INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `updated_at`, `start_time`, `end_time`, `project_id`) VALUES
+(1, 'COURSE_COMPLETE', '课程完成', 100, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL),
+(2, 'PROJECT_PARTICIPATE', '校园APP开发项目参与', 200, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1),
+(3, 'PROJECT_PARTICIPATE', '智能教室系统参与', 200, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 2),
+(4, 'PROJECT_PARTICIPATE', '工程模拟平台参与', 250, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 3),
+(5, 'PROJECT_EXCELLENT', '校园APP开发优秀', 500, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1),
+(6, 'PROJECT_EXCELLENT', '数据分析大赛优秀', 600, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 4),
+(7, 'ONLINE_TEST', '在线测试', 50, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL),
+(8, 'ATTENDANCE', '签到打卡', 10, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL),
+(9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL);
 
 -- 积分转换规则表初始数据（无外键依赖）
 INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `daily_limit`, `is_enabled`, `created_at`) VALUES

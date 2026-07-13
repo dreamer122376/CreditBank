@@ -104,7 +104,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getOrgProjects, createProject, updateProject, deleteProject, getProjectDetail } from '@/api/project'
+import { getOrgProjects, createProject, updateProject, deleteProject, getOrgProjectDetail } from '@/api/project'
 import { getExperts } from '@/api/expert'
 
 const STATUS_NAME = { 0: '未开始', 1: '进行中', 2: '已结束' }
@@ -197,7 +197,7 @@ async function openDetail(row) {
   detail.value = {}
   students.value = []
   try {
-    const res = await getProjectDetail(row.id)
+    const res = await getOrgProjectDetail(row.id)
     detail.value = res || {}
     const spList = res.studentProjects || []
     const stuList = res.students || []

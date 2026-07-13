@@ -8,6 +8,6 @@ export function submitApplication(app) {
   return request.post('/application/submit', app)
 }
 
-export function auditApplication(id, role, approve, reason) {
-  return request.post(`/application/${id}/audit`, { role, approve, reason })
+export function auditApplication(id, role, userId, approve, reason) {
+  return request.post(`/application/${id}/audit`, { role, userId, approve, reason })
 }

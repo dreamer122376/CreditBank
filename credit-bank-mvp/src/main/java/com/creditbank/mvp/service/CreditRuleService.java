@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class CreditRuleService {
@@ -53,27 +52,14 @@ public class CreditRuleService {
                         .orderByDesc(CreditRule::getId));
     }
 
-    public List<CreditRule> listByOrgId(Long orgId, Boolean enabled) {
-        List<Long> projectIds = projectMapper.selectList(
-                new LambdaQueryWrapper<com.creditbank.mvp.entity.Project>()
-                        .eq(com.creditbank.mvp.entity.Project::getOrgId, orgId))
-                .stream()
-                .map(com.creditbank.mvp.entity.Project::getId)
-                .collect(Collectors.toList());
-        
-        if (projectIds.isEmpty()) {
-            return new java.util.ArrayList<>();
-        }
-        
-        LambdaQueryWrapper<CreditRule> wrapper = new LambdaQueryWrapper<CreditRule>()
-                .in(CreditRule::getProjectId, projectIds)
-                .orderByDesc(CreditRule::getId);
-        
-        if (enabled != null) {
-            wrapper.eq(CreditRule::getIsEnabled, enabled ? STATUS_ENABLED : STATUS_DISABLED);
-        }
-        
-        return creditRuleMapper.selectList(wrapper);
+    public List<CreditRule> listByOrgId(Long orgId) {
+        return creditRuleMapper.selectList(
+                new LambdaQueryWrapper<CreditRule>()
+                        .and(wrapper -> wrapper
+                                .isNull(CreditRule::getProjectId)
+                                .or()
+                                .inSql(CreditRule::getProjectId, "SELECT id FROM project WHERE org_id = " + orgId))
+                        .orderByDesc(CreditRule::getId));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -90,6 +76,11 @@ public class CreditRuleService {
         if (rule.getProjectId() != null) {
             if (projectMapper.selectById(rule.getProjectId()) == null) {
                 throw new BizException("项目不存在：" + rule.getProjectId());
+            }
+        }
+        if (rule.getStartTime() != null && rule.getEndTime() != null) {
+            if (rule.getStartTime().isAfter(rule.getEndTime())) {
+                throw new BizException("开始时间不能晚于结束时间");
             }
         }
         rule.setId(null);
@@ -109,7 +100,13 @@ public class CreditRuleService {
                 throw new BizException("项目不存在：" + rule.getProjectId());
             }
         }
+        if (rule.getStartTime() != null && rule.getEndTime() != null) {
+            if (rule.getStartTime().isAfter(rule.getEndTime())) {
+                throw new BizException("开始时间不能晚于结束时间");
+            }
+        }
         rule.setCreatedAt(exist.getCreatedAt());
+        rule.setUpdatedAt(LocalDateTime.now());
         creditRuleMapper.updateById(rule);
         return creditRuleMapper.selectById(rule.getId());
     }
@@ -127,6 +124,7 @@ public class CreditRuleService {
             throw new BizException("非法的状态值：" + isEnabled);
         }
         exist.setIsEnabled(isEnabled);
+        exist.setUpdatedAt(LocalDateTime.now());
         creditRuleMapper.updateById(exist);
         return exist;
     }

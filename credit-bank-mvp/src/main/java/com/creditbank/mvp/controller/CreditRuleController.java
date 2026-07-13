@@ -25,20 +25,28 @@ public class CreditRuleController {
 
     @GetMapping("/list")
     public Result<List<CreditRule>> list(@RequestParam(required = false) Boolean enabled) {
-        Long operatorId = CurrentUserUtil.getCurrentUserId();
-        if (operatorId == null) {
+        Long userId = CurrentUserUtil.getCurrentUserId();
+        if (userId == null) {
             throw new BizException("未登录");
         }
-        SysUser operator = sysUserMapper.selectById(operatorId);
-        
+        SysUser currentUser = sysUserMapper.selectById(userId);
+        if (currentUser == null) {
+            throw new BizException("用户不存在");
+        }
+
         List<CreditRule> rules;
-        if ("org_admin".equals(operator.getRole())) {
-            rules = creditRuleService.listByOrgId(operator.getOrgId(), enabled);
-        } else {
+        if ("admin".equals(currentUser.getRole())) {
             if (enabled != null && enabled) {
                 rules = creditRuleService.listByEnabled(true);
             } else {
                 rules = creditRuleService.list();
+            }
+        } else {
+            Long orgId = currentUser.getOrgId();
+            if (orgId == null) {
+                rules = creditRuleService.listByEnabled(true);
+            } else {
+                rules = creditRuleService.listByOrgId(orgId);
             }
         }
         return Result.ok(rules);

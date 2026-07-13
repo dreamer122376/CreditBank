@@ -34,6 +34,15 @@ public class CreditRule {
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 
+    @Schema(description = "最后修改时间")
+    private LocalDateTime updatedAt;
+
+    @Schema(description = "规则生效开始时间")
+    private LocalDateTime startTime;
+
+    @Schema(description = "规则生效结束时间")
+    private LocalDateTime endTime;
+
     public Long getId() {
         return id;
     }
@@ -84,5 +93,29 @@ public class CreditRule {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
     }
 }

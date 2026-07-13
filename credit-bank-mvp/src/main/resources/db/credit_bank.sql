@@ -59,13 +59,15 @@ CREATE TABLE `application` (
                                `org_id` bigint DEFAULT NULL COMMENT '申请所属机构ID',
                                `expert_id` bigint DEFAULT NULL COMMENT '指派的专家审批人ID',
                                `form_data` json DEFAULT NULL COMMENT '前端表单的JSON数据',
-                               `current_status` tinyint DEFAULT '0' COMMENT '状态：0草稿/1待机构审/2待专家审/3通过/4驳回',
+                               `current_status` tinyint DEFAULT '0' COMMENT '状态：0草稿/1审核中/3通过/4驳回（2为旧数据，兼容为审核中）',
+                               `current_node_id` bigint DEFAULT NULL COMMENT '认证业务当前审批节点ID（cert_audit_flow.id，非认证业务为NULL）',
                                `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
                                `applied_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
                                `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
                                PRIMARY KEY (`id`),
                                KEY `idx_applicant_id` (`applicant_id`),
-                               KEY `idx_current_status` (`current_status`)
+                               KEY `idx_current_status` (`current_status`),
+                               KEY `idx_current_node_id` (`current_node_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='统一申请审批表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -188,6 +190,9 @@ CREATE TABLE `credit_rule` (
                                `credit_value` int NOT NULL COMMENT '变动值（正数=加分，负数=扣分）',
                                `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用：1启用，0停用',
                                `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                               `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
+                               `start_time` datetime COMMENT '规则生效开始时间',
+                               `end_time` datetime COMMENT '规则生效结束时间',
                                `project_id` bigint DEFAULT NULL,
                                PRIMARY KEY (`id`),
                                KEY `fk_credit_rule_project` (`project_id`),
@@ -275,7 +280,9 @@ CREATE TABLE `project` (
                            `expert_id` bigint DEFAULT NULL COMMENT '负责该项目的专家ID',
                            `name` varchar(100) NOT NULL COMMENT '项目名称',
                            `description` text COMMENT '项目简介',
-                           `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1已上架，2已下架',
+                           `credit_reward` int DEFAULT '0' COMMENT '完成项目获得的积分奖励',
+                           `credit_price` int DEFAULT '0' COMMENT '报名项目需要消耗的积分费用，0表示免费',
+                           `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1已上架，2已驳回，3已下架',
                            `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
                            PRIMARY KEY (`id`),
@@ -304,7 +311,7 @@ CREATE TABLE `student_project` (
                                    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '报名记录ID',
                                    `student_id` bigint NOT NULL COMMENT '学生ID，关联sys_user(id)',
                                    `project_id` bigint NOT NULL COMMENT '项目ID，关联project(id)',
-                                   `status` enum('已报名','进行中','已完成') DEFAULT '已报名' COMMENT '报名状态：已报名，进行中，已完成',
+                                   `status` varchar(20) DEFAULT '已报名' COMMENT '报名状态：已报名，进行中，已完成，已取消',
                                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
                                    PRIMARY KEY (`id`),
                                    UNIQUE KEY `uk_student_project` (`student_id`,`project_id`),

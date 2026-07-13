@@ -15,26 +15,23 @@ export function getTransactionDetail(id) {
 }
 
 export async function exportTransactions(filters = {}) {
-  const saved = localStorage.getItem('cb_user')
-  let userId = null
-  if (saved) {
-    const user = JSON.parse(saved)
-    if (user && user.id) {
-      userId = user.id
-    }
-  }
-
+  const token = localStorage.getItem('cb_token')
+  
   const params = new URLSearchParams()
-  if (userId != null) params.set('X-Operator-Id', userId)
   if (filters.userId != null) params.set('userId', filters.userId)
   if (filters.bizType != null && filters.bizType !== '') params.set('bizType', filters.bizType)
   if (filters.startTime != null && filters.startTime !== '') params.set('startTime', filters.startTime)
   if (filters.endTime != null && filters.endTime !== '') params.set('endTime', filters.endTime)
   
+  const headers = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
   const response = await axios.get('/api/transactions/export', {
     params: params,
     responseType: 'blob',
-    headers: userId ? { 'X-Operator-Id': userId } : {}
+    headers: headers
   })
   
   const contentDisposition = response.headers['content-disposition']

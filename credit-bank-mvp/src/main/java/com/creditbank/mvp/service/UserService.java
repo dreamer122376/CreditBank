@@ -7,6 +7,7 @@ import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.UserOpLogMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,11 +23,14 @@ public class UserService {
 
     private final SysUserMapper sysUserMapper;
     private final UserOpLogMapper userOpLogMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(SysUserMapper sysUserMapper,
-                       UserOpLogMapper userOpLogMapper) {
+                       UserOpLogMapper userOpLogMapper,
+                       PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.userOpLogMapper = userOpLogMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ==================== 查询 ====================
@@ -108,7 +112,7 @@ public class UserService {
     public void resetPassword(Long id, String newPassword, SysUser operator) {
         SysUser user = getUser(id);
         checkAdminProtection(operator, user, "重置密码");
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
         writeLog(operator, user, "RESET_PW", "重置密码");
     }

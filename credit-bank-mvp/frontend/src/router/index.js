@@ -128,10 +128,28 @@ const routes = [
         meta: { title: '学生证书认证' }
       },
       {
+        path: 'projects',
+        name: 'ProjectStudent',
+        component: () => import('@/views/ProjectStudent.vue'),
+        meta: { title: '项目报名' }
+      },
+      {
+        path: 'project/:id',
+        name: 'ProjectDetail',
+        component: () => import('@/views/ProjectDetail.vue'),
+        meta: { title: '项目详情' }
+      },
+      {
         path: 'my-projects',
         name: 'MyProjects',
         component: () => import('@/views/MyProjects.vue'),
         meta: { title: '我的项目' }
+      },
+      {
+        path: 'projects',
+        name: 'ProjectManage',
+        component: () => import('@/views/ProjectManage.vue'),
+        meta: { title: '项目管理' }
       }
     ]
   }

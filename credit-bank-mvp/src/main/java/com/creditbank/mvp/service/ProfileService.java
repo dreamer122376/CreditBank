@@ -5,6 +5,7 @@ import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,10 +18,12 @@ public class ProfileService {
 
     private final SysUserMapper sysUserMapper;
     private final OrganizationMapper organizationMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public ProfileService(SysUserMapper sysUserMapper, OrganizationMapper organizationMapper) {
+    public ProfileService(SysUserMapper sysUserMapper, OrganizationMapper organizationMapper, PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public SysUser getProfile(Long userId) {
@@ -51,13 +54,13 @@ public class ProfileService {
 
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         SysUser user = getProfile(userId);
-        if (oldPassword == null || !oldPassword.equals(user.getPassword())) {
+        if (oldPassword == null || !passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new BizException("原密码不正确");
         }
         if (newPassword == null || newPassword.length() < 6) {
             throw new BizException("新密码至少 6 位");
         }
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         sysUserMapper.updateById(user);
     }
 }

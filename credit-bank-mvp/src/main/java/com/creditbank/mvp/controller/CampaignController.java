@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.entity.Campaign;
 import com.creditbank.mvp.service.CampaignService;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -68,24 +69,24 @@ public class CampaignController {
 
     /** 参加活动 */
     @PostMapping("/{id}/enroll")
-    public Result<Void> enroll(@PathVariable Long id,
-                                @RequestHeader("X-Operator-Id") Long userId) {
+    public Result<Void> enroll(@PathVariable Long id) {
+        Long userId = CurrentUserUtil.getCurrentUserId();
         campaignService.enroll(id, userId);
         return Result.ok();
     }
 
     /** 退出活动 */
     @DeleteMapping("/{id}/enroll")
-    public Result<Void> leave(@PathVariable Long id,
-                               @RequestHeader("X-Operator-Id") Long userId) {
+    public Result<Void> leave(@PathVariable Long id) {
+        Long userId = CurrentUserUtil.getCurrentUserId();
         campaignService.leave(id, userId);
         return Result.ok();
     }
 
     /** 查询当前用户是否已报名 */
     @GetMapping("/{id}/enrolled")
-    public Result<Boolean> isEnrolled(@PathVariable Long id,
-                                       @RequestHeader("X-Operator-Id") Long userId) {
+    public Result<Boolean> isEnrolled(@PathVariable Long id) {
+        Long userId = CurrentUserUtil.getCurrentUserId();
         return Result.ok(campaignService.isEnrolled(id, userId));
     }
 }

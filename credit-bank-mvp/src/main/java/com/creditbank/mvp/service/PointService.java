@@ -4,13 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.Campaign;
 import com.creditbank.mvp.entity.CreditRule;
-import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
-import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,19 +23,19 @@ public class PointService {
     private final SysUserMapper sysUserMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
-    private final OrganizationMapper organizationMapper;
     private final CampaignService campaignService;
+    private final PasswordEncoder passwordEncoder;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
                         TransactionLogMapper transactionLogMapper,
-                        OrganizationMapper organizationMapper,
-                        CampaignService campaignService) {
+                        CampaignService campaignService,
+                        PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
-        this.organizationMapper = organizationMapper;
         this.campaignService = campaignService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public SysUser login(String username, String password) {
@@ -49,14 +48,8 @@ public class PointService {
         if (user.getStatus() != null && user.getStatus() == 0) {
             throw new BizException("账户已被冻结，请联系管理员");
         }
-        if (!user.getPassword().equals(password)) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BizException("密码错误");
-        }
-        if (user.getOrgId() != null) {
-            Organization org = organizationMapper.selectById(user.getOrgId());
-            if (org != null) {
-                user.setOrgName(org.getName());
-            }
         }
         user.setLastLoginAt(java.time.LocalDateTime.now());
         sysUserMapper.updateById(user);
@@ -138,7 +131,7 @@ public class PointService {
 
         SysUser user = new SysUser();
         user.setUsername(username);
-        user.setPassword(password);
+        user.setPassword(passwordEncoder.encode(password));
         user.setRealName(realName);
         user.setRole(role);
         user.setOrgId(orgId);

@@ -3,27 +3,37 @@ package com.creditbank.mvp.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
 @TableName("transaction_log")
+@Schema(description = "交易日志")
 public class TransactionLog {
 
     @TableId(type = IdType.AUTO)
+    @Schema(description = "日志ID", example = "1")
     private Long id;
 
+    @Schema(description = "用户ID", example = "1")
     private Long userId;
 
+    @Schema(description = "变动积分", example = "100")
     private Integer amount;
 
+    @Schema(description = "变动后余额", example = "500")
     private Integer balanceAfter;
 
+    @Schema(description = "业务类型：EARN/SPEND", example = "EARN")
     private String bizType;
 
+    @Schema(description = "业务ID", example = "project_1")
     private String bizId;
 
+    @Schema(description = "变动描述", example = "完成项目获得积分")
     private String description;
 
+    @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 
     public Long getId() {

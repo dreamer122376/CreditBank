@@ -9,23 +9,32 @@ const ROLE_NAME = {
 }
 
 const currentUser = ref(null)
+const token = ref(null)
 
 function loadUser() {
-  const saved = localStorage.getItem('cb_user')
-  if (saved) {
-    currentUser.value = JSON.parse(saved)
+  const savedUser = localStorage.getItem('cb_user')
+  const savedToken = localStorage.getItem('cb_token')
+  if (savedUser) {
+    currentUser.value = JSON.parse(savedUser)
+  }
+  if (savedToken) {
+    token.value = savedToken
   }
 }
 
 async function login(username, password) {
-  const user = await apiLogin(username, password)
-  currentUser.value = user
-  localStorage.setItem('cb_user', JSON.stringify(user))
+  const result = await apiLogin(username, password)
+  currentUser.value = result.user
+  token.value = result.token
+  localStorage.setItem('cb_user', JSON.stringify(result.user))
+  localStorage.setItem('cb_token', result.token)
 }
 
 function logout() {
   currentUser.value = null
+  token.value = null
   localStorage.removeItem('cb_user')
+  localStorage.removeItem('cb_token')
 }
 
 async function register(form) {
@@ -38,9 +47,11 @@ async function register(form) {
     expertField: form.institutionName || ''
   }
   try {
-    const user = await apiRegister(data)
-    currentUser.value = user
-    localStorage.setItem('cb_user', JSON.stringify(user))
+    const result = await apiRegister(data)
+    currentUser.value = result.user
+    token.value = result.token
+    localStorage.setItem('cb_user', JSON.stringify(result.user))
+    localStorage.setItem('cb_token', result.token)
     return true
   } catch (error) {
     return false
@@ -52,6 +63,7 @@ loadUser()
 export function useAuth() {
   return {
     currentUser,
+    token,
     ROLE_NAME,
     login,
     logout,

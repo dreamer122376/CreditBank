@@ -4,44 +4,63 @@ import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.service.PointService;
+import com.creditbank.mvp.util.JwtUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "认证与积分", description = "用户登录、注册、积分获取和流水查询接口")
 public class PointController {
 
     private final PointService pointService;
+    private final JwtUtil jwtUtil;
 
-    public PointController(PointService pointService) {
+    public PointController(PointService pointService, JwtUtil jwtUtil) {
         this.pointService = pointService;
+        this.jwtUtil = jwtUtil;
     }
 
-    // ==================== 认证 ====================
-
     @PostMapping("/user/login")
-    public Result<SysUser> login(@RequestBody LoginRequest req) {
-        return Result.ok(pointService.login(req.getUsername(), req.getPassword()));
+    @Operation(summary = "用户登录", description = "使用用户名和密码登录系统，返回JWT令牌和用户信息")
+    public Result<Map<String, Object>> login(@RequestBody LoginRequest req) {
+        SysUser user = pointService.login(req.getUsername(), req.getPassword());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", user);
+        return Result.ok(result);
     }
 
     @PostMapping("/user/register")
-    public Result<SysUser> register(@RequestBody RegisterRequest req) {
-        return Result.ok(pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
-                req.getRole(), req.getOrgId(), req.getExpertField()));
+    @Operation(summary = "用户注册", description = "注册新用户，返回JWT令牌和用户信息")
+    public Result<Map<String, Object>> register(@RequestBody RegisterRequest req) {
+        SysUser user = pointService.register(req.getUsername(), req.getPassword(), req.getRealName(),
+                req.getRole(), req.getOrgId(), req.getExpertField());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", user);
+        return Result.ok(result);
     }
 
-    // ==================== 积分 ====================
-
     @PostMapping("/points/earn")
+    @Operation(summary = "获取积分", description = "根据事件代码获取积分，支持活动倍率加成")
     public Result<SysUser> earn(@RequestBody EarnRequest req) {
         return Result.ok(pointService.earn(req.getUserId(), req.getEventCode()));
     }
 
-    // ==================== 流水 ====================
-
     @GetMapping("/user/{id}/transactions")
-    public Result<List<TransactionLog>> transactions(@PathVariable Long id) {
+    @Operation(summary = "查询交易流水", description = "查询指定用户的积分交易流水列表")
+    public Result<List<TransactionLog>> transactions(@Parameter(description = "用户ID") @PathVariable Long id) {
         return Result.ok(pointService.listTransactions(id));
     }
 

@@ -38,3 +38,7 @@ mybatis-plus:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+jwt:
+  secret: creditbank-jwt-secret-key-2026-07-11
+  expire: 86400000

@@ -52,6 +52,16 @@ public class CreditRuleService {
                         .orderByDesc(CreditRule::getId));
     }
 
+    public List<CreditRule> listByOrgId(Long orgId) {
+        return creditRuleMapper.selectList(
+                new LambdaQueryWrapper<CreditRule>()
+                        .and(wrapper -> wrapper
+                                .isNull(CreditRule::getProjectId)
+                                .or()
+                                .inSql(CreditRule::getProjectId, "SELECT id FROM project WHERE org_id = " + orgId))
+                        .orderByDesc(CreditRule::getId));
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public CreditRule create(CreditRule rule) {
         if (rule.getEventCode() == null || rule.getEventCode().trim().isEmpty()) {
@@ -66,6 +76,11 @@ public class CreditRuleService {
         if (rule.getProjectId() != null) {
             if (projectMapper.selectById(rule.getProjectId()) == null) {
                 throw new BizException("项目不存在：" + rule.getProjectId());
+            }
+        }
+        if (rule.getStartTime() != null && rule.getEndTime() != null) {
+            if (rule.getStartTime().isAfter(rule.getEndTime())) {
+                throw new BizException("开始时间不能晚于结束时间");
             }
         }
         rule.setId(null);
@@ -85,7 +100,13 @@ public class CreditRuleService {
                 throw new BizException("项目不存在：" + rule.getProjectId());
             }
         }
+        if (rule.getStartTime() != null && rule.getEndTime() != null) {
+            if (rule.getStartTime().isAfter(rule.getEndTime())) {
+                throw new BizException("开始时间不能晚于结束时间");
+            }
+        }
         rule.setCreatedAt(exist.getCreatedAt());
+        rule.setUpdatedAt(LocalDateTime.now());
         creditRuleMapper.updateById(rule);
         return creditRuleMapper.selectById(rule.getId());
     }
@@ -103,6 +124,7 @@ public class CreditRuleService {
             throw new BizException("非法的状态值：" + isEnabled);
         }
         exist.setIsEnabled(isEnabled);
+        exist.setUpdatedAt(LocalDateTime.now());
         creditRuleMapper.updateById(exist);
         return exist;
     }

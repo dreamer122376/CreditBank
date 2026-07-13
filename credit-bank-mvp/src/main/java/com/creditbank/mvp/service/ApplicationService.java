@@ -45,6 +45,7 @@ public class ApplicationService {
     private static final Set<String> CERT_BIZ = new HashSet<>(Arrays.asList("CERT_APPLY", "EXPERT_CERT"));
 
     private static final Map<String, String> BIZ_TYPE_NAME = new HashMap<>();
+    private static final Map<Integer, String[]> STATUS_MAP = new HashMap<>();
 
     static {
         BIZ_TYPE_NAME.put("PROJECT_UP", "项目上架审核");

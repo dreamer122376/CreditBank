@@ -14,6 +14,10 @@ export function getTransactionDetail(id) {
   return request.get('/transactions/' + id)
 }
 
+export function revertTransaction(id) {
+  return request.post('/transactions/' + id + '/revert')
+}
+
 export async function exportTransactions(filters = {}) {
   const token = localStorage.getItem('cb_token')
   

@@ -48,12 +48,12 @@ INSERT INTO `cert_audit_flow` (`id`, `cert_standard_id`, `auditor_id`, `next_nod
 (104, 4, 1, NULL, NOW());
 
 -- 项目表初始数据（依赖 organization.org_id 和 sys_user.id）
-INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 4, '校园APP开发项目', '开发一款面向学生的校园服务APP', 1, NOW(), NOW()),
-(2, 1, 5, '智能教室系统', '基于物联网的智能教室管理系统', 1, NOW(), NOW()),
-(3, 2, 4, '工程模拟平台', '土木工程模拟仿真平台开发', 1, NOW(), NOW()),
-(4, 2, 5, '数据分析大赛', '校园数据分析竞赛项目', 0, NOW(), NOW()),
-(5, 1, NULL, '校园安全监测', '校园安全监测系统升级', 2, NOW(), NOW());
+INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `credit_reward`, `credit_price`, `status`, `created_at`, `updated_at`) VALUES
+(1, 1, 4, '校园APP开发项目', '开发一款面向学生的校园服务APP', 200, 0, 1, NOW(), NOW()),
+(2, 1, 5, '智能教室系统', '基于物联网的智能教室管理系统', 150, 0, 1, NOW(), NOW()),
+(3, 2, 4, '工程模拟平台', '土木工程模拟仿真平台开发', 250, 0, 1, NOW(), NOW()),
+(4, 2, 5, '数据分析大赛', '校园数据分析竞赛项目', 300, 0, 0, NOW(), NOW()),
+(5, 1, NULL, '校园安全监测', '校园安全监测系统升级', 100, 0, 2, NOW(), NOW());
 
 -- 学生报名项目关系表初始数据（依赖 sys_user.id 和 project.id）
 INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `created_at`) VALUES

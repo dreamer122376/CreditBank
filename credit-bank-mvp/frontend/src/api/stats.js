@@ -17,3 +17,9 @@ export function getRecentTransactions(userId, limit = 5) {
     params: { userId, limit }
   })
 }
+
+export function getPointTrend(userId, days = 7) {
+  return request.get('/stats/point-trend', {
+    params: { userId, days }
+  })
+}

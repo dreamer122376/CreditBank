@@ -28,6 +28,9 @@ public class CreditRule {
     @Schema(description = "关联项目ID", example = "1")
     private Long projectId;
 
+    @Schema(description = "所属机构ID（NULL=平台通用）", example = "1")
+    private Long orgId;
+
     @Schema(description = "是否启用：1启用，0禁用", example = "1")
     private Integer isEnabled;
 
@@ -75,6 +78,10 @@ public class CreditRule {
     public Long getProjectId() { return projectId; }
 
     public void setProjectId(Long projectId) { this.projectId = projectId; }
+
+    public Long getOrgId() { return orgId; }
+
+    public void setOrgId(Long orgId) { this.orgId = orgId; }
 
     public Integer getIsEnabled() {
         return isEnabled;

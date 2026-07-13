@@ -21,7 +21,7 @@
               <el-option label="奖励积分" value="REWARD" />
               <el-option label="积分兑换" value="EXCHANGE" />
               <el-option label="报名项目" value="ENROLL" />
-              <el-option label="撤销记录" value="REVERT" />
+              <el-option label="撤销记录" value="REFUND" />
             </el-select>
           </el-form-item>
           <el-form-item label="时间范围">
@@ -58,7 +58,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120" v-if="isAdmin">
           <template #default="scope">
-            <el-button v-if="scope.row.bizType !== 'REVERT'" size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
+            <el-button v-if="scope.row.bizType !== 'REFUND'" size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
             <span v-else style="color:#868e96;font-size:12px;">已撤销</span>
           </template>
         </el-table-column>
@@ -149,7 +149,7 @@ const BIZ_TYPE_MAP = {
   REWARD: { name: '奖励积分', type: 'success' },
   EXCHANGE: { name: '积分兑换', type: 'warning' },
   ENROLL: { name: '报名项目', type: 'info' },
-  REVERT: { name: '撤销记录', type: 'danger' }
+  REFUND: { name: '撤销记录', type: 'danger' }
 }
 
 const showUserIdFilter = computed(() => {

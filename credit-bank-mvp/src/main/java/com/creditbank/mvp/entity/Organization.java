@@ -1,6 +1,7 @@
 package com.creditbank.mvp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -21,6 +22,9 @@ public class Organization {
     private String address;
 
     private Integer status;
+
+    @TableField(exist = false)
+    private Integer creditPool;
 
     private LocalDateTime createdAt;
 
@@ -72,6 +76,14 @@ public class Organization {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getCreditPool() {
+        return creditPool;
+    }
+
+    public void setCreditPool(Integer creditPool) {
+        this.creditPool = creditPool;
     }
 
     public LocalDateTime getCreatedAt() {

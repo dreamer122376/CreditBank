@@ -3,7 +3,9 @@ package com.creditbank.mvp.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.Organization;
+import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.OrganizationMapper;
+import com.creditbank.mvp.mapper.SysUserMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,14 +19,25 @@ public class OrganizationService {
     public static final int STATUS_DISABLED = 2;
 
     private final OrganizationMapper organizationMapper;
+    private final SysUserMapper sysUserMapper;
 
-    public OrganizationService(OrganizationMapper organizationMapper) {
+    public OrganizationService(OrganizationMapper organizationMapper, SysUserMapper sysUserMapper) {
         this.organizationMapper = organizationMapper;
+        this.sysUserMapper = sysUserMapper;
     }
 
     public List<Organization> list() {
-        return organizationMapper.selectList(
+        List<Organization> orgs = organizationMapper.selectList(
                 new LambdaQueryWrapper<Organization>().orderByDesc(Organization::getId));
+        for (Organization org : orgs) {
+            SysUser admin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, org.getId())
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            org.setCreditPool(admin != null && admin.getBalance() != null ? admin.getBalance() : 0);
+        }
+        return orgs;
     }
 
     public Organization create(Organization org) {

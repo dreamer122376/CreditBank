@@ -43,4 +43,10 @@ public class StatsController {
                                                            @RequestParam(defaultValue = "5") int limit) {
         return Result.ok(statsService.getRecentTransactions(userId, limit));
     }
+
+    @GetMapping("/point-trend")
+    public Result<List<java.util.Map<String, Object>>> pointTrend(@RequestParam Long userId,
+                                                                  @RequestParam(defaultValue = "7") int days) {
+        return Result.ok(statsService.getPointTrend(userId, days));
+    }
 }

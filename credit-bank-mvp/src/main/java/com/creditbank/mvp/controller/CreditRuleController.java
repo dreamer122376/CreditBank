@@ -25,11 +25,21 @@ public class CreditRuleController {
 
     @GetMapping("/list")
     public Result<List<CreditRule>> list(@RequestParam(required = false) Boolean enabled) {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        if (operatorId == null) {
+            throw new BizException("未登录");
+        }
+        SysUser operator = sysUserMapper.selectById(operatorId);
+        
         List<CreditRule> rules;
-        if (enabled != null && enabled) {
-            rules = creditRuleService.listByEnabled(true);
+        if ("org_admin".equals(operator.getRole())) {
+            rules = creditRuleService.listByOrgId(operator.getOrgId(), enabled);
         } else {
-            rules = creditRuleService.list();
+            if (enabled != null && enabled) {
+                rules = creditRuleService.listByEnabled(true);
+            } else {
+                rules = creditRuleService.list();
+            }
         }
         return Result.ok(rules);
     }

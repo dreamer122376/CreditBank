@@ -39,6 +39,35 @@ public class PointController {
         return Result.ok(result);
     }
 
+    // [TEST-ONLY] 测试用跳过密码登录
+    @PostMapping("/user/test-login")
+    public Result<Map<String, Object>> testLogin(@RequestBody TestLoginRequest req) {
+        SysUser user = pointService.testLogin(req.getUsername());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", user);
+        return Result.ok(result);
+    }
+
+    // [TEST-ONLY] 测试用获取用户列表（无需认证）
+    @GetMapping("/user/test-users")
+    public Result<List<Map<String, Object>>> testUsers() {
+        List<SysUser> users = pointService.listUsers();
+        List<Map<String, Object>> result = users.stream()
+                .map(u -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", u.getId());
+                    m.put("username", u.getUsername());
+                    m.put("realName", u.getRealName());
+                    m.put("role", u.getRole());
+                    return m;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        return Result.ok(result);
+    }
+
     @PostMapping("/user/register")
     @Operation(summary = "用户注册", description = "注册新用户，返回JWT令牌和用户信息")
     public Result<Map<String, Object>> register(@RequestBody RegisterRequest req) {
@@ -82,6 +111,19 @@ public class PointController {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+    }
+
+    // [TEST-ONLY]
+    public static class TestLoginRequest {
+        private String username;
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
         }
     }
 

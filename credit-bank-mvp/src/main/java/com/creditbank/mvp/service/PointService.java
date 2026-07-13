@@ -54,6 +54,19 @@ public class PointService {
         return user;
     }
 
+    // [TEST-ONLY] 测试用跳过密码登录
+    public SysUser testLogin(String username) {
+        SysUser user = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username));
+        if (user == null) {
+            throw new BizException("用户不存在");
+        }
+        user.setLastLoginAt(java.time.LocalDateTime.now());
+        sysUserMapper.updateById(user);
+        return user;
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode) {
         SysUser user = sysUserMapper.selectById(userId);

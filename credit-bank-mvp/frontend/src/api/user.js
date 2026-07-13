@@ -10,6 +10,16 @@ export function register(data) {
   return request.post('/user/register', data)
 }
 
+// [TEST-ONLY] 测试用跳过密码登录
+export function testLogin(username) {
+  return request.post('/user/test-login', { username })
+}
+
+// [TEST-ONLY] 测试用获取用户列表（无需认证）
+export function getTestUsers() {
+  return request.get('/user/test-users')
+}
+
 // ==================== 用户管理 ====================
 
 export function getUsers() {

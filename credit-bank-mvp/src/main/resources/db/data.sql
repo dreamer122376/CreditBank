@@ -8,8 +8,8 @@ INSERT INTO `organization` (`id`, `name`, `contact_person`, `contact_phone`, `ad
 -- 密码均为 123456（BCrypt加密）
 INSERT INTO `sys_user` (`id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `org_id`, `expert_field`, `balance`, `status`, `created_at`) VALUES
 (1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '系统管理员', '13800138000', 'admin@creditbank.com', 'admin', NULL, NULL, 0, 1, NOW()),
-(2, 'org_admin_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '张三', '13800138001', 'zhangsan@org1.com', 'org_admin', 1, NULL, 0, 1, NOW()),
-(3, 'org_admin_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '李四', '13800138002', 'lisi@org2.com', 'org_admin', 2, NULL, 0, 1, NOW()),
+(2, 'org_admin_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '张三', '13800138001', 'zhangsan@org1.com', 'org_admin', 1, NULL, 5000, 1, NOW()),
+(3, 'org_admin_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '李四', '13800138002', 'lisi@org2.com', 'org_admin', 2, NULL, 8000, 1, NOW()),
 (4, 'expert_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '王五', '13800138003', 'wangwu@expert.com', 'expert', NULL, '计算机科学', 0, 1, NOW()),
 (5, 'expert_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '赵六', '13800138004', 'zhaoliu@expert.com', 'expert', NULL, '软件工程', 0, 1, NOW()),
 (6, 'student_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小明', '13800138005', 'xiaoming@student.com', 'student', 1, NULL, 500, 1, NOW()),
@@ -79,12 +79,12 @@ INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is
 (9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL);
 
 -- 积分转换规则表初始数据（无外键依赖）
-INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `daily_limit`, `is_enabled`, `created_at`) VALUES
-(1, '精美笔记本', 'icon_notebook', 100, 100, 1, 1, NOW()),
-(2, '课程优惠券', 'icon_coupon', 200, 50, 1, 1, NOW()),
-(3, '荣誉证书', 'icon_certificate', 500, 20, 1, 1, NOW()),
-(4, '书籍借阅卡', 'icon_card', 300, 80, 1, 1, NOW()),
-(5, '充电宝', 'icon_powerbank', 800, 30, 1, 1, NOW());
+INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `per_user_limit`, `is_enabled`, `org_id`, `created_at`) VALUES
+(1, '精美笔记本', 'icon_notebook', 100, 100, 1, 1, NULL, NOW()),
+(2, '课程优惠券', 'icon_coupon', 200, 50, 1, 1, NULL, NOW()),
+(3, '荣誉证书', 'icon_certificate', 500, 20, 1, 1, NULL, NOW()),
+(4, '书籍借阅卡', 'icon_card', 300, 80, 1, 1, 1, NOW()),
+(5, '充电宝', 'icon_powerbank', 800, 30, 1, 1, 2, NOW());
 
 -- 平台活动表初始数据（无外键依赖）
 INSERT INTO `campaign` (`id`, `title`, `multiplier`, `start_time`, `end_time`, `status`, `created_at`, `description`, `cover_image`, `organizer`, `images`) VALUES
@@ -104,3 +104,33 @@ INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`
 -- 学生证书发放记录初始数据（对应已通过的申请单 5）
 INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `issued_at`, `valid_until`) VALUES
 (1, 8, 1, 5, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0005'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
+-- 交易流水表初始数据（依赖 sys_user.id 和 credit_rule.id）
+-- REWARD 类型：平台通用规则只生成学生流水；机构专属规则同步生成机构管理员积分池扣减流水
+INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES
+-- 12天前：通用 REWARD（student_3 在线测试 +50，初始800→850）
+(1, 8, 50, 850, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -12 DAY)),
+-- 10天前：通用 REWARD（student_1 完成课程 +100，初始500→600）
+--         + 机构1专属 REWARD（student_3 校园APP项目 +200，850→1050；org_admin_1 扣减200，5000→4800）
+(2, 6, 100, 600, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+(3, 8, 200, 1050, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+(4, 2, -200, 4800, 'REWARD', 2, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+-- 9天前：通用 REWARD（student_2 分享内容 +30，初始300→330）
+(5, 7, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -9 DAY)),
+-- 8天前：通用 REWARD（student_1 在线测试 +50，600→650）
+--         + 机构1专属 REWARD（student_3 智能教室项目 +200，1050→1250；org_admin_1 扣减200，4800→4600）
+(6, 6, 50, 650, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(7, 8, 200, 1250, 'REWARD', 3, '智能教室系统参与', DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(8, 2, -200, 4600, 'REWARD', 3, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -8 DAY)),
+-- 6天前：通用 REWARD（student_1 签到打卡 +10，650→660）
+(9, 6, 10, 660, 'REWARD', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -6 DAY)),
+-- 5天前：机构2专属 REWARD（student_2 工程模拟平台 +250，330→580；org_admin_2 扣减250，8000→7750）
+(10, 7, 250, 580, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(11, 3, -250, 7750, 'REWARD', 4, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -5 DAY)),
+-- 4天前：机构1专属 REWARD（student_1 校园APP项目 +200，660→860；org_admin_1 扣减200，4600→4400）
+(12, 6, 200, 860, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -4 DAY)),
+(13, 2, -200, 4400, 'REWARD', 2, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -4 DAY)),
+-- 2天前：机构1专属 REWARD（student_1 校园APP优秀 +500，860→1360；org_admin_1 扣减500，4400→3900）
+(14, 6, 500, 1360, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(15, 2, -500, 3900, 'REWARD', 5, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -2 DAY));
+
+

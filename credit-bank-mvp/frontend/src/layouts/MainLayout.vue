@@ -42,9 +42,34 @@
           </el-dropdown>
         </div>
       </el-header>
+      <!-- 冻结横幅 -->
+      <div class="freeze-banner" v-if="isFrozen">
+        <div class="freeze-banner-inner">
+          <span class="freeze-icon">⚠️</span>
+          <span class="freeze-text">
+            您的账户已于 <strong>{{ fmt(currentUser?.frozenAt) }}</strong> 被冻结，
+            若有问题请咨询阿米娅和迷迭香。
+          </span>
+          <el-button type="warning" size="small" @click="appealVisible = true">提交解冻申诉</el-button>
+        </div>
+      </div>
+
       <el-main class="content">
         <router-view />
       </el-main>
+
+      <!-- 解冻申诉弹窗 -->
+      <el-dialog v-model="appealVisible" title="提交解冻申诉" width="450px">
+        <el-form>
+          <el-form-item label="申诉理由" required>
+            <el-input v-model="appealReason" type="textarea" :rows="4" placeholder="请说明解冻理由..." />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="appealVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitAppeal" :loading="appealing">提交申诉</el-button>
+        </template>
+      </el-dialog>
     </el-container>
   </el-container>
 </template>
@@ -53,6 +78,8 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { ElMessage } from 'element-plus'
+import { submitUnfreezeAppeal } from '@/api/user'
 import {
   HomeFilled,
   UserFilled,
@@ -73,7 +100,7 @@ import {
 
 const router = useRouter()
 const route = useRoute()
-const { currentUser, ROLE_NAME, logout } = useAuth()
+const { currentUser, ROLE_NAME, isFrozen, logout } = useAuth()
 
 const activeMenu = computed(() => route.path)
 
@@ -89,12 +116,35 @@ const roleTitle = computed(() => {
   return titles[currentUser.value?.role] || ''
 })
 
+// 解冻申诉
+const appealVisible = ref(false)
+const appealReason = ref('')
+const appealing = ref(false)
+
+function fmt(t) { if (!t) return ''; return t.length >= 16 ? t.substring(0, 16).replace('T', ' ') : t }
+
+async function submitAppeal() {
+  if (!appealReason.value.trim()) { ElMessage.warning('请填写申诉理由'); return }
+  appealing.value = true
+  try {
+    await submitUnfreezeAppeal(appealReason.value.trim())
+    ElMessage.success('解冻申诉已提交，请等待审核')
+    appealVisible.value = false
+    appealReason.value = ''
+  } catch (e) {
+    ElMessage.error(e.message || '提交失败')
+  } finally {
+    appealing.value = false
+  }
+}
+
 const menuItems = computed(() => {
   const menus = {
     admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
+      { path: '/projects', title: '项目管理', icon: Files },
       { path: '/experts', title: '专家管理', icon: Avatar },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/exchange-rules', title: '转换规则', icon: Refresh },
@@ -248,4 +298,20 @@ function handleCommand(command) {
   padding: 20px 24px;
   background: #f0f2f5;
 }
+
+.freeze-banner {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+  border-bottom: 2px solid #f59f00;
+  padding: 0 24px;
+}
+.freeze-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  max-width: 100%;
+}
+.freeze-icon { font-size: 18px; flex-shrink: 0; }
+.freeze-text { flex: 1; font-size: 13px; color: #856404; }
+.freeze-text strong { color: #d97706; }
 </style>

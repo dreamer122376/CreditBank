@@ -13,6 +13,11 @@
         <el-table-column prop="contactPerson" label="联系人" width="120" />
         <el-table-column prop="contactPhone" label="联系电话" width="140" />
         <el-table-column prop="address" label="地址" />
+        <el-table-column prop="creditPool" label="积分池余量" width="120">
+          <template #default="scope">
+            <span style="color: #409eff; font-weight: 500;">{{ scope.row.creditPool || 0 }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
             <el-tag :type="STATUS_TAG[scope.row.status] || 'info'">

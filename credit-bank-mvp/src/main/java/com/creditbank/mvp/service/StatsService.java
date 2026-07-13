@@ -208,4 +208,53 @@ public class StatsService {
                         .orderByDesc(TransactionLog::getCreatedAt)
                         .last("LIMIT " + limit));
     }
+
+    public List<Map<String, Object>> getPointTrend(Long userId, int days) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        LocalDate startDate = LocalDate.now().minusDays(days - 1);
+        LocalDate endDate = LocalDate.now();
+
+        List<TransactionLog> allLogs = transactionLogMapper.selectList(
+                new LambdaQueryWrapper<TransactionLog>()
+                        .eq(TransactionLog::getUserId, userId)
+                        .ge(TransactionLog::getCreatedAt, startDate.atStartOfDay())
+                        .le(TransactionLog::getCreatedAt, endDate.atTime(23, 59, 59))
+                        .orderByAsc(TransactionLog::getCreatedAt));
+
+        Map<String, Integer> dailyBalance = new HashMap<>();
+        int currentBalance = 0;
+
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            String dateStr = date.format(formatter);
+            dailyBalance.put(dateStr, 0);
+        }
+
+        for (TransactionLog log : allLogs) {
+            String logDate = log.getCreatedAt().toLocalDate().format(formatter);
+            if (dailyBalance.containsKey(logDate)) {
+                currentBalance = log.getBalanceAfter() != null ? log.getBalanceAfter() : 0;
+                dailyBalance.put(logDate, currentBalance);
+            }
+        }
+
+        int accumulatedBalance = 0;
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            String dateStr = date.format(formatter);
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("date", dateStr);
+
+            Integer balance = dailyBalance.get(dateStr);
+            if (balance != null && balance > 0) {
+                accumulatedBalance = balance;
+            }
+            dayData.put("balance", accumulatedBalance);
+            result.add(dayData);
+        }
+
+        return result;
+    }
 }

@@ -45,11 +45,22 @@ public class PointService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
-        if (user.getStatus() != null && user.getStatus() == 0) {
-            throw new BizException("账户已被冻结，请联系管理员");
-        }
+        // 冻结用户允许登录，读写权限由 FreezePermissionInterceptor 控制
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BizException("密码错误");
+        }
+        user.setLastLoginAt(java.time.LocalDateTime.now());
+        sysUserMapper.updateById(user);
+        return user;
+    }
+
+    // [TEST-ONLY] 测试用跳过密码登录
+    public SysUser testLogin(String username) {
+        SysUser user = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username));
+        if (user == null) {
+            throw new BizException("用户不存在");
         }
         user.setLastLoginAt(java.time.LocalDateTime.now());
         sysUserMapper.updateById(user);
@@ -98,6 +109,28 @@ public class PointService {
         txn.setRelatedRuleId(rule.getId());
         txn.setDescription(rule.getEventName() + campaignDesc);
         transactionLogMapper.insert(txn);
+
+        if (rule.getOrgId() != null) {
+            SysUser orgAdmin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, rule.getOrgId())
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            if (orgAdmin != null) {
+                int orgNewBalance = orgAdmin.getBalance() - finalCredit;
+                orgAdmin.setBalance(orgNewBalance);
+                sysUserMapper.updateById(orgAdmin);
+
+                TransactionLog orgTxn = new TransactionLog();
+                orgTxn.setUserId(orgAdmin.getId());
+                orgTxn.setAmount(-finalCredit);
+                orgTxn.setBalanceAfter(orgNewBalance);
+                orgTxn.setBizType("REWARD");
+                orgTxn.setRelatedRuleId(rule.getId());
+                orgTxn.setDescription("学生获得积分，机构积分池扣减");
+                transactionLogMapper.insert(orgTxn);
+            }
+        }
 
         return sysUserMapper.selectById(userId);
     }

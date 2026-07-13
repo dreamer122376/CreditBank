@@ -32,3 +32,7 @@ export function toggleRule(id, isEnabled) {
 export function getProjects() {
   return request.get('/projects/active')
 }
+
+export function adjustRule(id) {
+  return request.post('/credit-rule/' + id + '/adjust')
+}

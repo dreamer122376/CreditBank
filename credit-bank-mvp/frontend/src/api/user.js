@@ -10,6 +10,16 @@ export function register(data) {
   return request.post('/user/register', data)
 }
 
+// [TEST-ONLY] 测试用跳过密码登录
+export function testLogin(username) {
+  return request.post('/user/test-login', { username })
+}
+
+// [TEST-ONLY] 测试用获取用户列表（无需认证）
+export function getTestUsers() {
+  return request.get('/user/test-users')
+}
+
 // ==================== 用户管理 ====================
 
 export function getUsers() {
@@ -50,4 +60,16 @@ export function getTransactions(userId) {
 
 export function getOpLogs(page = 1, size = 10) {
   return request.get('/users/op-logs', { params: { page, size } })
+}
+
+// ==================== 解冻申诉 ====================
+
+export function submitUnfreezeAppeal(reason) {
+  const saved = localStorage.getItem('cb_user')
+  const user = saved ? JSON.parse(saved) : {}
+  return request.post('/application/submit', {
+    bizType: 'UNFREEZE_APPEAL',
+    applicantId: user.id,
+    formData: JSON.stringify({ reason })
+  })
 }

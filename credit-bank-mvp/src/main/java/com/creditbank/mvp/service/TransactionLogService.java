@@ -8,6 +8,7 @@ import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -34,7 +35,9 @@ public class TransactionLogService {
         SysUser operator = getOperator(operatorId);
         LambdaQueryWrapper<TransactionLog> wrapper = buildWrapper(operator, userId, bizType, startTime, endTime);
         wrapper.orderByDesc(TransactionLog::getCreatedAt);
-        return transactionLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+        Page<TransactionLog> result = transactionLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+        markReverted(result.getRecords());
+        return result;
     }
 
     public List<TransactionLog> list(Long operatorId, Long userId, String bizType,
@@ -42,7 +45,25 @@ public class TransactionLogService {
         SysUser operator = getOperator(operatorId);
         LambdaQueryWrapper<TransactionLog> wrapper = buildWrapper(operator, userId, bizType, startTime, endTime);
         wrapper.orderByDesc(TransactionLog::getCreatedAt);
-        return transactionLogMapper.selectList(wrapper);
+        List<TransactionLog> records = transactionLogMapper.selectList(wrapper);
+        markReverted(records);
+        return records;
+    }
+
+    private void markReverted(List<TransactionLog> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        List<Long> ids = records.stream().map(TransactionLog::getId).collect(Collectors.toList());
+        List<Long> revertedIds = transactionLogMapper.selectList(
+                new LambdaQueryWrapper<TransactionLog>()
+                        .eq(TransactionLog::getBizType, "REFUND")
+                        .in(TransactionLog::getRelatedRuleId, ids)
+                        .select(TransactionLog::getRelatedRuleId)
+        ).stream().map(TransactionLog::getRelatedRuleId).distinct().collect(Collectors.toList());
+        for (TransactionLog log : records) {
+            log.setReverted(revertedIds.contains(log.getId()));
+        }
     }
 
     public TransactionLog getById(Long operatorId, Long id) {
@@ -55,6 +76,53 @@ public class TransactionLogService {
             throw new BizException("无权访问该记录");
         }
         return log;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public TransactionLog revert(Long operatorId, Long transactionId) {
+        SysUser operator = getOperator(operatorId);
+        if (!"admin".equals(operator.getRole())) {
+            throw new BizException("无权限");
+        }
+        
+        TransactionLog original = transactionLogMapper.selectById(transactionId);
+        if (original == null) {
+            throw new BizException("流水不存在：" + transactionId);
+        }
+        
+        long revertCount = transactionLogMapper.selectCount(
+                new LambdaQueryWrapper<TransactionLog>()
+                        .eq(TransactionLog::getRelatedRuleId, transactionId)
+                        .eq(TransactionLog::getBizType, "REFUND"));
+        if (revertCount > 0) {
+            throw new BizException("该流水已被撤销");
+        }
+        
+        SysUser user = sysUserMapper.selectById(original.getUserId());
+        if (user == null) {
+            throw new BizException("用户不存在：" + original.getUserId());
+        }
+        
+        int reverseAmount = -original.getAmount();
+        int newBalance = user.getBalance() + reverseAmount;
+        if (newBalance < 0) {
+            throw new BizException("用户积分不足，无法撤销此流水");
+        }
+        
+        user.setBalance(newBalance);
+        sysUserMapper.updateById(user);
+        
+        TransactionLog revertLog = new TransactionLog();
+        revertLog.setUserId(original.getUserId());
+        revertLog.setAmount(reverseAmount);
+        revertLog.setBalanceAfter(newBalance);
+        revertLog.setBizType("REFUND");
+        revertLog.setRelatedRuleId(transactionId);
+        revertLog.setDescription("管理员撤销流水 #" + transactionId + "：" + original.getDescription());
+        revertLog.setCreatedAt(LocalDateTime.now());
+        transactionLogMapper.insert(revertLog);
+        
+        return revertLog;
     }
 
     public byte[] exportToCsv(Long operatorId, Long userId, String bizType,

@@ -82,6 +82,14 @@ public class CreditRuleController {
         return Result.ok(creditRuleService.toggleEnabled(id, request.getIsEnabled()));
     }
 
+    @PostMapping("/{id}/adjust")
+    public Result<AdjustResult> adjust(@PathVariable Long id) {
+        checkAdmin();
+        CreditRule rule = creditRuleService.getById(id);
+        int count = creditRuleService.adjustForRule(rule, rule.getCreditValue());
+        return Result.ok(new AdjustResult(count));
+    }
+
     private void checkAdmin() {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         if (operatorId == null) {
@@ -102,6 +110,22 @@ public class CreditRuleController {
 
         public void setIsEnabled(Integer isEnabled) {
             this.isEnabled = isEnabled;
+        }
+    }
+
+    public static class AdjustResult {
+        private int adjustedCount;
+
+        public AdjustResult(int adjustedCount) {
+            this.adjustedCount = adjustedCount;
+        }
+
+        public int getAdjustedCount() {
+            return adjustedCount;
+        }
+
+        public void setAdjustedCount(int adjustedCount) {
+            this.adjustedCount = adjustedCount;
         }
     }
 }

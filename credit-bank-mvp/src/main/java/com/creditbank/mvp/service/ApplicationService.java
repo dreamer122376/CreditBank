@@ -52,6 +52,7 @@ public class ApplicationService {
         BIZ_TYPE_NAME.put("EXCHANGE", "学分转换申请");
         BIZ_TYPE_NAME.put("CERT_APPLY", "证书认证申请");
         BIZ_TYPE_NAME.put("EXPERT_CERT", "专家认证申请");
+        BIZ_TYPE_NAME.put("UNFREEZE_APPEAL", "解冻申诉");
     }
 
     private static final ObjectMapper JSON = new ObjectMapper();

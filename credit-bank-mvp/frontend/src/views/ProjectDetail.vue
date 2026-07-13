@@ -59,7 +59,7 @@
       <!-- 操作按钮 -->
       <div class="detail-actions">
         <el-button @click="goBack">← 返回列表</el-button>
-        <template v-if="project.status === 1">
+        <template v-if="project.status === 1 && !isFrozen">
           <el-button v-if="!project.enrolled" type="success" @click="handleEnroll" :loading="enrolling">✅ 立即报名</el-button>
           <el-button v-else type="warning" @click="handleCancel" :loading="canceling">↩️ 取消报名</el-button>
         </template>
@@ -78,7 +78,7 @@ import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const route = useRoute()
-const { currentUser } = useAuth()
+const { currentUser, isFrozen } = useAuth()
 const loading = ref(true)
 const project = ref(null)
 const enrolling = ref(false)
@@ -102,7 +102,11 @@ async function loadDetail() {
 }
 
 function goBack() {
-  router.push('/projects')
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/projects')
+  }
 }
 
 async function handleEnroll() {

@@ -1,5 +1,5 @@
-import { ref } from 'vue'
-import { login as apiLogin, register as apiRegister } from '@/api/user'
+import { ref, computed } from 'vue'
+import { login as apiLogin, register as apiRegister, testLogin as apiTestLogin } from '@/api/user'
 
 const ROLE_NAME = {
   admin: '系统管理员',
@@ -46,17 +46,23 @@ async function register(form) {
     orgId: form.institutionId ? Number(form.institutionId) : null,
     expertField: form.institutionName || ''
   }
-  try {
-    const result = await apiRegister(data)
-    currentUser.value = result.user
-    token.value = result.token
-    localStorage.setItem('cb_user', JSON.stringify(result.user))
-    localStorage.setItem('cb_token', result.token)
-    return true
-  } catch (error) {
-    return false
-  }
+  const result = await apiRegister(data)
+  currentUser.value = result.user
+  token.value = result.token
+  localStorage.setItem('cb_user', JSON.stringify(result.user))
+  localStorage.setItem('cb_token', result.token)
 }
+
+// [TEST-ONLY] 测试用跳过密码登录
+async function testLogin(username) {
+  const result = await apiTestLogin(username)
+  currentUser.value = result.user
+  token.value = result.token
+  localStorage.setItem('cb_user', JSON.stringify(result.user))
+  localStorage.setItem('cb_token', result.token)
+}
+
+const isFrozen = computed(() => currentUser.value?.status === 0)
 
 loadUser()
 
@@ -64,9 +70,11 @@ export function useAuth() {
   return {
     currentUser,
     token,
+    isFrozen,
     ROLE_NAME,
     login,
     logout,
-    register
+    register,
+    testLogin
   }
 }

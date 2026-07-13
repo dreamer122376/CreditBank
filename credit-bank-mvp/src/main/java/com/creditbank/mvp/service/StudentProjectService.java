@@ -41,17 +41,20 @@ public class StudentProjectService {
     private final SysUserMapper sysUserMapper;
     private final OrganizationMapper organizationMapper;
     private final UserOpLogMapper userOpLogMapper;
+    private final PointService pointService;
 
     public StudentProjectService(StudentProjectMapper studentProjectMapper,
                                  ProjectService projectService,
                                  SysUserMapper sysUserMapper,
                                  OrganizationMapper organizationMapper,
-                                 UserOpLogMapper userOpLogMapper) {
+                                 UserOpLogMapper userOpLogMapper,
+                                 PointService pointService) {
         this.studentProjectMapper = studentProjectMapper;
         this.projectService = projectService;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.userOpLogMapper = userOpLogMapper;
+        this.pointService = pointService;
     }
 
     // ==================== 学生端：我的项目 ====================
@@ -229,6 +232,14 @@ public class StudentProjectService {
         }
 
         studentProjectMapper.updateById(enrollment);
+
+        // 项目完成时自动发放积分奖励
+        if (ENROLLMENT_STATUS_COMPLETED.equals(newStatus)) {
+            Project project = projectService.getById(enrollment.getProjectId());
+            if (project != null) {
+                pointService.rewardProjectCompletion(enrollment.getStudentId(), project, operator.getId());
+            }
+        }
     }
 
     // ==================== 内部工具 ====================

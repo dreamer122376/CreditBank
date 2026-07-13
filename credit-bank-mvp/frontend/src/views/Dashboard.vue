@@ -12,6 +12,20 @@
           <div class="stat-value">{{ stat.value }}<small v-if="stat.unit">{{ stat.unit }}</small></div>
         </el-card>
       </el-col>
+      <el-col :span="12" v-if="currentUser?.role === 'student'">
+        <el-card class="stat-card">
+          <template #header>
+            <div class="card-header">
+              <span>积分变化趋势</span>
+              <span>
+                <el-switch v-model="trendDays" :active-value="30" :inactive-value="7" @change="loadPointTrend" />
+                <span style="margin-left: 8px;">{{ trendDays }}天</span>
+              </span>
+            </div>
+          </template>
+          <div ref="chartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
     </el-row>
 
     <el-row :gutter="18" style="margin-top: 20px;">
@@ -78,17 +92,19 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuth } from '@/composables/useAuth'
-import { getStatsSummary, getTodoList, getRecentTransactions } from '@/api/stats'
-import { getProfile } from '@/api/profile'
-
-const { currentUser } = useAuth()
-
-const summary = ref(null)
-const todoList = ref([])
-const recentTransactions = ref([])
+<script setup>import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { useAuth } from '@/composables/useAuth';
+import { getStatsSummary, getTodoList, getRecentTransactions, getPointTrend } from '@/api/stats';
+import { getProfile } from '@/api/profile';
+import * as echarts from 'echarts';
+const { currentUser } = useAuth();
+const summary = ref(null);
+const todoList = ref([]);
+const recentTransactions = ref([]);
+const trendDays = ref(7);
+const pointTrend = ref([]);
+const chartRef = ref(null);
+let chartInstance = null;
 
 const welcomeText = computed(() => {
   const texts = {
@@ -171,26 +187,110 @@ onMounted(async () => {
   await loadAllData()
 })
 
+onUnmounted(() => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+})
+
 async function loadAllData() {
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
-    const [sum, todos, txns, profile] = await Promise.all([
+    const promises = [
       getStatsSummary(role, userId),
       getTodoList(role, userId, 4),
       getRecentTransactions(userId, 4),
       userId ? getProfile(userId) : Promise.resolve(null)
-    ])
-    summary.value = sum
-    todoList.value = todos
-    recentTransactions.value = txns
-    if (profile && profile.orgName) {
-      currentUser.value = { ...currentUser.value, orgName: profile.orgName }
+    ]
+    if (role === 'student' && userId) {
+      promises.push(getPointTrend(userId, trendDays.value))
+    }
+    const results = await Promise.all(promises)
+    summary.value = results[0]
+    todoList.value = results[1]
+    recentTransactions.value = results[2]
+    if (results[3] && results[3].orgName) {
+      currentUser.value = { ...currentUser.value, orgName: results[3].orgName }
       localStorage.setItem('cb_user', JSON.stringify(currentUser.value))
+    }
+    if (role === 'student') {
+      pointTrend.value = results[4]
+      await nextTick()
+      initChart()
     }
   } catch (error) {
     console.error('加载统计数据失败:', error)
   }
+}
+
+async function loadPointTrend() {
+  const userId = currentUser.value?.id
+  if (!userId) return
+  try {
+    pointTrend.value = await getPointTrend(userId, trendDays.value)
+    await nextTick()
+    updateChart()
+  } catch (error) {
+    console.error('加载积分趋势失败:', error)
+  }
+}
+
+function initChart() {
+  if (!chartRef.value) return
+  chartInstance = echarts.init(chartRef.value)
+  updateChart()
+}
+
+function updateChart() {
+  if (!chartInstance || !pointTrend.value.length) return
+  const dates = pointTrend.value.map(item => item.date)
+  const balances = pointTrend.value.map(item => item.balance)
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: '{b}<br/>积分余额: {c}'
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: dates,
+      axisLabel: {
+        rotate: trendDays.value === 30 ? 45 : 0
+      }
+    },
+    yAxis: {
+      type: 'value',
+      min: 0
+    },
+    series: [{
+      name: '积分余额',
+      type: 'line',
+      smooth: true,
+      data: balances,
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(59, 91, 219, 0.3)' },
+          { offset: 1, color: 'rgba(59, 91, 219, 0.05)' }
+        ])
+      },
+      lineStyle: {
+        color: '#3b5bdb',
+        width: 2
+      },
+      itemStyle: {
+        color: '#3b5bdb'
+      }
+    }]
+  }
+  chartInstance.setOption(option)
 }
 </script>
 
@@ -257,5 +357,10 @@ async function loadAllData() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.chart-container {
+  width: 100%;
+  height: 200px;
 }
 </style>

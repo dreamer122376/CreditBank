@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 用户管理业务。负责用户的编辑、冻结/解冻、重置密码、
@@ -40,6 +41,17 @@ public class UserService {
     public List<SysUser> listUsers() {
         return sysUserMapper.selectList(
                 new LambdaQueryWrapper<SysUser>()
+                        .orderByDesc(SysUser::getId));
+    }
+
+    /**
+     * 机构管理员：只返回本机构学生。
+     */
+    public List<SysUser> listByOrg(Long orgId) {
+        return sysUserMapper.selectList(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getOrgId, orgId)
+                        .eq(SysUser::getRole, "student")
                         .orderByDesc(SysUser::getId));
     }
 
@@ -124,6 +136,7 @@ public class UserService {
         if (skipped > 0) detail += "（跳过 " + skipped + " 个）";
         UserOpLog log = buildLog(operator, null, action, detail);
         log.setDetail(detail);
+        log.setModule(UserOpLog.MODULE_USER);
         userOpLogMapper.insert(log);
 
         Map<String, Object> result = new HashMap<>();
@@ -161,11 +174,58 @@ public class UserService {
 
     // ==================== 操作日志 ====================
 
-    public Page<UserOpLog> getOpLogs(int page, int size) {
-        return userOpLogMapper.selectPage(
-                new Page<>(page, size),
-                new LambdaQueryWrapper<UserOpLog>()
-                        .orderByDesc(UserOpLog::getCreatedAt));
+    public Page<UserOpLog> getOpLogs(int page, int size,
+                                      String action, String module, String keyword,
+                                      LocalDateTime startTime, LocalDateTime endTime,
+                                      Long orgId) {
+        LambdaQueryWrapper<UserOpLog> wrapper = new LambdaQueryWrapper<>();
+        if (action != null && !action.isEmpty()) {
+            wrapper.eq(UserOpLog::getAction, action);
+        }
+        if (module != null && !module.isEmpty()) {
+            wrapper.eq(UserOpLog::getModule, module);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String kw = keyword.trim();
+            wrapper.and(w -> w.like(UserOpLog::getOperatorName, kw)
+                    .or()
+                    .like(UserOpLog::getTargetUserName, kw)
+                    .or()
+                    .like(UserOpLog::getDetail, kw));
+        }
+        if (startTime != null) {
+            wrapper.ge(UserOpLog::getCreatedAt, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(UserOpLog::getCreatedAt, endTime);
+        }
+        // 机构管理员：只能查看 target_user 为本机构学生的日志
+        if (orgId != null) {
+            List<Long> studentIds = sysUserMapper.selectList(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, orgId)
+                            .eq(SysUser::getRole, "student"))
+                    .stream()
+                    .map(SysUser::getId)
+                    .collect(Collectors.toList());
+            if (studentIds.isEmpty()) {
+                wrapper.eq(UserOpLog::getId, -1L);
+            } else {
+                wrapper.in(UserOpLog::getTargetUserId, studentIds);
+            }
+        }
+        wrapper.orderByDesc(UserOpLog::getCreatedAt);
+        return userOpLogMapper.selectPage(new Page<>(page, size), wrapper);
+    }
+
+    /**
+     * 保存一条操作日志（供其他 Service 复用）。
+     */
+    public void saveLog(UserOpLog log) {
+        if (log.getCreatedAt() == null) {
+            log.setCreatedAt(LocalDateTime.now());
+        }
+        userOpLogMapper.insert(log);
     }
 
     // ==================== 内部工具 ====================
@@ -184,6 +244,7 @@ public class UserService {
             log.setTargetUserName(target.getRealName());
         }
         log.setAction(action);
+        log.setModule(UserOpLog.MODULE_USER);
         log.setDetail(detail);
         log.setCreatedAt(LocalDateTime.now());
         return log;

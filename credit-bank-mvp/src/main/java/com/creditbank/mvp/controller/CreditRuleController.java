@@ -86,7 +86,7 @@ public class CreditRuleController {
     public Result<AdjustResult> adjust(@PathVariable Long id) {
         checkAdmin();
         CreditRule rule = creditRuleService.getById(id);
-        int count = creditRuleService.adjustForRule(rule, rule.getCreditValue());
+        int count = creditRuleService.adjustForRule(rule);
         return Result.ok(new AdjustResult(count));
     }
 

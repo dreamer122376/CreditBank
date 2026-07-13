@@ -9,10 +9,12 @@ import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.ProjectMapper;
 import com.creditbank.mvp.mapper.StudentProjectMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,15 +52,18 @@ public class ProjectService {
     private final OrganizationMapper organizationMapper;
     private final SysUserMapper sysUserMapper;
     private final StudentProjectMapper studentProjectMapper;
+    private final UserOpLogMapper userOpLogMapper;
 
     public ProjectService(ProjectMapper projectMapper,
                           OrganizationMapper organizationMapper,
                           SysUserMapper sysUserMapper,
-                          StudentProjectMapper studentProjectMapper) {
+                          StudentProjectMapper studentProjectMapper,
+                          UserOpLogMapper userOpLogMapper) {
         this.projectMapper = projectMapper;
         this.organizationMapper = organizationMapper;
         this.sysUserMapper = sysUserMapper;
         this.studentProjectMapper = studentProjectMapper;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     // ==================== 查询 ====================
@@ -164,6 +169,11 @@ public class ProjectService {
         project.setOrgId(operator.getOrgId());
         project.setStatus(STATUS_PENDING);
         projectMapper.insert(project);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_PROJECT, UserOpLog.ACTION_CREATE,
+                "创建项目：" + project.getName()));
         return getById(project.getId());
     }
 
@@ -193,6 +203,11 @@ public class ProjectService {
         validateProject(project);
         project.setStatus(STATUS_PENDING);
         projectMapper.updateById(project);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_PROJECT, UserOpLog.ACTION_UPDATE,
+                "编辑项目：" + project.getName()));
         return getById(project.getId());
     }
 
@@ -219,6 +234,12 @@ public class ProjectService {
             project.setStatus(STATUS_REJECTED);
         }
         projectMapper.updateById(project);
+
+        String actionName = approve ? "通过" : "驳回";
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_PROJECT, UserOpLog.ACTION_PROJECT_AUDIT,
+                actionName + "项目：" + project.getName() + (approve ? "" : "，原因：" + reason)));
         return project;
     }
 
@@ -234,6 +255,11 @@ public class ProjectService {
         }
         project.setStatus(STATUS_OFFLINE);
         projectMapper.updateById(project);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_PROJECT, UserOpLog.ACTION_PROJECT_OFFLINE,
+                "下架项目：" + project.getName()));
         return project;
     }
 

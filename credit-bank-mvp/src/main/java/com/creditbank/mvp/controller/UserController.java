@@ -27,15 +27,27 @@ public class UserController {
     }
 
     @GetMapping
-    @Operation(summary = "用户列表", description = "获取所有用户列表，按ID倒序排列")
+    @Operation(summary = "用户列表", description = "获取所有用户列表，按ID倒序排列；机构管理员只返回本机构学生")
     public Result<List<SysUser>> list() {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        SysUser operator = userService.getUser(operatorId);
+        if ("org_admin".equals(operator.getRole())) {
+            return Result.ok(userService.listByOrg(operator.getOrgId()));
+        }
         return Result.ok(userService.listUsers());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "用户详情", description = "根据用户ID获取用户详细信息")
+    @Operation(summary = "用户详情", description = "根据用户ID获取用户详细信息；机构管理员只能查看本机构用户")
     public Result<SysUser> get(@Parameter(description = "用户ID") @PathVariable Long id) {
-        return Result.ok(userService.getUser(id));
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        SysUser operator = userService.getUser(operatorId);
+        SysUser user = userService.getUser(id);
+        if ("org_admin".equals(operator.getRole())
+                && !java.util.Objects.equals(operator.getOrgId(), user.getOrgId())) {
+            throw new BizException("无权查看该用户");
+        }
+        return Result.ok(user);
     }
 
     @PutMapping("/{id}")
@@ -44,6 +56,7 @@ public class UserController {
                                    @Parameter(description = "用户更新信息") @RequestBody SysUser update) {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
+        rejectOrgAdmin(operator, "编辑用户");
         return Result.ok(userService.updateUser(id, update, operator));
     }
 
@@ -57,6 +70,7 @@ public class UserController {
         }
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
+        rejectOrgAdmin(operator, "冻结/解冻用户");
         return Result.ok(userService.updateStatus(id, status, operator));
     }
 
@@ -75,6 +89,7 @@ public class UserController {
         }
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
+        rejectOrgAdmin(operator, "批量冻结/解冻");
         return Result.ok(userService.batchUpdateStatus(ids, status, operator));
     }
 
@@ -88,14 +103,38 @@ public class UserController {
         }
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
+        rejectOrgAdmin(operator, "重置密码");
         userService.resetPassword(id, newPassword, operator);
         return Result.ok();
     }
 
     @GetMapping("/op-logs")
-    @Operation(summary = "操作日志", description = "分页查询用户操作日志")
-    public Result<Page<UserOpLog>> opLogs(@Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
-                                           @Parameter(description = "每页条数") @RequestParam(defaultValue = "10") int size) {
-        return Result.ok(userService.getOpLogs(page, size));
+    @Operation(summary = "操作日志", description = "分页查询用户操作日志，支持操作类型、模块、关键词、时间范围筛选")
+    public Result<Page<UserOpLog>> opLogs(
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页条数") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "操作类型") @RequestParam(required = false) String action,
+            @Parameter(description = "模块") @RequestParam(required = false) String module,
+            @Parameter(description = "关键词") @RequestParam(required = false) String keyword,
+            @Parameter(description = "开始时间，格式yyyy-MM-ddTHH:mm:ss") @RequestParam(required = false) String startTime,
+            @Parameter(description = "结束时间，格式yyyy-MM-ddTHH:mm:ss") @RequestParam(required = false) String endTime) {
+        java.time.LocalDateTime start = null;
+        java.time.LocalDateTime end = null;
+        if (startTime != null && !startTime.isEmpty()) {
+            start = java.time.LocalDateTime.parse(startTime);
+        }
+        if (endTime != null && !endTime.isEmpty()) {
+            end = java.time.LocalDateTime.parse(endTime);
+        }
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        SysUser operator = userService.getUser(operatorId);
+        Long orgId = "org_admin".equals(operator.getRole()) ? operator.getOrgId() : null;
+        return Result.ok(userService.getOpLogs(page, size, action, module, keyword, start, end, orgId));
+    }
+
+    private void rejectOrgAdmin(SysUser operator, String actionName) {
+        if ("org_admin".equals(operator.getRole())) {
+            throw new BizException("机构管理员无权限执行" + actionName);
+        }
     }
 }

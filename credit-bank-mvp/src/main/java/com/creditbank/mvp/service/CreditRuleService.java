@@ -101,7 +101,6 @@ public class CreditRuleService {
     @Transactional(rollbackFor = Exception.class)
     public CreditRule update(CreditRule rule) {
         CreditRule exist = getById(rule.getId());
-        Integer oldCreditValue = exist.getCreditValue();
         if (rule.getCreditValue() != null && rule.getCreditValue() <= 0) {
             throw new BizException("积分值必须大于0");
         }
@@ -117,52 +116,61 @@ public class CreditRuleService {
         }
         rule.setCreatedAt(exist.getCreatedAt());
         creditRuleMapper.updateById(rule);
-        CreditRule updated = creditRuleMapper.selectById(rule.getId());
-
-        // 若积分值发生变更，自动触发已存在流水的补差操作
-        if (oldCreditValue != null && rule.getCreditValue() != null
-                && !oldCreditValue.equals(rule.getCreditValue())) {
-            adjustForRule(updated, oldCreditValue);
-        }
-
-        return updated;
+        return creditRuleMapper.selectById(rule.getId());
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public int adjustForRule(CreditRule rule, Integer oldCreditValue) {
-        int diff = rule.getCreditValue() - oldCreditValue;
-        if (diff == 0) return 0;
-
+    public int adjustForRule(CreditRule rule) {
         int adjustedCount = 0;
 
-        // 查找该规则下所有 REWARD 类型的流水（在规则活动日期内）
-        LambdaQueryWrapper<TransactionLog> wrapper = new LambdaQueryWrapper<TransactionLog>()
+        LambdaQueryWrapper<TransactionLog> rewardWrapper = new LambdaQueryWrapper<TransactionLog>()
                 .eq(TransactionLog::getBizType, "REWARD")
                 .eq(TransactionLog::getRelatedRuleId, rule.getId());
         if (rule.getStartTime() != null) {
-            wrapper.ge(TransactionLog::getCreatedAt, rule.getStartTime());
+            rewardWrapper.ge(TransactionLog::getCreatedAt, rule.getStartTime());
         }
         if (rule.getEndTime() != null) {
-            wrapper.le(TransactionLog::getCreatedAt, rule.getEndTime());
+            rewardWrapper.le(TransactionLog::getCreatedAt, rule.getEndTime());
+        }
+        List<TransactionLog> rewardLogs = transactionLogMapper.selectList(rewardWrapper);
+
+        List<TransactionLog> allLogs = new java.util.ArrayList<>(rewardLogs);
+
+        if (!rewardLogs.isEmpty()) {
+            List<Long> rewardIds = rewardLogs.stream().map(TransactionLog::getId).collect(java.util.stream.Collectors.toList());
+            List<TransactionLog> attachmentLogs = transactionLogMapper.selectList(
+                    new LambdaQueryWrapper<TransactionLog>()
+                            .eq(TransactionLog::getBizType, "ATTACHMENT")
+                            .in(TransactionLog::getRelatedRuleId, rewardIds)
+            );
+            allLogs.addAll(attachmentLogs);
         }
 
-        List<TransactionLog> logs = transactionLogMapper.selectList(wrapper);
-
-        for (TransactionLog log : logs) {
-            // 跳过已被补差过的原流水
-            long exists = transactionLogMapper.selectCount(
+        for (TransactionLog log : allLogs) {
+            List<TransactionLog> existingAdjusts = transactionLogMapper.selectList(
                     new LambdaQueryWrapper<TransactionLog>()
-                            .eq(TransactionLog::getBizType, "ADMIN")
+                            .eq(TransactionLog::getBizType, "UPDATE_ADJUST")
                             .eq(TransactionLog::getRelatedRuleId, log.getId())
-                            .like(TransactionLog::getDescription, "规则自动补差")
             );
-            if (exists > 0) continue;
+
+            int existingAdjustAmount = existingAdjusts.stream()
+                    .mapToInt(TransactionLog::getAmount)
+                    .sum();
+
+            int currentTotal = log.getAmount() + existingAdjustAmount;
+
+            int targetAmount = "REWARD".equals(log.getBizType())
+                    ? rule.getCreditValue()
+                    : -rule.getCreditValue();
+
+            int adjustAmount = targetAmount - currentTotal;
+
+            if (adjustAmount == 0) continue;
 
             SysUser user = sysUserMapper.selectById(log.getUserId());
             if (user == null) continue;
 
-            int newBalance = user.getBalance() + diff;
-            // 余额不足则跳过
+            int newBalance = user.getBalance() + adjustAmount;
             if (newBalance < 0) continue;
 
             user.setBalance(newBalance);
@@ -170,14 +178,12 @@ public class CreditRuleService {
 
             TransactionLog adjustLog = new TransactionLog();
             adjustLog.setUserId(log.getUserId());
-            adjustLog.setAmount(diff);
+            adjustLog.setAmount(adjustAmount);
             adjustLog.setBalanceAfter(newBalance);
-            adjustLog.setBizType("ADMIN");
+            adjustLog.setBizType("UPDATE_ADJUST");
             adjustLog.setRelatedRuleId(log.getId());
-            adjustLog.setDescription("规则自动补差：[" + rule.getEventName() + "]积分值由"
-                    + oldCreditValue + "调整为" + rule.getCreditValue()
-                    + "，补差" + (diff > 0 ? "+" : "") + diff);
-            adjustLog.setCreatedAt(LocalDateTime.now());
+            adjustLog.setDescription("规则更新补差：[" + rule.getEventName() + "]，补差" + (adjustAmount > 0 ? "+" : "") + adjustAmount);
+            adjustLog.setCreatedAt(java.time.LocalDateTime.now());
             transactionLogMapper.insert(adjustLog);
             adjustedCount++;
         }

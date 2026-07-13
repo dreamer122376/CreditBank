@@ -26,8 +26,8 @@ const routes = [
         meta: { title: '用户管理' }
       },
       {
-        path: 'users/op-logs',
-        name: 'UserOpLogs',
+        path: 'op-logs',
+        name: 'OpLogs',
         component: () => import('@/views/UserOpLog.vue'),
         meta: { title: '操作日志' }
       },
@@ -158,7 +158,7 @@ const routes = [
         meta: { title: '我的项目' }
       },
       {
-        path: 'projects',
+        path: 'projects/manage',
         name: 'ProjectManage',
         component: () => import('@/views/ProjectManage.vue'),
         meta: { title: '项目管理' }

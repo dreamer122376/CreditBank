@@ -55,6 +55,12 @@ public class TransactionLogService {
             return;
         }
         List<Long> ids = records.stream().map(TransactionLog::getId).collect(Collectors.toList());
+        List<Long> sourceIds = records.stream()
+                .filter(r -> ("ATTACHMENT".equals(r.getBizType()) || "UPDATE_ADJUST".equals(r.getBizType())) && r.getRelatedRuleId() != null)
+                .map(TransactionLog::getRelatedRuleId)
+                .collect(Collectors.toList());
+        ids.addAll(sourceIds);
+
         List<Long> revertedIds = transactionLogMapper.selectList(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getBizType, "REFUND")
@@ -62,7 +68,11 @@ public class TransactionLogService {
                         .select(TransactionLog::getRelatedRuleId)
         ).stream().map(TransactionLog::getRelatedRuleId).distinct().collect(Collectors.toList());
         for (TransactionLog log : records) {
-            log.setReverted(revertedIds.contains(log.getId()));
+            boolean directly = revertedIds.contains(log.getId());
+            boolean indirectly = ("ATTACHMENT".equals(log.getBizType()) || "UPDATE_ADJUST".equals(log.getBizType()))
+                    && log.getRelatedRuleId() != null
+                    && revertedIds.contains(log.getRelatedRuleId());
+            log.setReverted(directly || indirectly);
         }
     }
 
@@ -88,6 +98,9 @@ public class TransactionLogService {
         TransactionLog original = transactionLogMapper.selectById(transactionId);
         if (original == null) {
             throw new BizException("流水不存在：" + transactionId);
+        }
+        if ("ATTACHMENT".equals(original.getBizType())) {
+            throw new BizException("附加流水不能单独撤销，请撤销源流水");
         }
         
         long revertCount = transactionLogMapper.selectCount(
@@ -121,6 +134,30 @@ public class TransactionLogService {
         revertLog.setDescription("管理员撤销流水 #" + transactionId + "：" + original.getDescription());
         revertLog.setCreatedAt(LocalDateTime.now());
         transactionLogMapper.insert(revertLog);
+        
+        List<TransactionLog> attachments = transactionLogMapper.selectList(
+                new LambdaQueryWrapper<TransactionLog>()
+                        .eq(TransactionLog::getRelatedRuleId, transactionId)
+                        .eq(TransactionLog::getBizType, "ATTACHMENT"));
+        for (TransactionLog attachment : attachments) {
+            SysUser orgUser = sysUserMapper.selectById(attachment.getUserId());
+            if (orgUser != null) {
+                int orgReverseAmount = -attachment.getAmount();
+                int orgNewBalance = orgUser.getBalance() + orgReverseAmount;
+                orgUser.setBalance(orgNewBalance);
+                sysUserMapper.updateById(orgUser);
+
+                TransactionLog attachmentRevert = new TransactionLog();
+                attachmentRevert.setUserId(orgUser.getId());
+                attachmentRevert.setAmount(orgReverseAmount);
+                attachmentRevert.setBalanceAfter(orgNewBalance);
+                attachmentRevert.setBizType("REFUND");
+                attachmentRevert.setRelatedRuleId(attachment.getId());
+                attachmentRevert.setDescription("撤销附加流水 #" + attachment.getId() + "：" + attachment.getDescription());
+                attachmentRevert.setCreatedAt(LocalDateTime.now());
+                transactionLogMapper.insert(attachmentRevert);
+            }
+        }
         
         return revertLog;
     }

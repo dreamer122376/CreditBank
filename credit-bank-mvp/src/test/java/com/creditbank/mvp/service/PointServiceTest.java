@@ -8,6 +8,7 @@ import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,12 +44,15 @@ class PointServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private UserOpLogMapper userOpLogMapper;
+
     private PointService pointService;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockitoAnnotations.openMocks(this);
-        pointService = new PointService(sysUserMapper, creditRuleMapper, transactionLogMapper, campaignService, passwordEncoder);
+        pointService = new PointService(sysUserMapper, creditRuleMapper, transactionLogMapper, userOpLogMapper, campaignService, passwordEncoder);
         System.out.println("========== 开始执行: " + testInfo.getDisplayName() + " ==========");
     }
 
@@ -163,7 +167,7 @@ class PointServiceTest {
         when(sysUserMapper.selectById(1L)).thenReturn(null);
 
         BizException exception = assertThrows(BizException.class, () ->
-                pointService.earn(1L, "project_complete"));
+                pointService.earn(1L, "project_complete", 1L));
         assertEquals("用户不存在：1", exception.getMessage());
         System.out.println("✓ 测试通过: 用户不存在时正确抛出异常 - " + exception.getMessage());
     }
@@ -179,7 +183,7 @@ class PointServiceTest {
         when(creditRuleMapper.selectOne(any())).thenReturn(null);
 
         BizException exception = assertThrows(BizException.class, () ->
-                pointService.earn(1L, "project_complete"));
+                pointService.earn(1L, "project_complete", 1L));
         assertEquals("积分规则不存在或已停用：project_complete", exception.getMessage());
         System.out.println("✓ 测试通过: 积分规则不存在时正确抛出异常 - " + exception.getMessage());
     }
@@ -204,13 +208,15 @@ class PointServiceTest {
         when(sysUserMapper.updateById(any())).thenReturn(1);
         when(sysUserMapper.selectById(1L)).thenReturn(user);
         when(transactionLogMapper.insert(any())).thenReturn(1);
+        when(userOpLogMapper.insert(any())).thenReturn(1);
 
-        SysUser result = pointService.earn(1L, "project_complete");
+        SysUser result = pointService.earn(1L, "project_complete", 1L);
 
         assertNotNull(result);
         assertEquals(150, user.getBalance());
         verify(sysUserMapper).updateById(user);
         verify(transactionLogMapper).insert(any());
+        verify(userOpLogMapper).insert(any());
         System.out.println("✓ 测试通过: 获取积分成功（无活动加成）- 原积分=100, 获得积分=50, 当前积分=" + user.getBalance());
     }
 
@@ -239,13 +245,15 @@ class PointServiceTest {
         when(sysUserMapper.updateById(any())).thenReturn(1);
         when(sysUserMapper.selectById(1L)).thenReturn(user);
         when(transactionLogMapper.insert(any())).thenReturn(1);
+        when(userOpLogMapper.insert(any())).thenReturn(1);
 
-        SysUser result = pointService.earn(1L, "project_complete");
+        SysUser result = pointService.earn(1L, "project_complete", 1L);
 
         assertNotNull(result);
         assertEquals(200, user.getBalance());
         verify(sysUserMapper).updateById(user);
         verify(transactionLogMapper).insert(any());
+        verify(userOpLogMapper).insert(any());
         System.out.println("✓ 测试通过: 获取积分成功（有活动加成×2）- 原积分=100, 基础积分=50, 翻倍后获得=100, 当前积分=" + user.getBalance());
     }
 

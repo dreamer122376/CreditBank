@@ -22,7 +22,6 @@
               <el-option label="积分兑换" value="EXCHANGE" />
               <el-option label="报名项目" value="ENROLL" />
               <el-option label="撤销记录" value="REFUND" />
-              <el-option label="规则补差" value="ADJUST" />
             </el-select>
           </el-form-item>
           <el-form-item label="时间范围">
@@ -59,8 +58,9 @@
         </el-table-column>
         <el-table-column label="操作" width="120" v-if="isAdmin">
           <template #default="scope">
-            <span v-if="scope.row.bizType === 'REFUND' || scope.row.bizType === 'ADJUST'" style="color:#868e96;font-size:12px;">无法撤销</span>
+            <span v-if="scope.row.bizType === 'REFUND' || scope.row.bizType === 'UPDATE_ADJUST'" style="color:#868e96;font-size:12px;">无法撤销</span>
             <span v-else-if="scope.row.reverted" style="color:#868e96;font-size:12px;">已撤销</span>
+            <span v-else-if="scope.row.bizType === 'ATTACHMENT'" style="color:#868e96;font-size:12px;">无法主动撤销</span>
             <el-button v-else size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
           </template>
         </el-table-column>
@@ -152,7 +152,8 @@ const BIZ_TYPE_MAP = {
   EXCHANGE: { name: '积分兑换', type: 'warning' },
   ENROLL: { name: '报名项目', type: 'info' },
   REFUND: { name: '撤销记录', type: 'danger' },
-  ADJUST: { name: '规则补差', type: 'primary' }
+  ATTACHMENT: { name: '附加流水', type: 'primary' },
+  UPDATE_ADJUST: { name: '更新补差', type: 'info' }
 }
 
 const showUserIdFilter = computed(() => {

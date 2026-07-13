@@ -2,13 +2,11 @@ package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
-import com.creditbank.mvp.entity.Campaign;
-import com.creditbank.mvp.entity.CreditRule;
-import com.creditbank.mvp.entity.SysUser;
-import com.creditbank.mvp.entity.TransactionLog;
+import com.creditbank.mvp.entity.*;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,17 +21,20 @@ public class PointService {
     private final SysUserMapper sysUserMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
+    private final UserOpLogMapper userOpLogMapper;
     private final CampaignService campaignService;
     private final PasswordEncoder passwordEncoder;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
                         TransactionLogMapper transactionLogMapper,
+                        UserOpLogMapper userOpLogMapper,
                         CampaignService campaignService,
                         PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
+        this.userOpLogMapper = userOpLogMapper;
         this.campaignService = campaignService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -68,7 +69,7 @@ public class PointService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public SysUser earn(Long userId, String eventCode) {
+    public SysUser earn(Long userId, String eventCode, Long operatorId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
@@ -110,6 +111,15 @@ public class PointService {
         txn.setDescription(rule.getEventName() + campaignDesc);
         transactionLogMapper.insert(txn);
 
+        // 操作人：管理员手动加分时取 operatorId，否则默认为被加分学生自己
+        Long realOperatorId = operatorId != null ? operatorId : userId;
+        SysUser operator = sysUserMapper.selectById(realOperatorId);
+        String operatorName = operator != null ? operator.getRealName() : String.valueOf(realOperatorId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                realOperatorId, operatorName, userId, user.getRealName(),
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
+                "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + rule.getEventName() + campaignDesc + "，当前余额：" + newBalance));
+
         if (rule.getOrgId() != null) {
             SysUser orgAdmin = sysUserMapper.selectOne(
                     new LambdaQueryWrapper<SysUser>()
@@ -125,14 +135,84 @@ public class PointService {
                 orgTxn.setUserId(orgAdmin.getId());
                 orgTxn.setAmount(-finalCredit);
                 orgTxn.setBalanceAfter(orgNewBalance);
-                orgTxn.setBizType("REWARD");
-                orgTxn.setRelatedRuleId(rule.getId());
+                orgTxn.setBizType("ATTACHMENT");
+                orgTxn.setRelatedRuleId(txn.getId());
                 orgTxn.setDescription("学生获得积分，机构积分池扣减");
                 transactionLogMapper.insert(orgTxn);
             }
         }
 
         return sysUserMapper.selectById(userId);
+    }
+
+    /**
+     * 项目完成奖励：发放 project.credit_reward，支持活动倍率加成。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser rewardProjectCompletion(Long studentId, Project project, Long operatorId) {
+        if (project == null || project.getCreditReward() == null || project.getCreditReward() <= 0) {
+            return null;
+        }
+
+        SysUser student = sysUserMapper.selectById(studentId);
+        if (student == null) {
+            throw new BizException("学生不存在：" + studentId);
+        }
+
+        int baseCredit = project.getCreditReward();
+        int finalCredit = baseCredit;
+        String campaignDesc = "";
+        Campaign activeMultiplierCampaign = campaignService.getActiveMultiplierCampaign();
+        if (activeMultiplierCampaign != null
+                && campaignService.isEnrolled(activeMultiplierCampaign.getId(), studentId)) {
+            BigDecimal multiplied = BigDecimal.valueOf(baseCredit)
+                    .multiply(activeMultiplierCampaign.getMultiplier());
+            finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
+            campaignDesc = "（活动翻倍 ×" + activeMultiplierCampaign.getMultiplier() + "）";
+        }
+
+        Integer newBalance = student.getBalance() + finalCredit;
+        student.setBalance(newBalance);
+        sysUserMapper.updateById(student);
+
+        TransactionLog txn = new TransactionLog();
+        txn.setUserId(studentId);
+        txn.setAmount(finalCredit);
+        txn.setBalanceAfter(newBalance);
+        txn.setBizType("REWARD");
+        txn.setDescription("完成项目「" + project.getName() + "」获得积分" + campaignDesc);
+        transactionLogMapper.insert(txn);
+
+        Long realOperatorId = operatorId != null ? operatorId : studentId;
+        SysUser operator = sysUserMapper.selectById(realOperatorId);
+        String operatorName = operator != null ? operator.getRealName() : String.valueOf(realOperatorId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                realOperatorId, operatorName, studentId, student.getRealName(),
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
+                "学生「" + student.getRealName() + "」完成项目「" + project.getName() + "」获得 " + finalCredit + " 积分" + campaignDesc + "，当前余额：" + newBalance));
+
+        if (project.getOrgId() != null) {
+            SysUser orgAdmin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, project.getOrgId())
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            if (orgAdmin != null) {
+                int orgNewBalance = orgAdmin.getBalance() - finalCredit;
+                orgAdmin.setBalance(orgNewBalance);
+                sysUserMapper.updateById(orgAdmin);
+
+                TransactionLog orgTxn = new TransactionLog();
+                orgTxn.setUserId(orgAdmin.getId());
+                orgTxn.setAmount(-finalCredit);
+                orgTxn.setBalanceAfter(orgNewBalance);
+                orgTxn.setBizType("REWARD");
+                orgTxn.setDescription("学生完成项目，机构积分池扣减");
+                transactionLogMapper.insert(orgTxn);
+            }
+        }
+
+        return sysUserMapper.selectById(studentId);
     }
 
     public SysUser getUser(Long id) {

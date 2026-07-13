@@ -3,13 +3,13 @@
     <!-- 顶栏 -->
     <div class="toolbar">
       <span class="toolbar-title">用户列表</span>
-      <el-button @click="$router.push('/users/op-logs')">📝 操作日志</el-button>
+      <el-button @click="$router.push('/op-logs')">📝 操作日志</el-button>
     </div>
 
     <!-- 用户表格 -->
     <el-card>
       <el-table :data="users" border style="width: 100%;" @selection-change="handleSelectionChange" ref="tableRef">
-        <el-table-column type="selection" width="50" :selectable="row => row.role !== 'admin'" />
+        <el-table-column v-if="isAdmin" type="selection" width="50" :selectable="row => row.role !== 'admin'" />
         <el-table-column prop="id" label="用户ID" width="80" />
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="realName" label="真实姓名" />
@@ -35,7 +35,8 @@
         <el-table-column label="操作" min-width="240">
           <template #default="scope">
             <el-button size="small" @click="viewAccount(scope.row.id)">详情</el-button>
-            <template v-if="scope.row.role !== 'admin'">
+            <el-button size="small" type="primary" @click="goEarn(scope.row.id)">加分</el-button>
+            <template v-if="isAdmin && scope.row.role !== 'admin'">
               <el-button size="small" :type="scope.row.status === 1 ? 'warning' : 'success'"
                 @click="toggleStatus(scope.row)">
                 {{ scope.row.status === 1 ? '冻结' : '解冻' }}
@@ -50,7 +51,7 @@
     </el-card>
 
     <!-- 批量操作栏 -->
-    <div class="batch-bar" v-if="selectedIds.length > 0">
+    <div class="batch-bar" v-if="isAdmin && selectedIds.length > 0">
       <span>已选 <strong>{{ selectedIds.length }}</strong> 项
         <template v-if="freezeCount > 0 || unfreezeCount > 0">
           （可冻结 <strong>{{ freezeCount }}</strong> / 可解冻 <strong>{{ unfreezeCount }}</strong>）
@@ -83,9 +84,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuth } from '@/composables/useAuth'
 import { getUsers, updateUserStatus, batchUpdateStatus, resetPassword } from '@/api/user'
 
 const router = useRouter()
+const { currentUser } = useAuth()
 const users = ref([])
 const selectedIds = ref([])
 const tableRef = ref(null)
@@ -95,6 +98,8 @@ const resetPwForm = ref({ id: null, username: '', realName: '', newPassword: '' 
 
 const ROLE_NAME = { admin: '系统管理员', org_admin: '机构管理员', student: '学生', expert: '专家' }
 const ROLE_TYPE = { admin: 'danger', org_admin: 'warning', student: 'success', expert: 'info' }
+
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 function getRoleName(r) { return ROLE_NAME[r] || r }
 function getRoleType(r) { return ROLE_TYPE[r] || 'info' }
@@ -212,6 +217,7 @@ async function handleResetPw() {
 // ==================== 跳转 ====================
 
 function viewAccount(id) { router.push(`/account/${id}`) }
+function goEarn(id) { router.push(`/account/${id}`) }
 </script>
 
 <style scoped>

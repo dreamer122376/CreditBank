@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CreditRuleService {
@@ -50,6 +51,29 @@ public class CreditRuleService {
                 new LambdaQueryWrapper<CreditRule>()
                         .eq(CreditRule::getProjectId, projectId)
                         .orderByDesc(CreditRule::getId));
+    }
+
+    public List<CreditRule> listByOrgId(Long orgId, Boolean enabled) {
+        List<Long> projectIds = projectMapper.selectList(
+                new LambdaQueryWrapper<com.creditbank.mvp.entity.Project>()
+                        .eq(com.creditbank.mvp.entity.Project::getOrgId, orgId))
+                .stream()
+                .map(com.creditbank.mvp.entity.Project::getId)
+                .collect(Collectors.toList());
+        
+        if (projectIds.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        
+        LambdaQueryWrapper<CreditRule> wrapper = new LambdaQueryWrapper<CreditRule>()
+                .in(CreditRule::getProjectId, projectIds)
+                .orderByDesc(CreditRule::getId);
+        
+        if (enabled != null) {
+            wrapper.eq(CreditRule::getIsEnabled, enabled ? STATUS_ENABLED : STATUS_DISABLED);
+        }
+        
+        return creditRuleMapper.selectList(wrapper);
     }
 
     @Transactional(rollbackFor = Exception.class)

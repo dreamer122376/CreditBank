@@ -1,6 +1,5 @@
 <template>
   <div class="profile">
-    <!-- 头部信息横幅 -->
     <el-card class="hero-card">
       <div class="hero">
         <div class="hero-avatar">{{ (user.realName || '?').charAt(0) }}</div>
@@ -18,7 +17,6 @@
       </div>
     </el-card>
 
-    <!-- 基础资料 / 修改密码，两卡等高对齐 -->
     <el-row :gutter="16" class="form-row">
       <el-col :span="12">
         <el-card class="full-card">
@@ -71,7 +69,6 @@
       </el-col>
     </el-row>
 
-    <!-- 专家：资质入口（管理已迁至"我的资质"页） -->
     <el-card v-if="user.role === 'expert'" class="cert-entry" style="margin-top: 16px;">
       <div class="entry-row">
         <span class="empty-tip">评审资质与领域认证申请已移至"我的资质"页面。</span>
@@ -121,7 +118,6 @@ async function saveProfile() {
       email: form.value.email
     })
     user.value = updated
-    // 同步本地登录态，顶栏姓名等随之更新
     localStorage.setItem('cb_user', JSON.stringify({ ...currentUser.value, ...updated }))
     currentUser.value = { ...currentUser.value, ...updated }
     ElMessage.success('资料已保存')

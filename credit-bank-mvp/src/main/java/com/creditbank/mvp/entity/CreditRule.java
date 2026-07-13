@@ -4,25 +4,34 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
 @TableName("credit_rule")
+@Schema(description = "积分规则")
 public class CreditRule {
 
     @TableId(type = IdType.AUTO)
+    @Schema(description = "规则ID", example = "1")
     private Long id;
 
+    @Schema(description = "事件代码", example = "project_complete")
     private String eventCode;
 
+    @Schema(description = "事件名称", example = "完成项目")
     private String eventName;
 
+    @Schema(description = "基础积分值", example = "100")
     private Integer creditValue;
 
+    @Schema(description = "关联项目ID", example = "1")
     private Long projectId;
 
+    @Schema(description = "是否启用：1启用，0禁用", example = "1")
     private Integer isEnabled;
 
+    @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 
     public Long getId() {

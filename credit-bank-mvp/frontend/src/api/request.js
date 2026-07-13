@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const request = axios.create({
   baseURL: '/api',
@@ -31,10 +32,18 @@ request.interceptors.response.use(
     return res.data
   },
   error => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('cb_user')
-      localStorage.removeItem('cb_token')
-      window.location.href = '/login'
+    if (error.response) {
+      const { status, data } = error.response
+      if (status === 401) {
+        localStorage.removeItem('cb_user')
+        localStorage.removeItem('cb_token')
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
+      if (status === 403) {
+        ElMessage.warning(data?.message || '您已被冻结，无法执行该操作')
+        return Promise.reject(error)
+      }
     }
     return Promise.reject(error)
   }

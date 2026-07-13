@@ -70,7 +70,7 @@
           <el-button type="primary" @click="goEdit">编辑</el-button>
           <el-button type="danger" @click="handleDelete">删除</el-button>
         </template>
-        <template v-else-if="campaign.status === 1">
+        <template v-else-if="campaign.status === 1 && !isFrozen">
           <el-button v-if="!enrolled" type="success" @click="handleEnroll" :loading="enrolling">✅ 参加活动</el-button>
           <el-button v-else type="warning" @click="handleLeave" :loading="leaving">↩️ 退出活动</el-button>
         </template>
@@ -89,7 +89,7 @@ import { getCampaignDetail, deleteCampaign, enrollCampaign, leaveCampaign, isEnr
 
 const router = useRouter()
 const route = useRoute()
-const { currentUser } = useAuth()
+const { currentUser, isFrozen } = useAuth()
 const loading = ref(true)
 const campaign = ref(null)
 const enrolled = ref(false)

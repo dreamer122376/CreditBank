@@ -54,12 +54,10 @@ DROP TABLE IF EXISTS `application`;
 CREATE TABLE `application` (
                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '申请单ID',
                                `biz_type` varchar(30) NOT NULL COMMENT '业务类型：PROJECT_UP/EXCHANGE/CERT_APPLY',
-                               `biz_key` bigint DEFAULT NULL COMMENT '关联的具体业务主键ID',
+                               `biz_key` bigint DEFAULT NULL COMMENT '关联的认证标准ID（指向cert_standard.id）',
                                `applicant_id` bigint NOT NULL COMMENT '申请人ID',
-                               `org_id` bigint DEFAULT NULL COMMENT '申请所属机构ID',
-                               `expert_id` bigint DEFAULT NULL COMMENT '指派的专家审批人ID',
                                `form_data` json DEFAULT NULL COMMENT '前端表单的JSON数据',
-                               `current_status` tinyint DEFAULT '0' COMMENT '状态：0草稿/1审核中/3通过/4驳回（2为旧数据，兼容为审核中）',
+                               `current_status` tinyint DEFAULT '1' COMMENT '状态：1审核中/2通过/3驳回',
                                `current_node_id` bigint DEFAULT NULL COMMENT '认证业务当前审批节点ID（cert_audit_flow.id，非认证业务为NULL）',
                                `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
                                `applied_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
@@ -67,7 +65,8 @@ CREATE TABLE `application` (
                                PRIMARY KEY (`id`),
                                KEY `idx_applicant_id` (`applicant_id`),
                                KEY `idx_current_status` (`current_status`),
-                               KEY `idx_current_node_id` (`current_node_id`)
+                               KEY `idx_current_node_id` (`current_node_id`),
+                               KEY `idx_biz_key` (`biz_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='统一申请审批表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -78,6 +77,35 @@ CREATE TABLE `application` (
 LOCK TABLES `application` WRITE;
 /*!40000 ALTER TABLE `application` DISABLE KEYS */;
 /*!40000 ALTER TABLE `application` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `application_audit_log`
+--
+
+DROP TABLE IF EXISTS `application_audit_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `application_audit_log` (
+                                          `id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                                          `application_id` bigint NOT NULL COMMENT '申请单ID（关联application.id）',
+                                          `node_id` bigint NOT NULL COMMENT '审批节点ID（关联cert_audit_flow.id）',
+                                          `status` tinyint NOT NULL COMMENT '审核结果：1通过/2驳回',
+                                          `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
+                                          `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
+                                          PRIMARY KEY (`id`),
+                                          KEY `idx_application_id` (`application_id`),
+                                          KEY `idx_node_id` (`node_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='申请审批业务记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `application_audit_log`
+--
+
+LOCK TABLES `application_audit_log` WRITE;
+/*!40000 ALTER TABLE `application_audit_log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `application_audit_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --

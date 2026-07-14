@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.StudentCertVerifyDTO;
 import com.creditbank.mvp.entity.Application;
+import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.StudentCert;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.ApplicationMapper;
+import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.StudentCertMapper;
@@ -33,24 +35,30 @@ public class StudentCertService {
     private final SysUserMapper sysUserMapper;
     private final CertStandardMapper certStandardMapper;
     private final OrganizationMapper organizationMapper;
+    private final CertAuditFlowMapper certAuditFlowMapper;
 
     public StudentCertService(StudentCertMapper studentCertMapper,
                               ApplicationMapper applicationMapper,
                               SysUserMapper sysUserMapper,
                               CertStandardMapper certStandardMapper,
-                              OrganizationMapper organizationMapper) {
+                              OrganizationMapper organizationMapper,
+                              CertAuditFlowMapper certAuditFlowMapper) {
         this.studentCertMapper = studentCertMapper;
         this.applicationMapper = applicationMapper;
         this.sysUserMapper = sysUserMapper;
         this.certStandardMapper = certStandardMapper;
         this.organizationMapper = organizationMapper;
+        this.certAuditFlowMapper = certAuditFlowMapper;
     }
 
     public StudentCert issueForApplication(Application app) {
         if (app == null || !"CERT_APPLY".equals(app.getBizType())) {
             throw new BizException("只能为学生证书认证申请发证");
         }
-        Long standardId = readStandardId(app.getFormData());
+        Long standardId = app.getBizKey();
+        if (standardId == null) {
+            standardId = readStandardId(app.getFormData());
+        }
         if (standardId == null) {
             throw new BizException("申请数据缺少认证标准，无法发证");
         }
@@ -189,7 +197,7 @@ public class StudentCertService {
                 new LambdaQueryWrapper<Application>()
                         .eq(Application::getBizType, "CERT_APPLY")
                         .eq(Application::getApplicantId, studentId)
-                        .eq(Application::getCurrentStatus, 3));
+                        .eq(Application::getCurrentStatus, 2));
         for (Application app : approvedApps) {
             issueForApplication(app);
         }
@@ -204,12 +212,25 @@ public class StudentCertService {
         }
         Application app = cert.getApplicationId() == null ? null : applicationMapper.selectById(cert.getApplicationId());
         SysUser user = userId == null ? null : sysUserMapper.selectById(userId);
-        if ("org_admin".equals(role) && app != null && user != null
-                && user.getOrgId() != null && user.getOrgId().equals(app.getOrgId())) {
-            return;
+        if ("org_admin".equals(role) && app != null && user != null && user.getOrgId() != null) {
+            Long orgId = user.getOrgId();
+            SysUser applicant = sysUserMapper.selectById(app.getApplicantId());
+            if (applicant != null && orgId.equals(applicant.getOrgId())) {
+                return;
+            }
+            CertStandard standard = cert.getCertStandardId() != null ? certStandardMapper.selectById(cert.getCertStandardId()) : null;
+            if (standard == null && app != null && app.getBizKey() != null) {
+                standard = certStandardMapper.selectById(app.getBizKey());
+            }
+            if (standard != null && orgId.equals(standard.getOrgId())) {
+                return;
+            }
         }
-        if ("expert".equals(role) && app != null && userId != null && userId.equals(app.getExpertId())) {
-            return;
+        if ("expert".equals(role) && app != null && userId != null && app.getCurrentNodeId() != null) {
+            CertAuditFlow node = certAuditFlowMapper.selectById(app.getCurrentNodeId());
+            if (node != null && userId.equals(node.getAuditorId())) {
+                return;
+            }
         }
         throw new BizException("无权查看该证书");
     }
@@ -220,9 +241,19 @@ public class StudentCertService {
         }
         Application app = cert.getApplicationId() == null ? null : applicationMapper.selectById(cert.getApplicationId());
         SysUser user = userId == null ? null : sysUserMapper.selectById(userId);
-        if ("org_admin".equals(role) && app != null && user != null
-                && user.getOrgId() != null && user.getOrgId().equals(app.getOrgId())) {
-            return;
+        if ("org_admin".equals(role) && app != null && user != null && user.getOrgId() != null) {
+            Long orgId = user.getOrgId();
+            SysUser applicant = sysUserMapper.selectById(app.getApplicantId());
+            if (applicant != null && orgId.equals(applicant.getOrgId())) {
+                return;
+            }
+            CertStandard standard = cert.getCertStandardId() != null ? certStandardMapper.selectById(cert.getCertStandardId()) : null;
+            if (standard == null && app != null && app.getBizKey() != null) {
+                standard = certStandardMapper.selectById(app.getBizKey());
+            }
+            if (standard != null && orgId.equals(standard.getOrgId())) {
+                return;
+            }
         }
         throw new BizException("只有系统管理员或所属机构管理员可以作废证书");
     }

@@ -5,9 +5,13 @@ import com.creditbank.mvp.dto.PointOverviewDTO;
 import com.creditbank.mvp.dto.StatsSummaryDTO;
 import com.creditbank.mvp.dto.TodoItemDTO;
 import com.creditbank.mvp.entity.Application;
+import com.creditbank.mvp.entity.CertAuditFlow;
+import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.ApplicationMapper;
+import com.creditbank.mvp.mapper.CertAuditFlowMapper;
+import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
@@ -20,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,27 +33,24 @@ public class StatsService {
     private final OrganizationMapper organizationMapper;
     private final ApplicationMapper applicationMapper;
     private final TransactionLogMapper transactionLogMapper;
-    private final RedisService redisService;
+    private final CertStandardMapper certStandardMapper;
+    private final CertAuditFlowMapper certAuditFlowMapper;
 
     public StatsService(SysUserMapper sysUserMapper,
                         OrganizationMapper organizationMapper,
                         ApplicationMapper applicationMapper,
                         TransactionLogMapper transactionLogMapper,
-                        RedisService redisService) {
+                        CertStandardMapper certStandardMapper,
+                        CertAuditFlowMapper certAuditFlowMapper) {
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.applicationMapper = applicationMapper;
         this.transactionLogMapper = transactionLogMapper;
-        this.redisService = redisService;
+        this.certStandardMapper = certStandardMapper;
+        this.certAuditFlowMapper = certAuditFlowMapper;
     }
 
     public StatsSummaryDTO getSummary(String role, Long userId) {
-        String cacheKey = "stats:summary:" + role + ":" + (userId != null ? userId : "");
-        Object cached = redisService.get(cacheKey);
-        if (cached instanceof StatsSummaryDTO) {
-            return (StatsSummaryDTO) cached;
-        }
-
         StatsSummaryDTO dto = new StatsSummaryDTO();
 
         Long totalUsers = sysUserMapper.selectCount(
@@ -65,23 +65,33 @@ public class StatsService {
         if ("admin".equals(role)) {
             pendingCount = applicationMapper.selectCount(
                     new LambdaQueryWrapper<Application>()
-                            .lt(Application::getCurrentStatus, 3));
+                            .eq(Application::getCurrentStatus, 1));
         } else if ("org_admin".equals(role)) {
             SysUser user = sysUserMapper.selectById(userId);
-            pendingCount = applicationMapper.selectCount(
-                    new LambdaQueryWrapper<Application>()
-                            .eq(Application::getOrgId, user.getOrgId())
-                            .eq(Application::getCurrentStatus, 1));
+            if (user == null || user.getOrgId() == null) {
+                pendingCount = 0L;
+            } else {
+                List<Long> orgStandardIds = certStandardMapper.selectList(
+                                new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, user.getOrgId()))
+                        .stream().map(CertStandard::getId).collect(Collectors.toList());
+                pendingCount = applicationMapper.selectCount(
+                        new LambdaQueryWrapper<Application>()
+                                .in(Application::getBizKey, orgStandardIds)
+                                .eq(Application::getCurrentStatus, 1));
+            }
         } else if ("expert".equals(role)) {
+            List<Long> myNodeIds = certAuditFlowMapper.selectList(
+                            new LambdaQueryWrapper<CertAuditFlow>().eq(CertAuditFlow::getAuditorId, userId))
+                    .stream().map(CertAuditFlow::getId).collect(Collectors.toList());
             pendingCount = applicationMapper.selectCount(
                     new LambdaQueryWrapper<Application>()
-                            .eq(Application::getExpertId, userId)
-                            .eq(Application::getCurrentStatus, 2));
+                            .in(Application::getCurrentNodeId, myNodeIds)
+                            .eq(Application::getCurrentStatus, 1));
         } else {
             pendingCount = applicationMapper.selectCount(
                     new LambdaQueryWrapper<Application>()
                             .eq(Application::getApplicantId, userId)
-                            .lt(Application::getCurrentStatus, 3));
+                            .eq(Application::getCurrentStatus, 1));
         }
         dto.setPendingCount(pendingCount);
 
@@ -91,7 +101,6 @@ public class StatsService {
                 .sum();
         dto.setTotalCredit(totalCredit);
 
-        redisService.set(cacheKey, dto, 5, TimeUnit.MINUTES);
         return dto;
     }
 
@@ -143,29 +152,39 @@ public class StatsService {
         if ("admin".equals(role)) {
             apps = applicationMapper.selectList(
                     new LambdaQueryWrapper<Application>()
-                            .lt(Application::getCurrentStatus, 3)
+                            .eq(Application::getCurrentStatus, 1)
                             .orderByDesc(Application::getAppliedAt)
                             .last("LIMIT " + limit));
         } else if ("org_admin".equals(role)) {
             SysUser user = sysUserMapper.selectById(userId);
-            apps = applicationMapper.selectList(
-                    new LambdaQueryWrapper<Application>()
-                            .eq(Application::getOrgId, user.getOrgId())
-                            .eq(Application::getCurrentStatus, 1)
-                            .orderByDesc(Application::getAppliedAt)
-                            .last("LIMIT " + limit));
+            if (user == null || user.getOrgId() == null) {
+                apps = new ArrayList<>();
+            } else {
+                List<Long> orgStandardIds = certStandardMapper.selectList(
+                                new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, user.getOrgId()))
+                        .stream().map(CertStandard::getId).collect(Collectors.toList());
+                apps = applicationMapper.selectList(
+                        new LambdaQueryWrapper<Application>()
+                                .in(Application::getBizKey, orgStandardIds)
+                                .eq(Application::getCurrentStatus, 1)
+                                .orderByDesc(Application::getAppliedAt)
+                                .last("LIMIT " + limit));
+            }
         } else if ("expert".equals(role)) {
+            List<Long> myNodeIds = certAuditFlowMapper.selectList(
+                            new LambdaQueryWrapper<CertAuditFlow>().eq(CertAuditFlow::getAuditorId, userId))
+                    .stream().map(CertAuditFlow::getId).collect(Collectors.toList());
             apps = applicationMapper.selectList(
                     new LambdaQueryWrapper<Application>()
-                            .eq(Application::getExpertId, userId)
-                            .eq(Application::getCurrentStatus, 2)
+                            .in(Application::getCurrentNodeId, myNodeIds)
+                            .eq(Application::getCurrentStatus, 1)
                             .orderByDesc(Application::getAppliedAt)
                             .last("LIMIT " + limit));
         } else {
             apps = applicationMapper.selectList(
                     new LambdaQueryWrapper<Application>()
                             .eq(Application::getApplicantId, userId)
-                            .lt(Application::getCurrentStatus, 3)
+                            .eq(Application::getCurrentStatus, 1)
                             .orderByDesc(Application::getAppliedAt)
                             .last("LIMIT " + limit));
         }
@@ -176,11 +195,9 @@ public class StatsService {
         bizTypeName.put("CERT_APPLY", "证书认证申请");
 
         Map<Integer, String[]> statusMap = new HashMap<>();
-        statusMap.put(0, new String[]{"草稿", "info"});
-        statusMap.put(1, new String[]{"待机构审核", "warning"});
-        statusMap.put(2, new String[]{"待专家评审", "warning"});
-        statusMap.put(3, new String[]{"已通过", "success"});
-        statusMap.put(4, new String[]{"已驳回", "danger"});
+        statusMap.put(1, new String[]{"审核中", "warning"});
+        statusMap.put(2, new String[]{"已通过", "success"});
+        statusMap.put(3, new String[]{"已驳回", "danger"});
 
         List<Long> applicantIds = apps.stream()
                 .map(Application::getApplicantId)

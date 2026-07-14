@@ -170,7 +170,12 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
         if (pattern.contains("{id}")) {
             String prefix = pattern.substring(0, pattern.indexOf("{id}"));
             String suffix = pattern.substring(pattern.indexOf("{id}") + 4);
-            return path.startsWith(prefix) && path.endsWith(suffix);
+            if (!path.startsWith(prefix) || !path.endsWith(suffix)) {
+                return false;
+            }
+            // {id} 部分不能包含斜杠，避免 /api/campaigns/1/enroll 误匹配 /api/campaigns/{id}
+            String idPart = path.substring(prefix.length(), path.length() - suffix.length());
+            return !idPart.contains("/");
         }
         return path.equals(pattern);
     }

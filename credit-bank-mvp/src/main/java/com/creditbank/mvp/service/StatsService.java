@@ -74,7 +74,7 @@ public class StatsService {
                 List<Long> orgStandardIds = certStandardMapper.selectList(
                                 new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, user.getOrgId()))
                         .stream().map(CertStandard::getId).collect(Collectors.toList());
-                pendingCount = applicationMapper.selectCount(
+                pendingCount = orgStandardIds.isEmpty() ? 0L : applicationMapper.selectCount(
                         new LambdaQueryWrapper<Application>()
                                 .in(Application::getBizKey, orgStandardIds)
                                 .eq(Application::getCurrentStatus, 1));
@@ -163,7 +163,7 @@ public class StatsService {
                 List<Long> orgStandardIds = certStandardMapper.selectList(
                                 new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, user.getOrgId()))
                         .stream().map(CertStandard::getId).collect(Collectors.toList());
-                apps = applicationMapper.selectList(
+                apps = orgStandardIds.isEmpty() ? new ArrayList<>() : applicationMapper.selectList(
                         new LambdaQueryWrapper<Application>()
                                 .in(Application::getBizKey, orgStandardIds)
                                 .eq(Application::getCurrentStatus, 1)

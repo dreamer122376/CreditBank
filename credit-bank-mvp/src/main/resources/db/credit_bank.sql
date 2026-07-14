@@ -90,7 +90,7 @@ CREATE TABLE `application_audit_log` (
                                           `id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
                                           `application_id` bigint NOT NULL COMMENT '申请单ID（关联application.id）',
                                           `node_id` bigint NOT NULL COMMENT '审批节点ID（关联cert_audit_flow.id）',
-                                          `status` tinyint NOT NULL COMMENT '审核结果：1通过/2驳回',
+                                          `status` tinyint NOT NULL COMMENT '审核结果：2通过/3驳回',
                                           `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
                                           `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
                                           PRIMARY KEY (`id`),

@@ -60,7 +60,7 @@
               <el-button size="small" type="success" @click="audit(scope.row, true)">通过</el-button>
               <el-button size="small" type="danger" @click="openReject(scope.row)">驳回</el-button>
             </template>
-            <el-button v-if="scope.row.bizType === 'CERT_APPLY' && scope.row.currentStatus === 3"
+            <el-button v-if="scope.row.bizType === 'CERT_APPLY' && scope.row.currentStatus === STATUS_APPROVED"
                        size="small" type="primary" plain @click="openCertificate(scope.row)">
               证书
             </el-button>
@@ -144,7 +144,10 @@ import { getCertStandards } from '@/api/certStandard'
 import { getStudentCertByApplication } from '@/api/studentCert'
 
 const CERT_BIZ_TYPES = ['CERT_APPLY', 'EXPERT_CERT']
-const IN_REVIEW_STATUSES = [1, 2]
+const STATUS_IN_REVIEW = 1
+const STATUS_APPROVED = 2
+const STATUS_REJECTED = 3
+const IN_REVIEW_STATUSES = [STATUS_IN_REVIEW]
 
 const router = useRouter()
 const { currentUser } = useAuth()
@@ -181,8 +184,8 @@ const statItems = computed(() => {
   return [
     { key: 'mine', label: activeTab.value === 'cert' ? '待我审核' : '待处理', color: '#e8590c', count: list.filter(app => app.canAudit).length },
     { key: 'inReview', label: '审核中', color: '#f08c00', count: list.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus)).length },
-    { key: 'approved', label: '已通过', color: '#2f9e44', count: list.filter(app => app.currentStatus === 3).length },
-    { key: 'rejected', label: '已驳回', color: '#c0392b', count: list.filter(app => app.currentStatus === 4).length }
+    { key: 'approved', label: '已通过', color: '#2f9e44', count: list.filter(app => app.currentStatus === STATUS_APPROVED).length },
+    { key: 'rejected', label: '已驳回', color: '#c0392b', count: list.filter(app => app.currentStatus === STATUS_REJECTED).length }
   ]
 })
 
@@ -194,8 +197,8 @@ const filteredApps = computed(() => {
   switch (statFilter.value) {
     case 'mine': return list.filter(app => app.canAudit)
     case 'inReview': return list.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus))
-    case 'approved': return list.filter(app => app.currentStatus === 3)
-    case 'rejected': return list.filter(app => app.currentStatus === 4)
+    case 'approved': return list.filter(app => app.currentStatus === STATUS_APPROVED)
+    case 'rejected': return list.filter(app => app.currentStatus === STATUS_REJECTED)
     default: return list
   }
 })

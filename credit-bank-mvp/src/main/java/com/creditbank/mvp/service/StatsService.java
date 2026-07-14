@@ -201,12 +201,35 @@ public class StatsService {
         return result;
     }
 
-    public List<TransactionLog> getRecentTransactions(Long userId, int limit) {
-        return transactionLogMapper.selectList(
-                new LambdaQueryWrapper<TransactionLog>()
-                        .eq(TransactionLog::getUserId, userId)
-                        .orderByDesc(TransactionLog::getCreatedAt)
-                        .last("LIMIT " + limit));
+    public List<TransactionLog> getRecentTransactions(String role, Long userId, int limit) {
+        LambdaQueryWrapper<TransactionLog> query = new LambdaQueryWrapper<TransactionLog>()
+                .ne(TransactionLog::getBizType, "DAILY")
+                .orderByDesc(TransactionLog::getCreatedAt);
+
+        if (!"admin".equals(role)) {
+            query.eq(TransactionLog::getUserId, userId);
+        }
+
+        List<TransactionLog> logs = transactionLogMapper.selectList(query.last("LIMIT " + limit));
+
+        if ("admin".equals(role) && !logs.isEmpty()) {
+            List<Long> userIds = logs.stream()
+                    .map(TransactionLog::getUserId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            Map<Long, String> userNameMap = new HashMap<>();
+            if (!userIds.isEmpty()) {
+                List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
+                for (SysUser u : users) {
+                    userNameMap.put(u.getId(), u.getRealName());
+                }
+            }
+            for (TransactionLog log : logs) {
+                log.setUserName(userNameMap.getOrDefault(log.getUserId(), "未知"));
+            }
+        }
+
+        return logs;
     }
 
     public List<Map<String, Object>> getPointTrend(Long userId, int days) {

@@ -127,7 +127,7 @@
           </div>
           <div class="list-content">
             <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
-              <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
+              <span class="item-name">{{ item.userName ? item.userName + ' · ' : '' }}{{ getBizTypeName(item.bizType) }}</span>
               <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
                 {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
               </span>
@@ -301,7 +301,7 @@ async function loadAllData() {
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
-    const promises = [getStatsSummary(role, userId), getTodoList(role, userId, 5), getRecentTransactions(userId, 5), userId ? getProfile(userId) : Promise.resolve(null)]
+    const promises = [getStatsSummary(role, userId), getTodoList(role, userId, 5), getRecentTransactions(userId, role, role === 'admin' ? 10 : 5), userId ? getProfile(userId) : Promise.resolve(null)]
     if (role === 'student' && userId) promises.push(getPointTrend(userId, trendDays.value), getSignInStatus())
     const results = await Promise.all(promises)
     summary.value = results[0]

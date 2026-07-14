@@ -5,11 +5,13 @@ import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.ApplicationDetailDTO;
 import com.creditbank.mvp.dto.FlowStepDTO;
 import com.creditbank.mvp.entity.Application;
+import com.creditbank.mvp.entity.ApplicationAuditLog;
 import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.ExpertCert;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.mapper.ApplicationAuditLogMapper;
 import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
@@ -44,7 +46,7 @@ public class ApplicationService {
     public static final int STATUS_REJECTED = 4;
 
     /** 认证类业务：审批链由认证流程表驱动 */
-    private static final Set<String> CERT_BIZ = new HashSet<>(Arrays.asList("CERT_APPLY", "EXPERT_CERT"));
+    private static final Set<String> CERT_BIZ = new HashSet<>(Arrays.asList("CERT_APPLY", "EXPERT_CERT", "ORG_REGISTER"));
 
     private static final Map<String, String> BIZ_TYPE_NAME = new HashMap<>();
     private static final Map<Integer, String[]> STATUS_MAP = new HashMap<>();
@@ -63,6 +65,7 @@ public class ApplicationService {
     private static final String DEFAULT_ADMIN_PASSWORD = "123456";
 
     private final ApplicationMapper applicationMapper;
+    private final ApplicationAuditLogMapper applicationAuditLogMapper;
     private final SysUserMapper sysUserMapper;
     private final OrganizationMapper organizationMapper;
     private final ExpertCertMapper expertCertMapper;
@@ -73,6 +76,7 @@ public class ApplicationService {
     private final ExpertCertService expertCertService;
 
     public ApplicationService(ApplicationMapper applicationMapper,
+                              ApplicationAuditLogMapper applicationAuditLogMapper,
                               SysUserMapper sysUserMapper,
                               OrganizationMapper organizationMapper,
                               ExpertCertMapper expertCertMapper,
@@ -82,6 +86,7 @@ public class ApplicationService {
                               ExpertCertService expertCertService,
                               PasswordEncoder passwordEncoder) {
         this.applicationMapper = applicationMapper;
+        this.applicationAuditLogMapper = applicationAuditLogMapper;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.expertCertMapper = expertCertMapper;
@@ -273,6 +278,9 @@ public class ApplicationService {
 
     // ==================== 机构入驻申请提交 ====================
 
+    /** 机构入驻认证标准ID */
+    private static final Long ORG_REGISTER_STANDARD_ID = 5L;
+
     @Transactional(rollbackFor = Exception.class)
     public Application submitOrgRegister(Application app) {
         String formData = app.getFormData() == null ? "" : app.getFormData();
@@ -293,8 +301,17 @@ public class ApplicationService {
         app.setOrgId(null);
         app.setExpertId(null);
         app.setRejectReason(null);
-        app.setCurrentNodeId(null);
+
+        // 关联机构入驻认证标准（ID=5），设置审批流程
+        app.setBizKey(ORG_REGISTER_STANDARD_ID);
+        CertStandard standard = certStandardMapper.selectById(ORG_REGISTER_STANDARD_ID);
+        if (standard != null && standard.getFirstNodeId() != null) {
+            app.setCurrentNodeId(standard.getFirstNodeId());
+        } else {
+            app.setCurrentNodeId(null);
+        }
         app.setCurrentStatus(STATUS_IN_REVIEW);
+
         applicationMapper.insert(app);
         return applicationMapper.selectById(app.getId());
     }
@@ -351,13 +368,14 @@ public class ApplicationService {
         }
 
         CertAuditFlow node = null;
-        if (isCertBiz(app.getBizType()) && app.getCurrentNodeId() != null) {
-            node = certAuditFlowMapper.selectById(app.getCurrentNodeId());
+        Long currentNodeId = app.getCurrentNodeId();
+        if (isCertBiz(app.getBizType()) && currentNodeId != null) {
+            node = certAuditFlowMapper.selectById(currentNodeId);
             if (node == null) {
                 throw new BizException("审批流程节点已被删除，请联系管理员处理该申请");
             }
             boolean isNodeAuditor = userId != null && userId.equals(node.getAuditorId());
-            if (!isNodeAuditor && !"admin".equals(role)) {
+            if (!isNodeAuditor) {
                 throw new BizException("当前环节的审核人不是你");
             }
         } else {
@@ -366,6 +384,15 @@ public class ApplicationService {
                 throw new BizException("该申请只能由系统管理员审核");
             }
         }
+
+        // 记录审核日志（在更新申请状态之前）
+        ApplicationAuditLog auditLog = new ApplicationAuditLog();
+        auditLog.setApplicationId(app.getId());
+        auditLog.setNodeId(currentNodeId);
+        auditLog.setStatus(approve ? 2 : 3); // 2通过/3驳回
+        auditLog.setRejectReason(approve ? null : reason);
+        auditLog.setCreatedAt(LocalDateTime.now());
+        applicationAuditLogMapper.insert(auditLog);
 
         if (!approve) {
             if (reason == null || reason.trim().isEmpty()) {
@@ -684,5 +711,17 @@ public class ApplicationService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ==================== 审核日志查询 ====================
+
+    /**
+     * 获取申请单的审核日志列表
+     */
+    public List<ApplicationAuditLog> getAuditLogs(Long applicationId) {
+        return applicationAuditLogMapper.selectList(
+                new LambdaQueryWrapper<ApplicationAuditLog>()
+                        .eq(ApplicationAuditLog::getApplicationId, applicationId)
+                        .orderByAsc(ApplicationAuditLog::getCreatedAt));
     }
 }

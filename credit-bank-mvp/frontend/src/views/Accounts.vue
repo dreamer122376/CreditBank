@@ -2,23 +2,27 @@
   <div class="accounts">
     <!-- 顶栏 -->
     <div class="toolbar">
-      <span class="toolbar-title">用户列表</span>
+      <div class="toolbar-left">
+        <span class="toolbar-title">用户列表</span>
+        <el-select v-model="filterRole" placeholder="筛选角色" class="role-filter">
+          <el-option value="admin" label="系统管理员" />
+          <el-option value="org_admin" label="机构管理员" />
+          <el-option value="student" label="学生" />
+          <el-option value="expert" label="专家" />
+        </el-select>
+      </div>
       <el-button @click="$router.push('/op-logs')">📝 操作日志</el-button>
     </div>
 
     <!-- 用户表格 -->
     <el-card>
-      <el-table :data="users" border style="width: 100%;" @selection-change="handleSelectionChange" ref="tableRef">
+      <el-table :data="filteredUsers" border style="width: 100%;" @selection-change="handleSelectionChange" ref="tableRef">
         <el-table-column v-if="isAdmin" type="selection" width="50" :selectable="row => row.role !== 'admin'" />
         <el-table-column prop="id" label="用户ID" width="80" />
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="realName" label="真实姓名" />
-        <el-table-column prop="role" label="角色" width="120">
-          <template #default="scope">
-            <el-tag :type="getRoleType(scope.row.role)" size="small">{{ getRoleName(scope.row.role) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="balance" label="积分余额" width="100" />
+        
+        <el-table-column v-if="showBalance" prop="balance" :label="balanceLabel" width="140" />
         <el-table-column prop="status" label="状态" width="90">
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
@@ -35,7 +39,7 @@
         <el-table-column label="操作" min-width="240">
           <template #default="scope">
             <el-button size="small" @click="viewAccount(scope.row.id)">详情</el-button>
-            <el-button size="small" type="primary" @click="goEarn(scope.row.id)">加分</el-button>
+            <el-button v-if="showBalance" size="small" type="primary" @click="goEarn(scope.row.id)">加分</el-button>
             <template v-if="isAdmin && scope.row.role !== 'admin'">
               <el-button size="small" :type="scope.row.status === 1 ? 'warning' : 'success'"
                 @click="toggleStatus(scope.row)">
@@ -47,7 +51,7 @@
         </el-table-column>
       </el-table>
 
-      <div v-if="users.length === 0" style="text-align:center;padding:40px;color:#868e96;">暂无用户</div>
+      <div v-if="filteredUsers.length === 0" style="text-align:center;padding:40px;color:#868e96;">暂无用户</div>
     </el-card>
 
     <!-- 批量操作栏 -->
@@ -95,11 +99,19 @@ const tableRef = ref(null)
 const resetPwVisible = ref(false)
 const resetting = ref(false)
 const resetPwForm = ref({ id: null, username: '', realName: '', newPassword: '' })
+const filterRole = ref('student')
 
 const ROLE_NAME = { admin: '系统管理员', org_admin: '机构管理员', student: '学生', expert: '专家' }
 const ROLE_TYPE = { admin: 'danger', org_admin: 'warning', student: 'success', expert: 'info' }
 
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
+
+const filteredUsers = computed(() => {
+  return users.value.filter(u => u.role === filterRole.value)
+})
+
+const showBalance = computed(() => ['student', 'org_admin'].includes(filterRole.value))
+const balanceLabel = computed(() => filterRole.value === 'org_admin' ? '机构积分池余额' : '积分余额')
 
 function getRoleName(r) { return ROLE_NAME[r] || r }
 function getRoleType(r) { return ROLE_TYPE[r] || 'info' }
@@ -222,7 +234,9 @@ function goEarn(id) { router.push(`/account/${id}`) }
 
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.toolbar-left { display: flex; align-items: center; gap: 12px; }
 .toolbar-title { font-size: 16px; font-weight: 600; color: #2c3e50; }
+.role-filter { width: 140px; }
 .batch-bar {
   position: fixed; bottom: 0; left: 220px; right: 0; z-index: 50;
   background: #fff; border-top: 2px solid #3b5bdb;

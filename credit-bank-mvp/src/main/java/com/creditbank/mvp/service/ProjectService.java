@@ -3,6 +3,7 @@ package com.creditbank.mvp.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.creditbank.mvp.common.BizException;
+import com.creditbank.mvp.dto.EnrolledStudentDTO;
 import com.creditbank.mvp.dto.ProjectDetailDTO;
 import com.creditbank.mvp.dto.ProjectListDTO;
 import com.creditbank.mvp.entity.Organization;
@@ -46,7 +47,7 @@ public class ProjectService {
         STATUS_NAME.put(STATUS_OFFLINE, "已下架");
     }
 
-    private static final String ENROLLMENT_STATUS_CANCELLED = "已取消";
+
 
     private final ProjectMapper projectMapper;
     private final OrganizationMapper organizationMapper;
@@ -88,7 +89,7 @@ public class ProjectService {
 
         // 填充已报名学生列表（排除已取消）
         List<StudentProject> enrollments = studentProjectMapper.selectByProjectId(id).stream()
-                .filter(e -> !ENROLLMENT_STATUS_CANCELLED.equals(e.getStatus()))
+                .filter(e -> !StudentProject.STATUS_CANCELLED.equals(e.getStatus()))
                 .collect(Collectors.toList());
         if (!enrollments.isEmpty()) {
             List<Long> studentIds = enrollments.stream()
@@ -96,7 +97,24 @@ public class ProjectService {
                     .distinct()
                     .collect(Collectors.toList());
             List<SysUser> students = sysUserMapper.selectBatchIds(studentIds);
-            dto.setEnrolledStudents(students);
+            Map<Long, SysUser> userMap = students.stream()
+                    .collect(Collectors.toMap(SysUser::getId, u -> u));
+
+            List<EnrolledStudentDTO> enrolledStudents = enrollments.stream().map(e -> {
+                SysUser user = userMap.get(e.getStudentId());
+                if (user == null) {
+                    return null;
+                }
+                EnrolledStudentDTO es = new EnrolledStudentDTO();
+                es.setEnrollmentId(e.getId());
+                es.setStudentId(user.getId());
+                es.setUsername(user.getUsername());
+                es.setRealName(user.getRealName());
+                es.setStatus(e.getStatus());
+                es.setEnrolledAt(e.getCreatedAt());
+                return es;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            dto.setEnrolledStudents(enrolledStudents);
 
             // 学生端查看时，标记自己是否已报名
             if (currentStudentId != null) {

@@ -109,13 +109,22 @@
             <el-table-column type="index" label="序号" width="60" />
             <el-table-column prop="realName" label="学生姓名" width="120" />
             <el-table-column prop="username" label="账号" width="140" />
-            <el-table-column label="报名状态">
+            <el-table-column label="报名状态" width="100">
               <template #default="scope">
                 <el-tag :type="studentStatusType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createdAt" label="报名时间">
-              <template #default="scope">{{ fmt(scope.row.createdAt) }}</template>
+            <el-table-column prop="enrolledAt" label="报名时间" width="160">
+              <template #default="scope">{{ fmt(scope.row.enrolledAt) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" min-width="160">
+              <template #default="scope">
+                <template v-if="scope.row.status === '待审核'">
+                  <el-button size="small" type="success" plain @click="handleAuditCompletion(scope.row, true)">通过</el-button>
+                  <el-button size="small" type="danger" plain @click="handleAuditCompletion(scope.row, false)">驳回</el-button>
+                </template>
+                <span v-else style="color:#868e96;font-size:12px;">—</span>
+              </template>
             </el-table-column>
           </el-table>
           <div v-if="students.length === 0" style="text-align:center;padding:24px;color:#868e96;">暂无学生报名</div>
@@ -141,7 +150,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
-import { getOrgProjects, getAllProjects, createProject, updateProject, offlineProject, auditProject, getOrgProjectDetail } from '@/api/project'
+import { getOrgProjects, getAllProjects, createProject, updateProject, offlineProject, auditProject, getOrgProjectDetail, auditProjectCompletion } from '@/api/project'
 import { getExperts } from '@/api/expert'
 
 const { currentUser } = useAuth()
@@ -307,8 +316,21 @@ async function openDetail(row) {
   }
 }
 
+async function handleAuditCompletion(row, approve) {
+  const action = approve ? '通过' : '驳回'
+  try {
+    await ElMessageBox.confirm('确定要' + action + '「' + row.realName + '」的完成申请吗？', action + '确认', { type: approve ? 'info' : 'warning' })
+    await auditProjectCompletion(row.enrollmentId, approve)
+    ElMessage.success('已' + action)
+    openDetail(detail.value)
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.message || '操作失败')
+  }
+}
+
 function studentStatusType(s) {
   if (s === '已完成') return 'success'
+  if (s === '待审核') return 'warning'
   if (s === '进行中') return 'warning'
   if (s === '已报名') return 'primary'
   return 'info'

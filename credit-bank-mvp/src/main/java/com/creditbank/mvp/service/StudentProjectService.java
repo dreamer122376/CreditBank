@@ -31,11 +31,6 @@ import java.util.stream.Collectors;
 @Service
 public class StudentProjectService {
 
-    private static final String ENROLLMENT_STATUS_ENROLLED = "已报名";
-    private static final String ENROLLMENT_STATUS_IN_PROGRESS = "进行中";
-    private static final String ENROLLMENT_STATUS_COMPLETED = "已完成";
-    private static final String ENROLLMENT_STATUS_CANCELLED = "已取消";
-
     private final StudentProjectMapper studentProjectMapper;
     private final ProjectService projectService;
     private final SysUserMapper sysUserMapper;
@@ -145,8 +140,8 @@ public class StudentProjectService {
                         .eq(StudentProject::getStudentId, studentId)
                         .eq(StudentProject::getProjectId, projectId));
         if (existing != null) {
-            if (ENROLLMENT_STATUS_CANCELLED.equals(existing.getStatus())) {
-                existing.setStatus(ENROLLMENT_STATUS_ENROLLED);
+            if (StudentProject.STATUS_CANCELLED.equals(existing.getStatus())) {
+                existing.setStatus(StudentProject.STATUS_ENROLLED);
                 studentProjectMapper.updateById(existing);
                 userOpLogMapper.insert(UserOpLog.createLog(
                         studentId, student.getRealName(), null, null,
@@ -160,7 +155,7 @@ public class StudentProjectService {
         StudentProject enrollment = new StudentProject();
         enrollment.setStudentId(studentId);
         enrollment.setProjectId(projectId);
-        enrollment.setStatus(ENROLLMENT_STATUS_ENROLLED);
+        enrollment.setStatus(StudentProject.STATUS_ENROLLED);
         enrollment.setCreatedAt(LocalDateTime.now());
         studentProjectMapper.insert(enrollment);
 
@@ -187,12 +182,12 @@ public class StudentProjectService {
         if (enrollment == null) {
             throw new BizException("未报名该项目");
         }
-        if (!ENROLLMENT_STATUS_ENROLLED.equals(enrollment.getStatus())
-                && !ENROLLMENT_STATUS_IN_PROGRESS.equals(enrollment.getStatus())) {
+        if (!StudentProject.STATUS_ENROLLED.equals(enrollment.getStatus())
+                && !StudentProject.STATUS_IN_PROGRESS.equals(enrollment.getStatus())) {
             throw new BizException("当前状态不可取消报名");
         }
         Project project = projectService.getById(projectId);
-        enrollment.setStatus(ENROLLMENT_STATUS_CANCELLED);
+        enrollment.setStatus(StudentProject.STATUS_CANCELLED);
         studentProjectMapper.updateById(enrollment);
 
         userOpLogMapper.insert(UserOpLog.createLog(
@@ -205,7 +200,7 @@ public class StudentProjectService {
 
     /**
      * 更新报名状态（机构/管理员操作）。
-     * 允许流转：已报名 → 进行中 → 已完成
+     * 允许流转：已报名 → 进行中 → 待审核 → 已完成/进行中
      */
     @Transactional(rollbackFor = Exception.class)
     public void updateEnrollmentStatus(Long enrollmentId, String newStatus, SysUser operator) {
@@ -219,27 +214,75 @@ public class StudentProjectService {
         }
 
         String current = enrollment.getStatus();
-        if (ENROLLMENT_STATUS_CANCELLED.equals(current)) {
+        if (StudentProject.STATUS_CANCELLED.equals(current)) {
             throw new BizException("已取消的报名不可修改状态");
         }
 
-        if (ENROLLMENT_STATUS_ENROLLED.equals(current) && ENROLLMENT_STATUS_IN_PROGRESS.equals(newStatus)) {
-            enrollment.setStatus(newStatus);
-        } else if (ENROLLMENT_STATUS_IN_PROGRESS.equals(current) && ENROLLMENT_STATUS_COMPLETED.equals(newStatus)) {
-            enrollment.setStatus(newStatus);
-        } else {
+        boolean valid = false;
+        if (StudentProject.STATUS_ENROLLED.equals(current) && StudentProject.STATUS_IN_PROGRESS.equals(newStatus)) {
+            valid = true;
+        } else if (StudentProject.STATUS_IN_PROGRESS.equals(current) && StudentProject.STATUS_PENDING_REVIEW.equals(newStatus)) {
+            valid = true;
+        } else if (StudentProject.STATUS_PENDING_REVIEW.equals(current)
+                && (StudentProject.STATUS_COMPLETED.equals(newStatus) || StudentProject.STATUS_IN_PROGRESS.equals(newStatus))) {
+            valid = true;
+        }
+        if (!valid) {
             throw new BizException("非法的状态流转：" + current + " → " + newStatus);
         }
 
+        enrollment.setStatus(newStatus);
         studentProjectMapper.updateById(enrollment);
 
-        // 项目完成时自动发放积分奖励
-        if (ENROLLMENT_STATUS_COMPLETED.equals(newStatus)) {
+        // 审核操作记日志
+        if (StudentProject.STATUS_PENDING_REVIEW.equals(current)) {
+            Project project = projectService.getById(enrollment.getProjectId());
+            String projectName = project != null ? project.getName() : "未知项目";
+            String auditAction = StudentProject.STATUS_COMPLETED.equals(newStatus)
+                    ? UserOpLog.ACTION_PROJECT_APPROVE : UserOpLog.ACTION_PROJECT_REJECT;
+            String auditDetail = (StudentProject.STATUS_COMPLETED.equals(newStatus) ? "通过" : "驳回")
+                    + "项目完成申请：" + projectName;
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    enrollment.getStudentId(), null,
+                    UserOpLog.MODULE_PROJECT, auditAction,
+                    auditDetail));
+        }
+
+        // 审核通过（待审核 → 已完成）时自动发放积分奖励
+        if (StudentProject.STATUS_PENDING_REVIEW.equals(current) && StudentProject.STATUS_COMPLETED.equals(newStatus)) {
             Project project = projectService.getById(enrollment.getProjectId());
             if (project != null) {
                 pointService.rewardProjectCompletion(enrollment.getStudentId(), project, operator.getId());
             }
         }
+    }
+
+    /**
+     * 学生提交完成申请，状态从 进行中 → 待审核。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void submitForReview(Long studentId, Long enrollmentId) {
+        StudentProject enrollment = studentProjectMapper.selectById(enrollmentId);
+        if (enrollment == null) {
+            throw new BizException("报名记录不存在：" + enrollmentId);
+        }
+        if (!enrollment.getStudentId().equals(studentId)) {
+            throw new BizException("无权操作");
+        }
+        if (!StudentProject.STATUS_IN_PROGRESS.equals(enrollment.getStatus())) {
+            throw new BizException("当前状态不可提交完成");
+        }
+        enrollment.setStatus(StudentProject.STATUS_PENDING_REVIEW);
+        studentProjectMapper.updateById(enrollment);
+
+        Project project = projectService.getById(enrollment.getProjectId());
+        SysUser student = sysUserMapper.selectById(studentId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                studentId, student != null ? student.getRealName() : String.valueOf(studentId),
+                null, null,
+                UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_PROJECT_SUBMIT,
+                "提交项目完成申请：" + (project != null ? project.getName() : "")));
     }
 
     // ==================== 内部工具 ====================

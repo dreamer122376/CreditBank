@@ -42,10 +42,6 @@
           <span v-else class="no-cert">暂无评审资质</span>
         </div>
 
-        <div class="expert-meta">
-          <span>积分余额：{{ expert.balance ?? 0 }}</span>
-        </div>
-
         <div class="expert-actions">
           <el-button size="small" @click="openEdit(expert)">编辑</el-button>
           <el-button size="small" type="warning" plain @click="openCertManage(expert)">资质管理</el-button>

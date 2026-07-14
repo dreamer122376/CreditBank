@@ -110,16 +110,15 @@ public class PointService {
             throw new BizException("积分规则不存在或已停用：" + eventCode);
         }
 
-        // 活动倍率加成：仅当用户报名了当前进行中的积分翻倍活动时才生效
+        // 活动倍率加成：查用户已报名的进行中积分活动
         int finalCredit = rule.getCreditValue();
         String campaignDesc = "";
-        Campaign activeMultiplierCampaign = campaignService.getActiveMultiplierCampaign();
-        if (activeMultiplierCampaign != null
-                && campaignService.isEnrolled(activeMultiplierCampaign.getId(), userId)) {
+        Campaign enrolledCampaign = campaignService.getEnrolledMultiplierCampaign(userId);
+        if (enrolledCampaign != null) {
             BigDecimal multiplied = BigDecimal.valueOf(rule.getCreditValue())
-                    .multiply(activeMultiplierCampaign.getMultiplier());
+                    .multiply(enrolledCampaign.getMultiplier());
             finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
-            campaignDesc = "（活动翻倍 ×" + activeMultiplierCampaign.getMultiplier() + "）";
+            campaignDesc = "（活动翻倍 ×" + enrolledCampaign.getMultiplier() + "）";
         }
 
         Integer newBalance = user.getBalance() + finalCredit;
@@ -192,13 +191,12 @@ public class PointService {
         int baseCredit = project.getCreditReward();
         int finalCredit = baseCredit;
         String campaignDesc = "";
-        Campaign activeMultiplierCampaign = campaignService.getActiveMultiplierCampaign();
-        if (activeMultiplierCampaign != null
-                && campaignService.isEnrolled(activeMultiplierCampaign.getId(), studentId)) {
+        Campaign enrolledCampaign = campaignService.getEnrolledMultiplierCampaign(studentId);
+        if (enrolledCampaign != null) {
             BigDecimal multiplied = BigDecimal.valueOf(baseCredit)
-                    .multiply(activeMultiplierCampaign.getMultiplier());
+                    .multiply(enrolledCampaign.getMultiplier());
             finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
-            campaignDesc = "（活动翻倍 ×" + activeMultiplierCampaign.getMultiplier() + "）";
+            campaignDesc = "（活动翻倍 ×" + enrolledCampaign.getMultiplier() + "）";
         }
 
         Integer newBalance = student.getBalance() + finalCredit;

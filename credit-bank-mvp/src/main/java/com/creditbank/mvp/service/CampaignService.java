@@ -84,10 +84,6 @@ public class CampaignService {
         }
         // 根据起止时间设置初始状态
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
-        // 只有当前活动是进行中 + 积分倍率>1 时才检查冲突
-        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0 && campaign.getStatus() == 1) {
-            checkMultiplierCampaignConflict(campaign.getStartTime(), campaign.getEndTime(), null);
-        }
         campaignMapper.insert(campaign);
 
         redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
@@ -111,10 +107,6 @@ public class CampaignService {
         }
         // 重新计算状态
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
-        // 只有当前活动是进行中 + 积分倍率>1 时才检查冲突
-        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0 && campaign.getStatus() == 1) {
-            checkMultiplierCampaignConflict(campaign.getStartTime(), campaign.getEndTime(), campaign.getId());
-        }
         campaignMapper.updateById(campaign);
 
         redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
@@ -176,23 +168,38 @@ public class CampaignService {
      * 只返回第一个匹配的（同一时间只允许一个积分活动）。
      * 结果缓存 5 分钟，活动状态变更时自动失效。
      */
+    /**
+     * 获取当前进行中的任一积分翻倍活动（用于前端展示等不需要用户维度的场景）。
+     */
     public Campaign getActiveMultiplierCampaign() {
-        Object cached = redisService.get(CACHE_KEY_ACTIVE_MULTIPLIER);
-        if (cached instanceof Campaign) {
-            return (Campaign) cached;
-        }
         LocalDateTime now = LocalDateTime.now();
-        Campaign campaign = campaignMapper.selectOne(
+        return campaignMapper.selectOne(
                 new LambdaQueryWrapper<Campaign>()
                         .eq(Campaign::getStatus, 1)
                         .gt(Campaign::getMultiplier, BigDecimal.ONE)
                         .le(Campaign::getStartTime, now)
                         .ge(Campaign::getEndTime, now)
                         .last("limit 1"));
-        if (campaign != null) {
-            redisService.set(CACHE_KEY_ACTIVE_MULTIPLIER, campaign, 5, TimeUnit.MINUTES);
+    }
+
+    /**
+     * 获取指定用户已报名的进行中积分翻倍活动。
+     * 同一时间学生只能报名一个积分活动，所以最多返回一个。
+     */
+    public Campaign getEnrolledMultiplierCampaign(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        List<Campaign> activeMultiplierCampaigns = campaignMapper.selectList(
+                new LambdaQueryWrapper<Campaign>()
+                        .eq(Campaign::getStatus, 1)
+                        .gt(Campaign::getMultiplier, BigDecimal.ONE)
+                        .le(Campaign::getStartTime, now)
+                        .ge(Campaign::getEndTime, now));
+        for (Campaign c : activeMultiplierCampaigns) {
+            if (isEnrolled(c.getId(), userId)) {
+                return c;
+            }
         }
-        return campaign;
+        return null;
     }
 
     // ==================== 报名管理 ====================
@@ -222,6 +229,15 @@ public class CampaignService {
             throw new BizException("已报名该活动");
         }
         Campaign campaign = getById(campaignId);
+
+        // 积分活动互斥：学生同一时间只能参加一个积分翻倍活动
+        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0) {
+            Campaign alreadyEnrolled = getEnrolledMultiplierCampaign(userId);
+            if (alreadyEnrolled != null && !alreadyEnrolled.getId().equals(campaignId)) {
+                throw new BizException("您已参加积分活动「" + alreadyEnrolled.getTitle()
+                        + "」，请先退出再参加新的积分活动");
+            }
+        }
         SysUser user = sysUserMapper.selectById(userId);
         CampaignEnrollment e = new CampaignEnrollment();
         e.setCampaignId(campaignId);
@@ -279,27 +295,6 @@ public class CampaignService {
         }
         if (!c.getEndTime().isAfter(c.getStartTime())) {
             throw new BizException("结束时间必须晚于开始时间");
-        }
-    }
-
-    /**
-     * 积分活动互斥校验：同一时间段不允许存在第二个 multiplier>1.0 的活动
-     */
-    private void checkMultiplierCampaignConflict(LocalDateTime start, LocalDateTime end, Long excludeId) {
-        // 只检查进行中（status=1）的 multiplier>1.0 活动，未开始和已结束的不影响
-        LambdaQueryWrapper<Campaign> wrapper = new LambdaQueryWrapper<Campaign>()
-                .gt(Campaign::getMultiplier, BigDecimal.ONE)
-                .eq(Campaign::getStatus, 1);
-        if (excludeId != null) {
-            wrapper.ne(Campaign::getId, excludeId);
-        }
-        List<Campaign> multiplierCampaigns = campaignMapper.selectList(wrapper);
-        for (Campaign existing : multiplierCampaigns) {
-            if (existing.getStartTime().isBefore(end) && existing.getEndTime().isAfter(start)) {
-                throw new BizException("当前已存在进行中的积分翻倍活动「" + existing.getTitle()
-                        + "」（" + existing.getStartTime().toLocalDate() + " ~ "
-                        + existing.getEndTime().toLocalDate() + "），同一时间只允许一个积分活动");
-            }
         }
     }
 

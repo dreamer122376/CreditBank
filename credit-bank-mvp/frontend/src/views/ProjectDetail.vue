@@ -24,7 +24,7 @@
           </el-col>
           <el-col :span="8">
             <div class="meta-item"><span class="meta-icon">🏷️</span>
-              <div><div class="meta-label">项目状态</div><div class="meta-val"><el-tag :type="statusType(project.status)" size="small">{{ project.statusName }}</el-tag></div></div>
+              <div><div class="meta-label">{{ project.enrolled ? '报名状态' : '项目状态' }}</div><div class="meta-val"><el-tag :type="project.enrolled ? enrollmentStatusType(project.enrollmentStatus) : statusType(project.status)" size="small">{{ project.enrolled ? project.enrollmentStatus : project.statusName }}</el-tag></div></div>
             </div>
           </el-col>
         </el-row>
@@ -160,6 +160,15 @@ function statusType(s) {
   if (s === 1) return 'success'
   if (s === 0) return 'warning'
   if (s === 2) return 'danger'
+  return 'info'
+}
+
+function enrollmentStatusType(status) {
+  if (status === '已完成') return 'success'
+  if (status === '待审核') return 'warning'
+  if (status === '进行中') return 'warning'
+  if (status === '已报名') return 'primary'
+  if (status === '已取消') return 'info'
   return 'info'
 }
 

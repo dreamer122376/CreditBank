@@ -15,7 +15,7 @@
             <div class="card-meta">👨‍🏫 {{ item.expertName || '暂未指定' }}</div>
             <div class="card-desc">{{ (item.description || '').substring(0, 80) }}{{ (item.description || '').length > 80 ? '...' : '' }}</div>
             <div class="card-footer">
-              <el-tag :type="statusType(item.status)" size="small">{{ item.statusName }}</el-tag>
+              <el-tag :type="item.enrolled ? enrollmentStatusType(item.enrollmentStatus) : statusType(item.status)" size="small">{{ item.enrolled ? item.enrollmentStatus : item.statusName }}</el-tag>
               <span style="color:#3b5bdb;font-size:13px;">查看详情 →</span>
             </div>
           </div>
@@ -36,15 +36,18 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getActiveProjects } from '@/api/project'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { currentUser } = useAuth()
 const loading = ref(true)
 const list = ref([])
 
 async function loadData() {
   loading.value = true
   try {
-    list.value = await getActiveProjects()
+    const studentId = currentUser.value?.id
+    list.value = await getActiveProjects(studentId)
   } catch (e) {
     ElMessage.error(e.message || '加载失败')
   } finally {
@@ -60,6 +63,15 @@ function statusType(status) {
   if (status === 1) return 'success'
   if (status === 0) return 'warning'
   if (status === 2) return 'danger'
+  return 'info'
+}
+
+function enrollmentStatusType(status) {
+  if (status === '已完成') return 'success'
+  if (status === '待审核') return 'warning'
+  if (status === '进行中') return 'warning'
+  if (status === '已报名') return 'primary'
+  if (status === '已取消') return 'info'
   return 'info'
 }
 

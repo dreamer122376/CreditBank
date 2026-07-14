@@ -41,8 +41,8 @@ public class ProjectController {
 
     /** 学生端：查询所有已上架项目 */
     @GetMapping("/active")
-    public Result<List<ProjectListDTO>> listActive() {
-        return Result.ok(projectService.listActive());
+    public Result<List<ProjectListDTO>> listActive(@RequestParam(required = false) Long studentId) {
+        return Result.ok(projectService.listActive(studentId));
     }
 
     /** 项目详情（学生端查看时可选传 studentId 标记是否已报名） */

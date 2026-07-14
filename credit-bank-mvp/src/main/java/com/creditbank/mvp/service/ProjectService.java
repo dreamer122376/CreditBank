@@ -123,9 +123,15 @@ public class ProjectService {
             }).filter(Objects::nonNull).collect(Collectors.toList());
             dto.setEnrolledStudents(enrolledStudents);
 
-            // 学生端查看时，标记自己是否已报名
+            // 学生端查看时，标记自己是否已报名及报名状态
             if (currentStudentId != null) {
                 dto.setEnrolled(studentIds.contains(currentStudentId));
+                for (StudentProject e : enrollments) {
+                    if (currentStudentId.equals(e.getStudentId())) {
+                        dto.setEnrollmentStatus(e.getStatus());
+                        break;
+                    }
+                }
             }
         } else {
             dto.setEnrolledStudents(new ArrayList<>());
@@ -162,11 +168,44 @@ public class ProjectService {
      * 学生端：查询所有已上架项目。
      */
     public List<ProjectListDTO> listActive() {
+        return listActive(null);
+    }
+
+    /**
+     * 学生端：查询所有已上架项目（带报名状态）。
+     */
+    public List<ProjectListDTO> listActive(Long studentId) {
         List<Project> projects = projectMapper.selectList(
                 new LambdaQueryWrapper<Project>()
                         .eq(Project::getStatus, STATUS_APPROVED)
                         .orderByDesc(Project::getCreatedAt));
-        return toListDTO(projects);
+        List<ProjectListDTO> dtos = toListDTO(projects);
+        
+        if (studentId != null && !dtos.isEmpty()) {
+            List<Long> projectIds = dtos.stream().map(ProjectListDTO::getId).collect(Collectors.toList());
+            List<StudentProject> enrollments = studentProjectMapper.selectList(
+                    new LambdaQueryWrapper<StudentProject>()
+                            .eq(StudentProject::getStudentId, studentId)
+                            .in(StudentProject::getProjectId, projectIds)
+                            .ne(StudentProject::getStatus, StudentProject.STATUS_CANCELLED));
+            
+            Map<Long, String> enrollmentMap = new HashMap<>();
+            for (StudentProject e : enrollments) {
+                enrollmentMap.put(e.getProjectId(), e.getStatus());
+            }
+            
+            for (ProjectListDTO dto : dtos) {
+                String status = enrollmentMap.get(dto.getId());
+                if (status != null) {
+                    dto.setEnrolled(true);
+                    dto.setEnrollmentStatus(status);
+                } else {
+                    dto.setEnrolled(false);
+                }
+            }
+        }
+        
+        return dtos;
     }
 
     /**

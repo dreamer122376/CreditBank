@@ -308,7 +308,7 @@ function getBizTypeName(bizType) {
 }
 
 const filteredTransactions = computed(() => {
-  return recentTransactions.value.filter(item => item.bizType !== 'DAILY')
+  return recentTransactions.value.filter(item => item.bizType !== 'DAILY' && item.bizType !== 'ATTACHMENT')
 })
 
 onMounted(async () => {

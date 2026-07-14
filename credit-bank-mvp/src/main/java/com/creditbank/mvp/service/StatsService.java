@@ -71,12 +71,9 @@ public class StatsService {
             if (user == null || user.getOrgId() == null) {
                 pendingCount = 0L;
             } else {
-                List<Long> orgStandardIds = certStandardMapper.selectList(
-                                new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, user.getOrgId()))
-                        .stream().map(CertStandard::getId).collect(Collectors.toList());
-                pendingCount = orgStandardIds.isEmpty() ? 0L : applicationMapper.selectCount(
+                pendingCount = applicationMapper.selectCount(
                         new LambdaQueryWrapper<Application>()
-                                .in(Application::getBizKey, orgStandardIds)
+                                .eq(Application::getOrgId, user.getOrgId())
                                 .eq(Application::getCurrentStatus, 1));
             }
         } else if ("expert".equals(role)) {
@@ -160,12 +157,9 @@ public class StatsService {
             if (user == null || user.getOrgId() == null) {
                 apps = new ArrayList<>();
             } else {
-                List<Long> orgStandardIds = certStandardMapper.selectList(
-                                new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, user.getOrgId()))
-                        .stream().map(CertStandard::getId).collect(Collectors.toList());
-                apps = orgStandardIds.isEmpty() ? new ArrayList<>() : applicationMapper.selectList(
+                apps = applicationMapper.selectList(
                         new LambdaQueryWrapper<Application>()
-                                .in(Application::getBizKey, orgStandardIds)
+                                .eq(Application::getOrgId, user.getOrgId())
                                 .eq(Application::getCurrentStatus, 1)
                                 .orderByDesc(Application::getAppliedAt)
                                 .last("LIMIT " + limit));
@@ -234,13 +228,31 @@ public class StatsService {
                 .ne(TransactionLog::getBizType, "DAILY")
                 .orderByDesc(TransactionLog::getCreatedAt);
 
-        if (!"admin".equals(role)) {
+        if ("admin".equals(role)) {
+            // 管理员查看所有交易
+        } else if ("org_admin".equals(role)) {
+            // 机构管理员查看机构内所有用户的交易
+            SysUser user = sysUserMapper.selectById(userId);
+            if (user != null && user.getOrgId() != null) {
+                List<Long> orgUserIds = sysUserMapper.selectList(
+                        new LambdaQueryWrapper<SysUser>()
+                                .eq(SysUser::getOrgId, user.getOrgId()))
+                        .stream().map(SysUser::getId).collect(Collectors.toList());
+                if (!orgUserIds.isEmpty()) {
+                    query.in(TransactionLog::getUserId, orgUserIds);
+                } else {
+                    query.eq(TransactionLog::getUserId, -1L);
+                }
+            } else {
+                query.eq(TransactionLog::getUserId, userId);
+            }
+        } else {
             query.eq(TransactionLog::getUserId, userId);
         }
 
         List<TransactionLog> logs = transactionLogMapper.selectList(query.last("LIMIT " + limit));
 
-        if ("admin".equals(role) && !logs.isEmpty()) {
+        if (("admin".equals(role) || "org_admin".equals(role)) && !logs.isEmpty()) {
             List<Long> userIds = logs.stream()
                     .map(TransactionLog::getUserId)
                     .distinct()

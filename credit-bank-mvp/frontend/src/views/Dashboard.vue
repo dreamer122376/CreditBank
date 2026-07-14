@@ -347,19 +347,22 @@ function initChart() {
 
 function updateChart() {
   if (!chartInstance || !pointTrend.value.length) return
+  chartInstance.clear()
   chartInstance.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 58, 95, 0.95)', borderColor: '#1e3a5f', textStyle: { color: '#fff' } },
-    grid: { left: '4%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
-    xAxis: { type: 'category', boundaryGap: false, data: pointTrend.value.map(i => i.date), axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280', fontSize: 11, rotate: trendDays.value === 30 ? 30 : 0 } },
-    yAxis: { type: 'value', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280', fontSize: 11 } },
-    series: [{
-      type: 'line', smooth: true, data: pointTrend.value.map(i => i.balance),
-      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(30, 58, 95, 0.15)' }, { offset: 1, color: 'rgba(30, 58, 95, 0)' }]) },
-      lineStyle: { color: '#1e3a5f', width: 2 },
-      itemStyle: { color: '#1e3a5f' },
-      symbol: 'circle', symbolSize: 5
-    }]
-  })
+      animationDurationUpdate: 400,
+      animationEasingUpdate: 'cubicInOut',
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(59, 130, 246, 0.95)', borderColor: '#3b82f6', textStyle: { color: '#fff' } },
+      grid: { left: '4%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: pointTrend.value.map(i => i.date), axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280', fontSize: 11, rotate: trendDays.value === 30 ? 30 : 0 } },
+      yAxis: { type: 'value', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280', fontSize: 11 } },
+      series: [{
+        type: 'line', smooth: true, data: pointTrend.value.map(i => i.balance),
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59, 130, 246, 0.15)' }, { offset: 1, color: 'rgba(59, 130, 246, 0)' }]) },
+        lineStyle: { color: '#3b82f6', width: 2 },
+        itemStyle: { color: '#3b82f6' },
+        symbol: 'circle', symbolSize: 5
+      }]
+    })
 }
 </script>
 

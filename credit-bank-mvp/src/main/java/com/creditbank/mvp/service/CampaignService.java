@@ -86,8 +86,6 @@ public class CampaignService {
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
         campaignMapper.insert(campaign);
 
-        redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
-
         userOpLogMapper.insert(UserOpLog.createLog(
                 operator.getId(), operator.getRealName(), null, null,
                 UserOpLog.MODULE_CAMPAIGN, UserOpLog.ACTION_CREATE,
@@ -109,8 +107,6 @@ public class CampaignService {
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
         campaignMapper.updateById(campaign);
 
-        redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
-
         userOpLogMapper.insert(UserOpLog.createLog(
                 operator.getId(), operator.getRealName(), null, null,
                 UserOpLog.MODULE_CAMPAIGN, UserOpLog.ACTION_UPDATE,
@@ -125,8 +121,6 @@ public class CampaignService {
     public void delete(Long id, SysUser operator) {
         Campaign campaign = getById(id);
         campaignMapper.deleteById(id);
-
-        redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
 
         userOpLogMapper.insert(UserOpLog.createLog(
                 operator.getId(), operator.getRealName(), null, null,
@@ -160,14 +154,6 @@ public class CampaignService {
 
     // ==================== 积分联动 ====================
 
-    /** Cache key for active multiplier campaign */
-    private static final String CACHE_KEY_ACTIVE_MULTIPLIER = "campaign:active:multiplier";
-
-    /**
-     * 获取当前进行中的积分翻倍活动。
-     * 只返回第一个匹配的（同一时间只允许一个积分活动）。
-     * 结果缓存 5 分钟，活动状态变更时自动失效。
-     */
     /**
      * 获取当前进行中的任一积分翻倍活动（用于前端展示等不需要用户维度的场景）。
      */
@@ -183,18 +169,36 @@ public class CampaignService {
     }
 
     /**
-     * 获取指定用户已报名的进行中积分翻倍活动。
-     * 同一时间学生只能报名一个积分活动，所以最多返回一个。
+     * 获取学生已报名的积分翻倍活动（用于报名互斥检查：含未开始和进行中，排除已结束）。
+     */
+    private Campaign getEnrolledMultiplierForRestriction(Long userId) {
+        // 查该用户所有的报名记录
+        List<CampaignEnrollment> enrollments = enrollmentMapper.selectList(
+                new LambdaQueryWrapper<CampaignEnrollment>()
+                        .eq(CampaignEnrollment::getUserId, userId));
+        for (CampaignEnrollment e : enrollments) {
+            Campaign c = campaignMapper.selectById(e.getCampaignId());
+            if (c != null && c.getStatus() != 2
+                    && c.getMultiplier() != null
+                    && c.getMultiplier().compareTo(BigDecimal.ONE) > 0) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 获取学生已报名的进行中积分翻倍活动（用于加分倍率计算：只有正在进行的活动才翻倍）。
      */
     public Campaign getEnrolledMultiplierCampaign(Long userId) {
         LocalDateTime now = LocalDateTime.now();
-        List<Campaign> activeMultiplierCampaigns = campaignMapper.selectList(
+        List<Campaign> activeCampaigns = campaignMapper.selectList(
                 new LambdaQueryWrapper<Campaign>()
                         .eq(Campaign::getStatus, 1)
                         .gt(Campaign::getMultiplier, BigDecimal.ONE)
                         .le(Campaign::getStartTime, now)
                         .ge(Campaign::getEndTime, now));
-        for (Campaign c : activeMultiplierCampaigns) {
+        for (Campaign c : activeCampaigns) {
             if (isEnrolled(c.getId(), userId)) {
                 return c;
             }
@@ -205,18 +209,15 @@ public class CampaignService {
     // ==================== 报名管理 ====================
 
     private final CampaignEnrollmentMapper enrollmentMapper;
-    private final RedisService redisService;
 
     public CampaignService(CampaignMapper campaignMapper,
                            CampaignEnrollmentMapper enrollmentMapper,
                            UserOpLogMapper userOpLogMapper,
-                           SysUserMapper sysUserMapper,
-                           RedisService redisService) {
+                           SysUserMapper sysUserMapper) {
         this.campaignMapper = campaignMapper;
         this.enrollmentMapper = enrollmentMapper;
         this.userOpLogMapper = userOpLogMapper;
         this.sysUserMapper = sysUserMapper;
-        this.redisService = redisService;
     }
 
     /** 参加活动 */
@@ -230,9 +231,9 @@ public class CampaignService {
         }
         Campaign campaign = getById(campaignId);
 
-        // 积分活动互斥：学生同一时间只能参加一个积分翻倍活动
+        // 积分活动互斥：学生同一时间只能参加一个积分翻倍活动（含未开始和进行中）
         if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0) {
-            Campaign alreadyEnrolled = getEnrolledMultiplierCampaign(userId);
+            Campaign alreadyEnrolled = getEnrolledMultiplierForRestriction(userId);
             if (alreadyEnrolled != null && !alreadyEnrolled.getId().equals(campaignId)) {
                 throw new BizException("您已参加积分活动「" + alreadyEnrolled.getTitle()
                         + "」，请先退出再参加新的积分活动");
@@ -244,7 +245,6 @@ public class CampaignService {
         e.setUserId(userId);
         e.setEnrolledAt(LocalDateTime.now());
         enrollmentMapper.insert(e);
-        redisService.delete("campaign:enrolled:" + campaignId + ":" + userId);
 
         userOpLogMapper.insert(UserOpLog.createLog(
                 userId, user != null ? user.getRealName() : String.valueOf(userId), null, null,
@@ -264,7 +264,6 @@ public class CampaignService {
         Campaign campaign = getById(campaignId);
         SysUser user = sysUserMapper.selectById(userId);
         enrollmentMapper.deleteById(exist.getId());
-        redisService.delete("campaign:enrolled:" + campaignId + ":" + userId);
 
         userOpLogMapper.insert(UserOpLog.createLog(
                 userId, user != null ? user.getRealName() : String.valueOf(userId), null, null,
@@ -274,17 +273,10 @@ public class CampaignService {
 
     /** 检查用户是否报名了指定活动 */
     public boolean isEnrolled(Long campaignId, Long userId) {
-        String key = "campaign:enrolled:" + campaignId + ":" + userId;
-        Object cached = redisService.get(key);
-        if (cached instanceof Boolean) {
-            return (Boolean) cached;
-        }
-        boolean enrolled = enrollmentMapper.selectCount(
+        return enrollmentMapper.selectCount(
                 new LambdaQueryWrapper<CampaignEnrollment>()
                         .eq(CampaignEnrollment::getCampaignId, campaignId)
                         .eq(CampaignEnrollment::getUserId, userId)) > 0;
-        redisService.set(key, enrolled, 10, TimeUnit.MINUTES);
-        return enrolled;
     }
 
     // ==================== 内部方法 ====================

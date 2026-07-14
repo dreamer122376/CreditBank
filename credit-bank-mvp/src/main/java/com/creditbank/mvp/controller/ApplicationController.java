@@ -3,6 +3,7 @@ package com.creditbank.mvp.controller;
 import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.dto.ApplicationDetailDTO;
 import com.creditbank.mvp.entity.Application;
+import com.creditbank.mvp.entity.ApplicationAuditLog;
 import com.creditbank.mvp.service.ApplicationService;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,6 +38,11 @@ public class ApplicationController {
     @PostMapping("/{id}/resubmit")
     public Result<Application> resubmit(@PathVariable Long id, @RequestBody ResubmitRequest req) {
         return Result.ok(applicationService.resubmit(id, req.getUserId(), req.getFormData()));
+    }
+
+    @GetMapping("/{id}/audit-logs")
+    public Result<List<ApplicationAuditLog>> getAuditLogs(@PathVariable Long id) {
+        return Result.ok(applicationService.getAuditLogs(id));
     }
 
     public static class AuditRequest {

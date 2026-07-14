@@ -15,3 +15,7 @@ export function auditApplication(id, role, userId, approve, reason) {
 export function resubmitApplication(id, userId, formData) {
   return request.post(`/application/${id}/resubmit`, { userId, formData })
 }
+
+export function getAuditLogs(id) {
+  return request.get(`/application/${id}/audit-logs`)
+}

@@ -14,7 +14,14 @@ INSERT INTO `sys_user` (`id`, `username`, `password`, `real_name`, `phone`, `ema
 (5, 'expert_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '赵六', '13800138004', 'zhaoliu@expert.com', 'expert', NULL, '软件工程', 0, 1, NOW()),
 (6, 'student_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小明', '13800138005', 'xiaoming@student.com', 'student', 1, NULL, 500, 1, NOW()),
 (7, 'student_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小红', '13800138006', 'xiaohong@student.com', 'student', 2, NULL, 300, 1, NOW()),
-(8, 'student_3', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小刚', '13800138007', 'xiaogang@student.com', 'student', 1, NULL, 800, 1, NOW());
+(8, 'student_3', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小刚', '13800138007', 'xiaogang@student.com', 'student', 1, NULL, 800, 1, NOW()),
+(9, 'expert_info_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '钱七', '13800138009', 'qianqi@info.com', 'expert', 1, '计算机科学', 0, 1, NOW()),
+(10, 'expert_info_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '孙八', '13800138010', 'sunba@info.com', 'expert', 1, '软件工程', 0, 1, NOW()),
+(11, 'expert_eng_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '周九', '13800138011', 'zhoujiu@eng.com', 'expert', 2, '土木工程', 0, 1, NOW()),
+(12, 'expert_eng_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '吴十', '13800138012', 'wushi@eng.com', 'expert', 2, '机械工程', 0, 1, NOW()),
+(13, 'expert_mgmt_1', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '郑十一', '13800138013', 'zheng11@mgmt.com', 'expert', 3, '工商管理', 0, 1, NOW()),
+(14, 'expert_mgmt_2', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '王十二', '13800138014', 'wang12@mgmt.com', 'expert', 3, '会计学', 0, 1, NOW()),
+(15, 'org_admin_3', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '陈七', '13800138008', 'chenqi@org3.com', 'org_admin', 3, NULL, 3000, 1, NOW());
 
 -- 管理员角色菜单权限表初始数据（无外键依赖）
 INSERT INTO `admin_role_menu` (`id`, `role_tag`, `menu_code`) VALUES
@@ -30,22 +37,57 @@ INSERT INTO `admin_role_menu` (`id`, `role_tag`, `menu_code`) VALUES
 (10, 'expert', 'application_review'),
 (11, 'expert', 'project_list');
 
--- 认证标准表初始数据（无外键依赖，first_node_id 稍后由 cert_audit_flow 回填）
+-- 认证标准表初始数据
 INSERT INTO `cert_standard` (`id`, `standard_name`, `version`, `org_id`, `target_role`, `requirement_text`, `need_manual_audit`, `first_node_id`, `is_enabled`, `created_at`) VALUES
 (1, '学生初级能力认证', '1.0', NULL, 'student', '一、认证目标\n面向在校学生，验证其基础学习能力与实践参与度。\n\n二、认证要求\n1. 累计积分满 500 分\n2. 参与至少 1 个实践项目\n3. 完成基础课程学习\n\n三、考核方式\n系统自动核验积分达标情况，无需人工评审。', 0, NULL, 1, NOW()),
-(2, '学生中级能力认证', '1.0', NULL, 'student', '一、认证目标\n面向优秀学生，验证其中等专业能力与项目实战能力。\n\n二、认证要求\n1. 累计积分满 1000 分\n2. 参与至少 2 个实践项目且至少 1 个获评优秀\n3. 通过技术面试\n\n三、考核方式\n机构初审 → 专家复审，两级人工审核。', 1, 101, 1, NOW()),
 (3, '专家资质认证', '2.0', NULL, 'expert', '一、认证目标\n认定专家在某领域的评审资质，获得资质后可参与对应认证标准的复审工作。\n\n二、认证要求\n1. 具有相关专业背景，从事相关领域工作 3 年以上\n2. 发表过 2 篇以上相关论文或取得等效成果\n3. 通过管理员资质审核\n\n三、考核方式\n系统管理员终审。', 1, 103, 1, NOW()),
-(4, '机构办学资质认证', '1.0', NULL, 'org_admin', '一、认证目标\n认定机构的办学/培训资质，获得认证后机构可在平台发布认证项目。\n\n二、认证要求\n1. 具备合法办学许可证\n2. 拥有至少 3 名持证专家\n3. 过去一年无重大违规记录\n\n三、考核方式\n系统管理员审核。', 1, 104, 1, NOW());
+(4, '机构办学资质认证', '1.0', NULL, 'org_admin', '一、认证目标\n认定机构的办学/培训资质，获得认证后机构可在平台发布认证项目。\n\n二、认证要求\n1. 具备合法办学许可证\n2. 拥有至少 3 名持证专家\n3. 过去一年无重大违规记录\n\n三、考核方式\n系统管理员审核。', 1, 104, 1, NOW()),
+(5, '机构入驻认证', '1.0', NULL, 'org_admin', '一、认证目标\n认证机构入驻申请，审核通过后自动创建机构账号及管理员账号。\n\n二、认证要求\n1. 提供机构全称\n2. 提供联系人信息\n3. 提供联系电话\n\n三、考核方式\n系统管理员审核，审核通过后自动完成机构注册流程。', 1, 105, 1, NOW()),
+(6, '项目上架认证', '1.0', NULL, 'org_admin', '一、认证目标\n平台级项目上架审核，审核通过后项目可在平台公开展示。\n\n二、认证要求\n1. 项目内容合规，符合平台规范\n2. 项目描述完整清晰\n3. 项目负责人资质齐全\n\n三、考核方式\n系统管理员终审。', 1, 201, 1, NOW()),
+(7, '信息技术学院-项目上架认证', '1.0', 1, 'org_admin', '一、认证目标\n信息技术学院项目上架审核，审核通过后报送平台管理员终审。\n\n二、认证要求\n1. 项目内容符合学院专业方向\n2. 项目学分设置合理\n3. 项目指导老师资质齐全\n\n三、考核方式\n学院管理员初审 → 系统管理员终审。', 1, 202, 1, NOW()),
+(8, '信息技术学院-学生中级能力认证（专家评审）', '1.0', 1, 'student', '一、认证目标\n面向信息技术学院学生，验证其中等专业能力水平。\n\n二、认证要求\n1. 累计积分满 1000 分\n2. 参与至少 2 个实践项目\n3. 通过专家专业评审\n\n三、考核方式\n学院专家评审（一步审核）。', 1, 204, 1, NOW()),
+(9, '信息技术学院-学生中级能力认证（专家+管理员）', '1.0', 1, 'student', '一、认证目标\n面向信息技术学院学生，验证其中等专业能力与综合素质。\n\n二、认证要求\n1. 累计积分满 1200 分\n2. 参与至少 2 个实践项目且至少 1 个获评优秀\n3. 通过专家专业评审与学院管理员复核\n\n三、考核方式\n学院专家初审 → 学院管理员终审。', 1, 205, 1, NOW()),
+(10, '工程学院-项目上架认证', '1.0', 2, 'org_admin', '一、认证目标\n工程学院项目上架审核，审核通过后报送平台管理员终审。\n\n二、认证要求\n1. 项目内容符合学院专业方向\n2. 项目学分设置合理\n3. 项目指导老师资质齐全\n\n三、考核方式\n学院管理员初审 → 系统管理员终审。', 1, 207, 1, NOW()),
+(11, '工程学院-学生中级能力认证（专家评审）', '1.0', 2, 'student', '一、认证目标\n面向工程学院学生，验证其中等专业能力水平。\n\n二、认证要求\n1. 累计积分满 1000 分\n2. 参与至少 2 个实践项目\n3. 通过专家专业评审\n\n三、考核方式\n学院专家评审（一步审核）。', 1, 209, 1, NOW()),
+(12, '工程学院-学生中级能力认证（专家+管理员）', '1.0', 2, 'student', '一、认证目标\n面向工程学院学生，验证其中等专业能力与综合素质。\n\n二、认证要求\n1. 累计积分满 1200 分\n2. 参与至少 2 个实践项目且至少 1 个获评优秀\n3. 通过专家专业评审与学院管理员复核\n\n三、考核方式\n学院专家初审 → 学院管理员终审。', 1, 210, 1, NOW()),
+(13, '管理学院-项目上架认证', '1.0', 3, 'org_admin', '一、认证目标\n管理学院项目上架审核，审核通过后报送平台管理员终审。\n\n二、认证要求\n1. 项目内容符合学院专业方向\n2. 项目学分设置合理\n3. 项目指导老师资质齐全\n\n三、考核方式\n学院管理员初审 → 系统管理员终审。', 1, 212, 1, NOW()),
+(14, '管理学院-学生中级能力认证（专家评审）', '1.0', 3, 'student', '一、认证目标\n面向管理学院学生，验证其中等专业能力水平。\n\n二、认证要求\n1. 累计积分满 1000 分\n2. 参与至少 2 个实践项目\n3. 通过专家专业评审\n\n三、考核方式\n学院专家评审（一步审核）。', 1, 214, 1, NOW()),
+(15, '管理学院-学生中级能力认证（专家+管理员）', '1.0', 3, 'student', '一、认证目标\n面向管理学院学生，验证其中等专业能力与综合素质。\n\n二、认证要求\n1. 累计积分满 1200 分\n2. 参与至少 2 个实践项目且至少 1 个获评优秀\n3. 通过专家专业评审与学院管理员复核\n\n三、考核方式\n学院专家初审 → 学院管理员终审。', 1, 215, 1, NOW());
 
 -- 认证审批流程节点表初始数据
--- 节点101→102：学生中级能力认证（机构管理员初审 → 专家复审 → 通过）
 -- 节点103：专家资质认证（管理员终审 → 通过）
 -- 节点104：机构办学资质认证（管理员终审 → 通过）
+-- 节点105：机构入驻认证（管理员终审 → 通过）
+-- 节点201：平台级项目上架认证（管理员终审 → 通过）
+-- 节点202→203：信息技术学院-项目上架（学院管理员初审 → 系统管理员终审 → 通过）
+-- 节点204：信息技术学院-学生中级（专家评审 → 通过）
+-- 节点205→206：信息技术学院-学生中级（专家初审 → 学院管理员终审 → 通过）
+-- 节点207→208：工程学院-项目上架（学院管理员初审 → 系统管理员终审 → 通过）
+-- 节点209：工程学院-学生中级（专家评审 → 通过）
+-- 节点210→211：工程学院-学生中级（专家初审 → 学院管理员终审 → 通过）
+-- 节点212→213：管理学院-项目上架（学院管理员初审 → 系统管理员终审 → 通过）
+-- 节点214：管理学院-学生中级（专家评审 → 通过）
+-- 节点215→216：管理学院-学生中级（专家初审 → 学院管理员终审 → 通过）
 INSERT INTO `cert_audit_flow` (`id`, `cert_standard_id`, `auditor_id`, `next_node_id`, `created_at`) VALUES
-(101, 2, 2, 102, NOW()),
-(102, 2, 4, NULL, NOW()),
 (103, 3, 1, NULL, NOW()),
-(104, 4, 1, NULL, NOW());
+(104, 4, 1, NULL, NOW()),
+(105, 5, 1, NULL, NOW()),
+(201, 6, 1, NULL, NOW()),
+(202, 7, 2, 203, NOW()),
+(203, 7, 1, NULL, NOW()),
+(204, 8, 9, NULL, NOW()),
+(205, 9, 9, 206, NOW()),
+(206, 9, 2, NULL, NOW()),
+(207, 10, 3, 208, NOW()),
+(208, 10, 1, NULL, NOW()),
+(209, 11, 11, NULL, NOW()),
+(210, 12, 11, 211, NOW()),
+(211, 12, 3, NULL, NOW()),
+(212, 13, 15, 213, NOW()),
+(213, 13, 1, NULL, NOW()),
+(214, 14, 13, NULL, NOW()),
+(215, 15, 13, 216, NOW()),
+(216, 15, 15, NULL, NOW());
 
 -- 项目表初始数据（依赖 organization.org_id 和 sys_user.id）
 INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `credit_reward`, `credit_price`, `status`, `created_at`, `updated_at`) VALUES
@@ -92,18 +134,21 @@ INSERT INTO `campaign` (`id`, `title`, `multiplier`, `start_time`, `end_time`, `
 (2, '技能挑战赛', 2.0, DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 14 DAY), 0, NOW(), '各类技能挑战赛活动', 'campaign2.jpg', '工程学院', '["img3.jpg"]'),
 (3, '迎新活动', 1.2, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL -15 DAY), 2, NOW(), '新生入学迎新活动', 'campaign3.jpg', '校团委', '["img4.jpg","img5.jpg","img6.jpg"]');
 
--- 统一申请审批表初始数据（依赖 sys_user.id 和 organization.org_id 和 project.id）
-INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
-(1, 'PROJECT_UP', 4, 2, 2, 4, '{"projectName":"数据分析大赛","description":"校园数据分析竞赛项目"}', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), NOW()),
-(2, 'EXCHANGE', NULL, 6, 1, NULL, '{"itemId":1,"quantity":1}', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 HOUR), NOW()),
-(3, 'CERT_APPLY', 2, 6, 1, 4, '{"standardId":2,"applyReason":"已完成1000积分要求"}', 1, 101, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY), NOW()),
-(4, 'PROJECT_UP', NULL, 3, 2, NULL, '{"projectName":"智能建筑项目","description":"智能建筑控制系统开发"}', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 HOUR), NOW()),
-(5, 'CERT_APPLY', 1, 8, 1, 5, '{"standardId":1,"applyReason":"已完成500积分要求"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), NOW()),
-(6, 'EXCHANGE', NULL, 7, 2, NULL, '{"itemId":2,"quantity":1}', 4, NULL, '积分不足', DATE_ADD(NOW(), INTERVAL -4 DAY), NOW());
-
--- 学生证书发放记录初始数据（对应已通过的申请单 5）
+-- 学生证书发放记录初始数据
 INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES
-(1, 8, 1, 5, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0005'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
+(1, 8, 1, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0001'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
+
+-- 专家资质认证记录初始数据（依赖 sys_user.id 和 cert_standard.id）
+INSERT INTO `expert_cert` (`id`, `expert_id`, `cert_standard_id`, `field_name`, `application_id`, `status`, `issued_at`, `valid_until`) VALUES
+(1, 4, 3, '计算机科学', NULL, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), NULL),
+(2, 5, 3, '软件工程', NULL, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), NULL),
+(3, 9, 3, '计算机科学', NULL, 1, DATE_ADD(NOW(), INTERVAL -20 DAY), NULL),
+(4, 10, 3, '软件工程', NULL, 1, DATE_ADD(NOW(), INTERVAL -20 DAY), NULL),
+(5, 11, 3, '土木工程', NULL, 1, DATE_ADD(NOW(), INTERVAL -15 DAY), NULL),
+(6, 12, 3, '机械工程', NULL, 1, DATE_ADD(NOW(), INTERVAL -15 DAY), NULL),
+(7, 13, 3, '工商管理', NULL, 1, DATE_ADD(NOW(), INTERVAL -10 DAY), NULL),
+(8, 14, 3, '会计学', NULL, 1, DATE_ADD(NOW(), INTERVAL -10 DAY), NULL);
+
 -- 交易流水表初始数据（依赖 sys_user.id 和 credit_rule.id）
 -- REWARD 类型：平台通用规则只生成学生流水；机构专属规则同步生成 ATTACHMENT 附加流水（机构积分池扣减）
 INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES
@@ -132,5 +177,3 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 -- 2天前：机构1专属 REWARD（student_1 校园APP优秀 +500，860→1360）→ ATTACHMENT（org_admin_1 扣减500，4400→3900）
 (14, 6, 500, 1360, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -2 DAY)),
 (15, 2, -500, 3900, 'ATTACHMENT', 14, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -2 DAY));
-
-

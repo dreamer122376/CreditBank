@@ -34,9 +34,7 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/campaigns/{id}", List.of("PUT", "DELETE")),
             Map.entry("/api/expert-cert/audit", List.of("POST")),
             Map.entry("/api/cert-audit/audit", List.of("POST")),
-            Map.entry("/api/stats", List.of("GET")),
-            Map.entry("/api/application/{id}/audit", List.of("POST")),
-            Map.entry("/api/application/{id}/cancel", List.of("POST"))
+            Map.entry("/api/stats", List.of("GET"))
     );
 
     private static final Map<String, List<String>> ADMIN_OR_ORG_ADMIN_PATHS = Map.ofEntries(

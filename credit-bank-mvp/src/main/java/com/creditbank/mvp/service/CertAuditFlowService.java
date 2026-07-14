@@ -2,9 +2,11 @@ package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
+import com.creditbank.mvp.entity.Application;
 import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
@@ -24,15 +26,18 @@ public class CertAuditFlowService {
     private final CertStandardMapper certStandardMapper;
     private final SysUserMapper sysUserMapper;
     private final ExpertCertService expertCertService;
+    private final ApplicationMapper applicationMapper;
 
     public CertAuditFlowService(CertAuditFlowMapper certAuditFlowMapper,
                                 CertStandardMapper certStandardMapper,
                                 SysUserMapper sysUserMapper,
-                                ExpertCertService expertCertService) {
+                                ExpertCertService expertCertService,
+                                ApplicationMapper applicationMapper) {
         this.certAuditFlowMapper = certAuditFlowMapper;
         this.certStandardMapper = certStandardMapper;
         this.sysUserMapper = sysUserMapper;
         this.expertCertService = expertCertService;
+        this.applicationMapper = applicationMapper;
     }
 
     /** 查询某认证标准的完整审批链（按链表顺序排列） */
@@ -106,6 +111,25 @@ public class CertAuditFlowService {
             }
         }
 
+        // 查询旧节点并建立 ID -> 步骤序号 的映射
+        List<CertAuditFlow> oldNodes = listByStandard(certStandardId);
+        Map<Long, Integer> oldNodeIdToStep = new HashMap<>();
+        for (int i = 0; i < oldNodes.size(); i++) {
+            oldNodeIdToStep.put(oldNodes.get(i).getId(), i);
+        }
+
+        // 查询使用该认证标准且审核中的申请，记录当前步骤序号
+        List<Application> pendingApps = applicationMapper.selectList(
+                new LambdaQueryWrapper<Application>()
+                        .eq(Application::getBizKey, certStandardId)
+                        .in(Application::getCurrentStatus, 1, 2)); // 1=审核中, 2=旧数据审核中
+        Map<Long, Integer> appStepMap = new HashMap<>();
+        for (Application app : pendingApps) {
+            if (app.getCurrentNodeId() != null && oldNodeIdToStep.containsKey(app.getCurrentNodeId())) {
+                appStepMap.put(app.getId(), oldNodeIdToStep.get(app.getCurrentNodeId()));
+            }
+        }
+
         // 先删除旧节点
         certAuditFlowMapper.delete(new LambdaQueryWrapper<CertAuditFlow>()
                 .eq(CertAuditFlow::getCertStandardId, certStandardId));
@@ -137,6 +161,17 @@ public class CertAuditFlowService {
         update.setId(certStandardId);
         update.setFirstNodeId(firstNodeId);
         certStandardMapper.updateById(update);
+
+        // 同步更新审核中申请的 currentNodeId
+        for (Map.Entry<Long, Integer> entry : appStepMap.entrySet()) {
+            Long appId = entry.getKey();
+            int step = entry.getValue();
+            Long newCurrentNodeId = step < inserted.size() ? inserted.get(step).getId() : null;
+            Application appUpdate = new Application();
+            appUpdate.setId(appId);
+            appUpdate.setCurrentNodeId(newCurrentNodeId);
+            applicationMapper.updateById(appUpdate);
+        }
 
         enrichDisplayFields(inserted);
         return inserted;

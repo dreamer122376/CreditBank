@@ -505,6 +505,9 @@ public class ApplicationService {
         for (Application app : apps) {
             if (isCertBiz(app.getBizType())) {
                 Long sid = readStandardIdQuiet(app.getFormData());
+                if (sid == null && app.getBizKey() != null) {
+                    sid = app.getBizKey();
+                }
                 if (sid != null) {
                     appStandardIds.put(app.getId(), sid);
                 }

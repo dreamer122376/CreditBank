@@ -161,7 +161,6 @@ const menuItems = computed(() => {
       { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/applications', title: '业务审核', icon: Tickets },
-      { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled },
       { path: '/op-logs', title: '操作日志', icon: Tickets }
@@ -179,7 +178,6 @@ const menuItems = computed(() => {
     expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
       { path: '/applications', title: '项目评审', icon: Tickets },
-      { path: '/cert-applications', title: '证书申请审核', icon: Medal },
       { path: '/my-certs', title: '我的资质', icon: Medal },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/profile', title: '我的资料', icon: Postcard },

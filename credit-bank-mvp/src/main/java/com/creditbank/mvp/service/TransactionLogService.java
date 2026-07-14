@@ -243,6 +243,10 @@ public class TransactionLogService {
         if ("admin".equals(role) && userId != null) {
             wrapper.eq(TransactionLog::getUserId, userId);
         }
+
+        if ("admin".equals(role)) {
+            wrapper.ne(TransactionLog::getBizType, "ATTACHMENT");
+        }
         
         if (bizType != null && !bizType.isEmpty()) {
             wrapper.eq(TransactionLog::getBizType, bizType);

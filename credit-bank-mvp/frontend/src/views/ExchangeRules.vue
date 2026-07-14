@@ -32,11 +32,14 @@
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="scope">
-            <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
-            <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
-                       @click="toggle(scope.row)">
-              {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
-            </el-button>
+            <template v-if="currentUser?.role !== 'org_admin' || scope.row.orgId != null">
+              <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
+              <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
+                         @click="toggle(scope.row)">
+                {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
+              </el-button>
+            </template>
+            <span v-else style="color: #909399;">—</span>
           </template>
         </el-table-column>
       </el-table>
@@ -59,7 +62,7 @@
         <el-form-item label="每人限兑">
           <el-input-number v-model="form.perUserLimit" :min="1" />
         </el-form-item>
-        <el-form-item label="归属机构">
+        <el-form-item v-if="currentUser?.role !== 'org_admin'" label="归属机构">
           <el-input-number v-model="form.orgId" :min="1" :precision="0" placeholder="留空为全平台通用" />
         </el-form-item>
       </el-form>
@@ -80,6 +83,9 @@ import {
   updateExchangeRule,
   toggleExchangeRule
 } from '@/api/exchangeRule'
+import { useAuth } from '@/composables/useAuth'
+
+const { currentUser } = useAuth()
 
 const rules = ref([])
 const dialogVisible = ref(false)
@@ -89,7 +95,13 @@ onMounted(loadData)
 
 async function loadData() {
   try {
-    rules.value = await getExchangeRules()
+    const allRules = await getExchangeRules()
+    if (currentUser.value?.role === 'org_admin') {
+      const orgId = currentUser.value.orgId
+      rules.value = allRules.filter(r => r.orgId == null || r.orgId === orgId)
+    } else {
+      rules.value = allRules
+    }
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
   }
@@ -97,6 +109,9 @@ async function loadData() {
 
 function openCreate() {
   form.value = { itemName: '', requiredCredit: 100, stock: 9999, perUserLimit: 1, orgId: null }
+  if (currentUser.value?.role === 'org_admin') {
+    form.value.orgId = currentUser.value.orgId
+  }
   dialogVisible.value = true
 }
 
@@ -107,6 +122,9 @@ function openEdit(row) {
 
 async function save() {
   try {
+    if (currentUser.value?.role === 'org_admin') {
+      form.value.orgId = currentUser.value.orgId
+    }
     if (form.value.id) {
       await updateExchangeRule(form.value)
     } else {

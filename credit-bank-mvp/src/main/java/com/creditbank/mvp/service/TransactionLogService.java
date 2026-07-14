@@ -233,7 +233,11 @@ public class TransactionLogService {
                             .eq(SysUser::getOrgId, operator.getOrgId())
                             .eq(SysUser::getRole, "student")
             ).stream().map(SysUser::getId).collect(Collectors.toList());
-            wrapper.in(TransactionLog::getUserId, studentIds);
+            if (studentIds.isEmpty()) {
+                wrapper.eq(TransactionLog::getId, -1L);
+            } else {
+                wrapper.in(TransactionLog::getUserId, studentIds);
+            }
         }
         
         if ("admin".equals(role) && userId != null) {

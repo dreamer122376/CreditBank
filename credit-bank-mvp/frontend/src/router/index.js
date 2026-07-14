@@ -8,6 +8,11 @@ const routes = [
     component: () => import('@/views/Login.vue')
   },
   {
+    path: '/org-register',
+    name: 'OrgRegister',
+    component: () => import('@/views/OrgRegister.vue')
+  },
+  {
     path: '/certificate-verify',
     name: 'CertificateVerify',
     component: () => import('@/views/CertificateVerify.vue'),
@@ -180,7 +185,8 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { currentUser } = useAuth()
-  if (to.path === '/login' || to.meta?.public) {
+  const publicPaths = ['/login', '/org-register']
+  if (publicPaths.includes(to.path)) {
     next()
   } else if (!currentUser.value) {
     next('/login')

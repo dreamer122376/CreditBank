@@ -34,7 +34,8 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
                 || path.equals("/api/user/register")
                 || path.equals("/api/user/test-login")
                 || path.equals("/api/user/test-users")
-                || path.equals("/api/student-cert/verify")) {
+                || path.equals("/api/student-cert/verify")
+                || path.equals("/api/application/submit")) {
             return true;
         }
         // 文件预览/下载/查看由浏览器直接打开（window.open / <img>），带不上 Authorization 头；

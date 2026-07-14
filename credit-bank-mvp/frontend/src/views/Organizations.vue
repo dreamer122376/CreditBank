@@ -62,18 +62,40 @@
         <el-button type="primary" @click="save">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="auditResultVisible" title="审核通过" width="420px">
+      <div v-if="auditResult.created" style="text-align:center;padding:12px 0;">
+        <el-alert type="success" :title="auditResult.message" :closable="false" show-icon />
+        <div style="margin-top:20px;text-align:left;background:#f8f9fa;padding:16px;border-radius:8px;">
+          <div style="margin-bottom:10px;"><strong>机构名称：</strong>{{ auditResult.organization?.name }}</div>
+          <div style="margin-bottom:10px;"><strong>管理员账号：</strong>{{ auditResult.adminUsername }}</div>
+          <div><strong>初始密码：</strong>{{ auditResult.adminPassword }}</div>
+        </div>
+        <p style="color:#f59f00;font-size:13px;margin-top:12px;">请妥善保管账号密码，关闭后无法再次查看明文密码。</p>
+      </div>
+      <div v-else style="text-align:center;padding:12px 0;">
+        <el-alert type="info" :title="auditResult.message" :closable="false" show-icon />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="auditResultVisible = false">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getOrganizations,
   createOrganization,
   updateOrganization,
   changeOrganizationStatus
 } from '@/api/organization'
+
+const auditResultVisible = ref(false)
+const auditResult = ref({})
+const adminAccount = ref({})
 
 const STATUS_NAME = { 0: '待审核', 1: '启用', 2: '禁用' }
 const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger' }
@@ -118,11 +140,22 @@ async function save() {
 }
 
 async function changeStatus(row, status) {
+  const action = status === 1 ? '启用' : '禁用'
+  const tip = status === 1
+    ? '启用后将解冻本机构所有用户，是否继续？'
+    : '禁用后将联动冻结本机构所有用户，是否继续？'
   try {
-    await changeOrganizationStatus(row.id, status)
-    ElMessage.success('操作成功')
+    await ElMessageBox.confirm(tip, `确认${action}`, { type: 'warning' })
+    const res = await changeOrganizationStatus(row.id, status)
+    const result = res.data || res
+    if (status === 1 && row.status === 0) {
+      auditResult.value = result
+      auditResultVisible.value = true
+    }
+    ElMessage.success(result.message || '操作成功')
     await loadData()
   } catch (error) {
+    if (error === 'cancel' || error === 'close') return
     ElMessage.error(error.message || '操作失败')
   }
 }

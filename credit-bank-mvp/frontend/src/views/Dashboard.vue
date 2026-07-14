@@ -101,42 +101,56 @@
       </div>
     </div>
     <div class="non-student" v-else>
-      <div class="stats-full">
-        <div class="stat-item" v-for="stat in statCards" :key="stat.label">
-          <span class="stat-number">{{ stat.value }}</span>
-          <span class="stat-name">{{ stat.label }}</span>
+        <!-- Hero: 待审核事项 -- 突出显示（仅管理员） -->
+        <div class="pending-hero" v-if="currentUser?.role === 'admin'">
+          <div class="pending-hero-inner">
+            <div class="pending-hero-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            </div>
+            <div class="pending-hero-text">
+              <div class="pending-hero-label">待审核事项</div>
+              <div class="pending-hero-count">{{ summary?.pendingCount ?? 0 }}</div>
+              <div class="pending-hero-hint">需要您及时处理的审核申请</div>
+            </div>
+          </div>
+        </div>
+        <!-- 核心指标：管理员用 secondaryStats（不含待审核），其他角色用 statCards -->
+        <div class="stats-full">
+          <div class="stat-item" v-for="stat in (currentUser?.role === 'admin' ? secondaryStats : statCards)" :key="stat.label">
+            <span class="stat-number">{{ stat.value }}</span>
+            <span class="stat-name">{{ stat.label }}</span>
+          </div>
+        </div>
+        <div class="cards-full">
+          <div class="info-card">
+            <div class="card-header">
+              <span class="card-title">待办事项</span>
+            </div>
+            <div class="list-content">
+              <div class="list-item" v-for="item in todoList" :key="item.id">
+                <span class="item-name">{{ item.typeName }}</span>
+                <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
+              </div>
+              <div v-if="todoList.length === 0" class="empty-tip">暂无待办事项</div>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="card-header">
+              <span class="card-title">最近交易</span>
+              <span class="card-more" @click="router.push('/transactions')">全部></span>
+            </div>
+            <div class="list-content">
+              <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
+                <span class="item-name">{{ item.userName ? item.userName + ' · ' : '' }}{{ getBizTypeName(item.bizType) }}</span>
+                <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
+                  {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
+                </span>
+              </div>
+              <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="cards-full">
-        <div class="info-card">
-          <div class="card-header">
-            <span class="card-title">待办事项</span>
-          </div>
-          <div class="list-content">
-            <div class="list-item" v-for="item in todoList" :key="item.id">
-              <span class="item-name">{{ item.typeName }}</span>
-              <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
-            </div>
-            <div v-if="todoList.length === 0" class="empty-tip">暂无待办事项</div>
-          </div>
-        </div>
-        <div class="info-card">
-          <div class="card-header">
-            <span class="card-title">最近交易</span>
-            <span class="card-more" @click="router.push('/transactions')">全部></span>
-          </div>
-          <div class="list-content">
-            <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
-              <span class="item-name">{{ item.userName ? item.userName + ' · ' : '' }}{{ getBizTypeName(item.bizType) }}</span>
-              <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
-                {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
-              </span>
-            </div>
-            <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -250,7 +264,6 @@ const statCards = computed(() => {
     admin: [
       { label: '平台总用户数', value: formatNumber(s.totalUsers) },
       { label: '入驻机构数', value: formatNumber(s.totalOrgs) },
-      { label: '待审核事项', value: formatNumber(s.pendingCount) },
       { label: '全平台积分总量', value: formatNumber(s.totalCredit) }
     ],
     org_admin: [
@@ -273,13 +286,24 @@ const statCards = computed(() => {
   return cards[role] || []
 })
 
+// admin 的次要统计（不含待审核事项，因为它在 Hero 区域展示）
+const secondaryStats = computed(() => {
+  if (!summary.value) return []
+  const s = summary.value
+  return [
+    { label: '平台总用户数', value: formatNumber(s.totalUsers) },
+    { label: '入驻机构数', value: formatNumber(s.totalOrgs) },
+    { label: '全平台积分总量', value: formatNumber(s.totalCredit) }
+  ]
+})
+
 function formatNumber(num) {
   if (num === null || num === undefined) return '0'
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 function getBizTypeName(bizType) {
-  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作', DAILY: '每日打卡' }
+  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作', ATTACHMENT: '附加流水', DAILY: '每日打卡' }
   return map[bizType] || bizType
 }
 
@@ -749,6 +773,71 @@ function updateChart() {
   gap: 20px;
 }
 
+/* 待审核事项 Hero 卡片 */
+.pending-hero {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(30, 58, 95, 0.08);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.pending-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #e11d48 0%, #fb7185 100%);
+}
+
+.pending-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 32px 36px;
+}
+
+.pending-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e11d48;
+  flex-shrink: 0;
+}
+
+.pending-hero-text {
+  flex: 1;
+}
+
+.pending-hero-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.pending-hero-count {
+  font-size: 56px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.1;
+  letter-spacing: -3px;
+}
+
+.pending-hero-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
 .stats-full {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -782,6 +871,14 @@ function updateChart() {
   }
   .stats-card {
     flex-direction: column;
+  }
+  .pending-hero-inner {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+  }
+  .pending-hero-count {
+    font-size: 42px;
   }
 }
 </style>

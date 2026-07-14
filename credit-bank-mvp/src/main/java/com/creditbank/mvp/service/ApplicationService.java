@@ -371,7 +371,7 @@ public class ApplicationService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    protected void onOrgRegisterApproved(Application app) {
+    public void onOrgRegisterApproved(Application app) {
         String formData = app.getFormData() == null ? "" : app.getFormData();
         String orgName = readText(formData, "orgName");
         String applicantName = readText(formData, "applicantName");

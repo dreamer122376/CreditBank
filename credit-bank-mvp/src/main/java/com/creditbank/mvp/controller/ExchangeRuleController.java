@@ -39,7 +39,7 @@ public class ExchangeRuleController {
 
     @PostMapping("/{id}/exchange")
     public Result<ExchangeRule> exchange(@PathVariable Long id) {
-        Long userId = com.creditbank.mvp.config.AuthContext.getUserId();
+        Long userId = com.creditbank.mvp.util.CurrentUserUtil.getCurrentUserId();
         return Result.ok(exchangeRuleService.exchange(userId, id));
     }
 }

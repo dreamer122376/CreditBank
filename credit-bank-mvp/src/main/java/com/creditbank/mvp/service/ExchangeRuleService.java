@@ -99,7 +99,7 @@ public class ExchangeRuleService {
         }
 
         if (rule.getPerUserLimit() != null && rule.getPerUserLimit() > 0) {
-            int exchangedCount = transactionLogMapper.selectCount(
+            Long exchangedCount = transactionLogMapper.selectCount(
                     new LambdaQueryWrapper<TransactionLog>()
                             .eq(TransactionLog::getUserId, userId)
                             .eq(TransactionLog::getBizType, "EXCHANGE")

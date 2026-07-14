@@ -39,9 +39,10 @@ public class StatsController {
     }
 
     @GetMapping("/recent-transactions")
-    public Result<List<TransactionLog>> recentTransactions(@RequestParam Long userId,
+    public Result<List<TransactionLog>> recentTransactions(@RequestParam(required = false) String role,
+                                                           @RequestParam(required = false) Long userId,
                                                            @RequestParam(defaultValue = "5") int limit) {
-        return Result.ok(statsService.getRecentTransactions(userId, limit));
+        return Result.ok(statsService.getRecentTransactions(role, userId, limit));
     }
 
     @GetMapping("/point-trend")

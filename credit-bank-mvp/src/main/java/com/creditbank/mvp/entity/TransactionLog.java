@@ -42,6 +42,10 @@ public class TransactionLog {
     @Schema(description = "是否已被撤销")
     private Boolean reverted;
 
+    @TableField(exist = false)
+    @Schema(description = "用户名")
+    private String userName;
+
     public Long getId() {
         return id;
     }
@@ -112,5 +116,13 @@ public class TransactionLog {
 
     public void setReverted(Boolean reverted) {
         this.reverted = reverted;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }

@@ -28,6 +28,8 @@ public class Project {
 
     private Integer status;
 
+    private Long applicationId;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -100,6 +102,14 @@ public class Project {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Long getApplicationId() {
+        return applicationId;
+    }
+
+    public void setApplicationId(Long applicationId) {
+        this.applicationId = applicationId;
     }
 
     public LocalDateTime getCreatedAt() {

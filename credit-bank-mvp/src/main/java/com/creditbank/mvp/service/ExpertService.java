@@ -22,11 +22,14 @@ public class ExpertService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<SysUser> list() {
-        return sysUserMapper.selectList(
-                new LambdaQueryWrapper<SysUser>()
-                        .eq(SysUser::getRole, ROLE_EXPERT)
-                        .orderByDesc(SysUser::getId));
+    public List<SysUser> list(Long orgId) {
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getRole, ROLE_EXPERT)
+                .orderByDesc(SysUser::getId);
+        if (orgId != null) {
+            wrapper.eq(SysUser::getOrgId, orgId);
+        }
+        return sysUserMapper.selectList(wrapper);
     }
 
     public SysUser create(SysUser user) {

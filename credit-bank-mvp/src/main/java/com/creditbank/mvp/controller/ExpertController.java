@@ -18,8 +18,8 @@ public class ExpertController {
     }
 
     @GetMapping("/list")
-    public Result<List<SysUser>> list() {
-        return Result.ok(expertService.list());
+    public Result<List<SysUser>> list(@RequestParam(required = false) Long orgId) {
+        return Result.ok(expertService.list(orgId));
     }
 
     @PostMapping("/create")

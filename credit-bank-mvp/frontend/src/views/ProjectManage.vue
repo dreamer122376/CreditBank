@@ -33,7 +33,7 @@
         <el-table-column label="操作" min-width="280">
           <template #default="scope">
             <el-button size="small" @click="openDetail(scope.row)">查看详情</el-button>
-            <template v-if="isOrgAdmin && (scope.row.status === 2 || scope.row.status === 0)">
+            <template v-if="isOrgAdmin && scope.row.status !== 4">
               <el-button size="small" type="primary" plain @click="openEdit(scope.row)">编辑</el-button>
             </template>
             <template v-if="isAdmin">
@@ -59,7 +59,7 @@
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑项目' : '新增项目'" width="520px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px" :close-on-click-modal="false">
       <el-form :model="form" label-width="90px">
         <el-form-item label="项目名称" required>
           <el-input v-model="form.name" maxlength="100" placeholder="请输入项目名称" />
@@ -81,7 +81,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="save" :loading="submitting">保存</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="submitting">{{ submitButtonText }}</el-button>
       </template>
     </el-dialog>
 
@@ -158,8 +158,8 @@ const { currentUser } = useAuth()
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 const isOrgAdmin = computed(() => currentUser.value?.role === 'org_admin')
 
-const STATUS_NAME = { 0: '待审核', 1: '已上架', 2: '已驳回', 3: '已下架' }
-const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger', 3: 'info' }
+const STATUS_NAME = { 0: '待审核', 1: '已上架', 2: '已驳回', 3: '已下架', 4: '审核中' }
+const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger', 3: 'info', 4: 'warning' }
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -182,11 +182,23 @@ const rejecting = ref(false)
 let pendingRejectId = null
 
 const form = reactive({
-  id: null, name: '', description: '', creditReward: 0, creditPrice: 0, expertId: null
+  id: null, name: '', description: '', creditReward: 0, creditPrice: 0, expertId: null, status: null
+})
+
+const dialogTitle = computed(() => {
+  if (!form.id) return '新增项目'
+  if (form.status === 2) return '重新提交项目'
+  return '编辑项目'
+})
+
+const submitButtonText = computed(() => {
+  if (!form.id) return '提交'
+  if (form.status === 2) return '重新提交'
+  return '提交'
 })
 
 function resetForm() {
-  form.id = null; form.name = ''; form.description = ''; form.creditReward = 0; form.creditPrice = 0; form.expertId = null
+  form.id = null; form.name = ''; form.description = ''; form.creditReward = 0; form.creditPrice = 0; form.expertId = null; form.status = null
 }
 
 async function loadData() {
@@ -213,7 +225,8 @@ async function loadData() {
 
 async function loadExperts() {
   try {
-    const res = await getExperts()
+    const orgId = isOrgAdmin.value ? currentUser.value?.orgId : null
+    const res = await getExperts(orgId)
     experts.value = Array.isArray(res) ? res : (res.records || [])
   } catch (e) { /* ignore */ }
 }
@@ -230,20 +243,35 @@ function openEdit(row) {
   form.creditReward = row.creditReward ?? 0
   form.creditPrice = row.creditPrice ?? 0
   form.expertId = row.expertId ?? null
+  form.status = row.status
   dialogVisible.value = true
 }
 
-async function save() {
+async function handleSubmit() {
   if (!form.name) { ElMessage.warning('请输入项目名称'); return }
   submitting.value = true
   try {
     const data = { name: form.name, description: form.description, creditReward: form.creditReward, creditPrice: form.creditPrice, expertId: form.expertId || null }
     if (form.id) {
+      const isInProgress = form.status === 1 || form.status === 3
+      if (isInProgress) {
+        try {
+          await ElMessageBox.confirm(
+            '提交后，所有正在参与该项目的学生（除已完成的学生外）的报名状态将被取消。是否继续？',
+            '确认提交',
+            { type: 'warning', confirmButtonText: '确定提交', cancelButtonText: '取消' }
+          )
+        } catch (e) {
+          if (e === 'cancel') { submitting.value = false; return }
+        }
+        data.cancelStudents = true
+      }
       await updateProject(form.id, data)
+      ElMessage.success('提交成功，等待审核')
     } else {
       await createProject(data)
+      ElMessage.success('提交成功，等待审核')
     }
-    ElMessage.success(form.id ? '修改成功' : '创建成功，等待管理员审核')
     dialogVisible.value = false
     loadData()
   } catch (e) {

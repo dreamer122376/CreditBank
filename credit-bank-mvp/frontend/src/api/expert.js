@@ -1,7 +1,8 @@
 import request from './request'
 
-export function getExperts() {
-  return request.get('/expert/list')
+export function getExperts(orgId) {
+  const params = orgId ? { orgId } : {}
+  return request.get('/expert/list', { params })
 }
 
 export function createExpert(user) {

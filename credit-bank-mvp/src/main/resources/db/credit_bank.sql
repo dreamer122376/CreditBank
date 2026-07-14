@@ -315,12 +315,14 @@ CREATE TABLE `project` (
                            `description` text COMMENT '项目简介',
                            `credit_reward` int DEFAULT '0' COMMENT '完成项目获得的积分奖励',
                            `credit_price` int DEFAULT '0' COMMENT '报名项目需要消耗的积分费用，0表示免费',
-                           `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1已上架，2已驳回，3已下架',
+                           `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1已上架，2已驳回，3已下架，4审核中',
+                           `application_id` bigint DEFAULT NULL COMMENT '关联申请单ID',
                            `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
                            PRIMARY KEY (`id`),
                            KEY `idx_org_id` (`org_id`),
-                           KEY `idx_expert_id` (`expert_id`)
+                           KEY `idx_expert_id` (`expert_id`),
+                           KEY `idx_application_id` (`application_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 

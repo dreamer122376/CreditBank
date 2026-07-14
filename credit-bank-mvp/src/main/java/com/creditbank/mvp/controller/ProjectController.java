@@ -94,10 +94,16 @@ public class ProjectController {
     /** 机构端：编辑项目 */
     @PutMapping("/{id}")
     public Result<Project> update(@PathVariable Long id,
-                                  @RequestBody Project project,
+                                  @RequestBody ProjectUpdateRequest req,
                                   @RequestHeader("X-Operator-Id") Long operatorId) {
         SysUser operator = userService.getUser(operatorId);
-        return Result.ok(projectService.update(id, project, operator));
+        Project project = new Project();
+        project.setName(req.getName());
+        project.setDescription(req.getDescription());
+        project.setCreditReward(req.getCreditReward());
+        project.setCreditPrice(req.getCreditPrice());
+        project.setExpertId(req.getExpertId());
+        return Result.ok(projectService.update(id, project, operator, req.isCancelStudents()));
     }
 
     // ==================== 管理端 ====================
@@ -148,6 +154,63 @@ public class ProjectController {
 
         public void setReason(String reason) {
             this.reason = reason;
+        }
+    }
+
+    public static class ProjectUpdateRequest {
+        private String name;
+        private String description;
+        private Integer creditReward;
+        private Integer creditPrice;
+        private Long expertId;
+        private boolean cancelStudents;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public Integer getCreditReward() {
+            return creditReward;
+        }
+
+        public void setCreditReward(Integer creditReward) {
+            this.creditReward = creditReward;
+        }
+
+        public Integer getCreditPrice() {
+            return creditPrice;
+        }
+
+        public void setCreditPrice(Integer creditPrice) {
+            this.creditPrice = creditPrice;
+        }
+
+        public Long getExpertId() {
+            return expertId;
+        }
+
+        public void setExpertId(Long expertId) {
+            this.expertId = expertId;
+        }
+
+        public boolean isCancelStudents() {
+            return cancelStudents;
+        }
+
+        public void setCancelStudents(boolean cancelStudents) {
+            this.cancelStudents = cancelStudents;
         }
     }
 }

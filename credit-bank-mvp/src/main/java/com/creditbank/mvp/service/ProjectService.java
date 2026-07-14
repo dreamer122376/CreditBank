@@ -8,6 +8,7 @@ import com.creditbank.mvp.dto.ProjectDetailDTO;
 import com.creditbank.mvp.dto.ProjectListDTO;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.Project;
+import com.creditbank.mvp.entity.Application;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.UserOpLog;
@@ -37,6 +38,10 @@ public class ProjectService {
     public static final int STATUS_APPROVED = 1;  // 已上架
     public static final int STATUS_REJECTED = 2;  // 已驳回
     public static final int STATUS_OFFLINE = 3;   // 已下架
+    public static final int STATUS_IN_REVIEW = 4; // 审核中（申请流程中）
+
+    /** 项目上架认证标准 ID */
+    public static final long PROJECT_UP_STANDARD_ID = 6L;
 
     private static final Map<Integer, String> STATUS_NAME = new HashMap<>();
 
@@ -45,26 +50,28 @@ public class ProjectService {
         STATUS_NAME.put(STATUS_APPROVED, "已上架");
         STATUS_NAME.put(STATUS_REJECTED, "已驳回");
         STATUS_NAME.put(STATUS_OFFLINE, "已下架");
+        STATUS_NAME.put(STATUS_IN_REVIEW, "审核中");
     }
-
-
 
     private final ProjectMapper projectMapper;
     private final OrganizationMapper organizationMapper;
     private final SysUserMapper sysUserMapper;
     private final StudentProjectMapper studentProjectMapper;
     private final UserOpLogMapper userOpLogMapper;
+    private final ApplicationService applicationService;
 
     public ProjectService(ProjectMapper projectMapper,
                           OrganizationMapper organizationMapper,
                           SysUserMapper sysUserMapper,
                           StudentProjectMapper studentProjectMapper,
-                          UserOpLogMapper userOpLogMapper) {
+                          UserOpLogMapper userOpLogMapper,
+                          ApplicationService applicationService) {
         this.projectMapper = projectMapper;
         this.organizationMapper = organizationMapper;
         this.sysUserMapper = sysUserMapper;
         this.studentProjectMapper = studentProjectMapper;
         this.userOpLogMapper = userOpLogMapper;
+        this.applicationService = applicationService;
     }
 
     // ==================== 查询 ====================
@@ -176,7 +183,7 @@ public class ProjectService {
     // ==================== 创建/编辑 ====================
 
     /**
-     * 机构创建项目，初始状态为待审核。
+     * 机构创建项目并提交上架申请。
      */
     @Transactional(rollbackFor = Exception.class)
     public Project create(Project project, SysUser operator) {
@@ -185,31 +192,45 @@ public class ProjectService {
 
         project.setId(null);
         project.setOrgId(operator.getOrgId());
-        project.setStatus(STATUS_PENDING);
+        project.setStatus(STATUS_IN_REVIEW);
         projectMapper.insert(project);
+
+        Application app = new Application();
+        app.setBizType("PROJECT_UP");
+        app.setBizKey(PROJECT_UP_STANDARD_ID);
+        app.setApplicantId(operator.getId());
+        app.setOrgId(operator.getOrgId());
+        app.setFormData(buildProjectFormData(project));
+        Application savedApp = applicationService.submit(app);
+
+        project.setApplicationId(savedApp.getId());
+        projectMapper.updateById(project);
 
         userOpLogMapper.insert(UserOpLog.createLog(
                 operator.getId(), operator.getRealName(), null, null,
                 UserOpLog.MODULE_PROJECT, UserOpLog.ACTION_CREATE,
-                "创建项目：" + project.getName()));
+                "创建项目并提交上架申请：" + project.getName()));
         return getById(project.getId());
     }
 
     /**
-     * 机构编辑项目，只有待审核或已驳回状态可编辑。
+     * 机构编辑项目并重新提交审核。
      */
     @Transactional(rollbackFor = Exception.class)
-    public Project update(Long id, Project update, SysUser operator) {
+    public Project update(Long id, Project update, SysUser operator, boolean cancelStudents) {
         checkOrgAdmin(operator);
         Project project = getById(id);
 
-        // 只能编辑本机构项目
         if (!project.getOrgId().equals(operator.getOrgId())) {
             throw new BizException("只能编辑本机构的项目");
         }
-        // 只有待审核或已驳回可编辑
-        if (project.getStatus() != STATUS_PENDING && project.getStatus() != STATUS_REJECTED) {
-            throw new BizException("当前状态不允许编辑");
+        if (project.getStatus() == STATUS_IN_REVIEW) {
+            throw new BizException("审核中的项目不允许编辑");
+        }
+
+        boolean isInProgress = project.getStatus() == STATUS_APPROVED || project.getStatus() == STATUS_OFFLINE;
+        if (isInProgress && cancelStudents) {
+            cancelEnrolledStudents(id);
         }
 
         if (update.getName() != null) project.setName(update.getName());
@@ -219,14 +240,51 @@ public class ProjectService {
         if (update.getExpertId() != null) project.setExpertId(update.getExpertId());
 
         validateProject(project);
-        project.setStatus(STATUS_PENDING);
+        project.setStatus(STATUS_IN_REVIEW);
         projectMapper.updateById(project);
+
+        if (project.getApplicationId() != null) {
+            applicationService.resubmit(project.getApplicationId(), operator.getId(), buildProjectFormData(project));
+        } else {
+            Application app = new Application();
+            app.setBizType("PROJECT_UP");
+            app.setBizKey(PROJECT_UP_STANDARD_ID);
+            app.setApplicantId(operator.getId());
+            app.setOrgId(operator.getOrgId());
+            app.setFormData(buildProjectFormData(project));
+            Application savedApp = applicationService.submit(app);
+            project.setApplicationId(savedApp.getId());
+            projectMapper.updateById(project);
+        }
 
         userOpLogMapper.insert(UserOpLog.createLog(
                 operator.getId(), operator.getRealName(), null, null,
                 UserOpLog.MODULE_PROJECT, UserOpLog.ACTION_UPDATE,
-                "编辑项目：" + project.getName()));
+                "编辑项目并重新提交审核：" + project.getName()));
         return getById(project.getId());
+    }
+
+    private String buildProjectFormData(Project project) {
+        return "{\"projectId\":" + project.getId() +
+                ",\"standardId\":" + PROJECT_UP_STANDARD_ID +
+                ",\"projectName\":\"" + escapeJson(project.getName()) + "\"}";
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private void cancelEnrolledStudents(Long projectId) {
+        List<StudentProject> enrollments = studentProjectMapper.selectList(
+                new LambdaQueryWrapper<StudentProject>()
+                        .eq(StudentProject::getProjectId, projectId)
+                        .ne(StudentProject::getStatus, StudentProject.STATUS_COMPLETED)
+                        .ne(StudentProject::getStatus, StudentProject.STATUS_CANCELLED));
+        for (StudentProject e : enrollments) {
+            e.setStatus(StudentProject.STATUS_CANCELLED);
+            studentProjectMapper.updateById(e);
+        }
     }
 
     // ==================== 审核/上下架 ====================

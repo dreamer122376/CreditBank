@@ -31,11 +31,14 @@ public class UserOpLog {
     public static final String ACTION_CREATE = "CREATE";
     public static final String ACTION_DELETE = "DELETE";
     public static final String ACTION_PROJECT_AUDIT = "PROJECT_AUDIT";
+    public static final String ACTION_PROJECT_APPROVE = "PROJECT_APPROVE";
+    public static final String ACTION_PROJECT_REJECT = "PROJECT_REJECT";
     public static final String ACTION_PROJECT_OFFLINE = "PROJECT_OFFLINE";
     public static final String ACTION_CAMPAIGN_ENROLL = "CAMPAIGN_ENROLL";
     public static final String ACTION_CAMPAIGN_LEAVE = "CAMPAIGN_LEAVE";
     public static final String ACTION_PROJECT_ENROLL = "PROJECT_ENROLL";
     public static final String ACTION_PROJECT_LEAVE = "PROJECT_LEAVE";
+    public static final String ACTION_PROJECT_SUBMIT = "PROJECT_SUBMIT";
     public static final String ACTION_EARN = "EARN";
 
     @TableId(type = IdType.AUTO)

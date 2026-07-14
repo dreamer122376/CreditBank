@@ -387,7 +387,7 @@ class UserServiceTest {
         when(page.getRecords()).thenReturn(Arrays.asList(log2, log1));
         when(userOpLogMapper.selectPage(any(), any())).thenReturn(page);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<UserOpLog> result = userService.getOpLogs(1, 10);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<UserOpLog> result = userService.getOpLogs(1, 10, null, null, null, null, null, null);
 
         assertNotNull(result);
         assertEquals(2, result.getRecords().size());

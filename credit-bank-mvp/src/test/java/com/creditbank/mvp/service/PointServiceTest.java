@@ -68,8 +68,8 @@ class PointServiceTest {
     }
 
     @Test
-    @DisplayName("login - 账户已冻结")
-    void testLoginAccountFrozen() {
+    @DisplayName("login - 冻结用户也能登录")
+    void testLoginFrozenUserCanLogin() {
         SysUser user = new SysUser();
         user.setId(1L);
         user.setUsername("test");
@@ -77,11 +77,14 @@ class PointServiceTest {
         user.setStatus(0);
 
         when(sysUserMapper.selectOne(any())).thenReturn(user);
+        when(passwordEncoder.matches("password", "encryptedPassword")).thenReturn(true);
+        when(sysUserMapper.updateById(any())).thenReturn(1);
 
-        BizException exception = assertThrows(BizException.class, () ->
-                pointService.login("test", "password"));
-        assertEquals("账户已被冻结，请联系管理员", exception.getMessage());
-        System.out.println("✓ 测试通过: 账户冻结时正确抛出异常 - " + exception.getMessage());
+        SysUser result = pointService.login("test", "password");
+
+        assertNotNull(result);
+        assertEquals(0, result.getStatus());
+        System.out.println("✓ 测试通过: 冻结用户可以登录（权限由拦截器控制）- 用户ID=" + result.getId() + ", 状态=" + result.getStatus());
     }
 
     @Test

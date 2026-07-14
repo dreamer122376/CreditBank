@@ -53,7 +53,7 @@ public class SignInService {
         long todaySignInCount = transactionLogMapper.selectCount(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getUserId, userId)
-                        .eq(TransactionLog::getBizType, "REWARD")
+                        .eq(TransactionLog::getBizType, "DAILY")
                         .eq(TransactionLog::getRelatedRuleId, signInRuleId)
                         .ge(TransactionLog::getCreatedAt, todayStart)
                         .le(TransactionLog::getCreatedAt, todayEnd));
@@ -72,7 +72,7 @@ public class SignInService {
         txn.setUserId(userId);
         txn.setAmount(creditValue);
         txn.setBalanceAfter(newBalance);
-        txn.setBizType("REWARD");
+        txn.setBizType("DAILY");
         txn.setRelatedRuleId(rule.getId());
         txn.setDescription("签到打卡");
         transactionLogMapper.insert(txn);
@@ -107,7 +107,7 @@ public class SignInService {
         long todaySignInCount = transactionLogMapper.selectCount(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getUserId, userId)
-                        .eq(TransactionLog::getBizType, "REWARD")
+                        .eq(TransactionLog::getBizType, "DAILY")
                         .eq(TransactionLog::getRelatedRuleId, signInRuleId)
                         .ge(TransactionLog::getCreatedAt, todayStart)
                         .le(TransactionLog::getCreatedAt, todayEnd));
@@ -132,7 +132,7 @@ public class SignInService {
         return transactionLogMapper.selectList(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getUserId, userId)
-                        .eq(TransactionLog::getBizType, "REWARD")
+                        .eq(TransactionLog::getBizType, "DAILY")
                         .eq(TransactionLog::getRelatedRuleId, signInRuleId)
                         .orderByDesc(TransactionLog::getCreatedAt)
                         .last("LIMIT " + limit));
@@ -150,7 +150,7 @@ public class SignInService {
         List<TransactionLog> signInRecords = transactionLogMapper.selectList(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getUserId, userId)
-                        .eq(TransactionLog::getBizType, "REWARD")
+                        .eq(TransactionLog::getBizType, "DAILY")
                         .eq(TransactionLog::getRelatedRuleId, signInRuleId)
                         .ge(TransactionLog::getCreatedAt, thirtyDaysAgo)
                         .orderByDesc(TransactionLog::getCreatedAt));

@@ -69,8 +69,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         } else {
             if (!passwordEncoder.matches("123456", existing.getPassword())) {
                 logger.info("更新管理员密码为BCrypt加密...");
-                existing.setPassword(passwordEncoder.encode("123456"));
-                sysUserMapper.updateById(existing);
+                sysUserMapper.update(
+                        null,
+                        new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<SysUser>()
+                                .eq(SysUser::getId, existing.getId())
+                                .set(SysUser::getPassword, passwordEncoder.encode("123456"))
+                );
             }
         }
         ensureAllUserPasswordsEncrypted();
@@ -81,8 +85,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         int updatedCount = 0;
         for (SysUser user : users) {
             if (!passwordEncoder.matches("123456", user.getPassword())) {
-                user.setPassword(passwordEncoder.encode("123456"));
-                sysUserMapper.updateById(user);
+                sysUserMapper.update(
+                        null,
+                        new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<SysUser>()
+                                .eq(SysUser::getId, user.getId())
+                                .set(SysUser::getPassword, passwordEncoder.encode("123456"))
+                );
                 updatedCount++;
             }
         }

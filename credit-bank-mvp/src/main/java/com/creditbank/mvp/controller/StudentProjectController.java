@@ -52,6 +52,25 @@ public class StudentProjectController {
         return Result.ok();
     }
 
+    /** 学生提交完成申请 */
+    @PostMapping("/{id}/submit")
+    public Result<Void> submitForReview(@PathVariable Long id,
+                                        @RequestHeader("X-Operator-Id") Long studentId) {
+        studentProjectService.submitForReview(studentId, id);
+        return Result.ok();
+    }
+
+    /** 机构/管理员审核完成申请：通过/驳回 */
+    @PostMapping("/{id}/audit")
+    public Result<Void> auditCompletion(@PathVariable Long id,
+                                        @RequestParam boolean approve,
+                                        @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        String newStatus = approve ? StudentProject.STATUS_COMPLETED : StudentProject.STATUS_IN_PROGRESS;
+        studentProjectService.updateEnrollmentStatus(id, newStatus, operator);
+        return Result.ok();
+    }
+
     @GetMapping("/project/{projectId}/students")
     public Result<List<SysUser>> getStudentsByProject(@PathVariable Long projectId) {
         return Result.ok(studentProjectService.getStudentsByProjectId(projectId));

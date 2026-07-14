@@ -9,6 +9,12 @@ import java.time.LocalDateTime;
 @TableName("student_project")
 public class StudentProject {
 
+    public static final String STATUS_ENROLLED = "已报名";
+    public static final String STATUS_IN_PROGRESS = "进行中";
+    public static final String STATUS_PENDING_REVIEW = "待审核";
+    public static final String STATUS_COMPLETED = "已完成";
+    public static final String STATUS_CANCELLED = "已取消";
+
     @TableId(type = IdType.AUTO)
     private Long id;
 

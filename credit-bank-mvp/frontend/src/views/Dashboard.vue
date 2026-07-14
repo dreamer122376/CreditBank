@@ -85,15 +85,16 @@
           <div class="info-card">
             <div class="card-header">
               <span class="card-title">最近交易</span>
+              <span class="card-more" @click="router.push('/transactions')">全部></span>
             </div>
             <div class="list-content">
-              <div class="list-item" v-for="item in recentTransactions" :key="item.id">
+              <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
                 <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
                 <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
                   {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
                 </span>
               </div>
-              <div v-if="recentTransactions.length === 0" class="empty-tip">暂无交易记录</div>
+              <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
             </div>
           </div>
         </div>
@@ -122,15 +123,16 @@
         <div class="info-card">
           <div class="card-header">
             <span class="card-title">最近交易</span>
+            <span class="card-more" @click="router.push('/transactions')">全部></span>
           </div>
           <div class="list-content">
-            <div class="list-item" v-for="item in recentTransactions" :key="item.id">
+            <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
               <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
               <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
                 {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
               </span>
             </div>
-            <div v-if="recentTransactions.length === 0" class="empty-tip">暂无交易记录</div>
+            <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
           </div>
         </div>
       </div>
@@ -140,6 +142,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
 import { getStatsSummary, getTodoList, getRecentTransactions, getPointTrend } from '@/api/stats'
@@ -148,6 +151,7 @@ import { signIn, getSignInStatus } from '@/api/signin'
 import * as echarts from 'echarts'
 
 const { currentUser } = useAuth()
+const router = useRouter()
 const summary = ref(null)
 const todoList = ref([])
 const recentTransactions = ref([])
@@ -275,9 +279,13 @@ function formatNumber(num) {
 }
 
 function getBizTypeName(bizType) {
-  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作' }
+  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作', DAILY: '每日打卡' }
   return map[bizType] || bizType
 }
+
+const filteredTransactions = computed(() => {
+  return recentTransactions.value.filter(item => item.bizType !== 'DAILY')
+})
 
 onMounted(async () => {
   await loadAllData()
@@ -347,19 +355,22 @@ function initChart() {
 
 function updateChart() {
   if (!chartInstance || !pointTrend.value.length) return
+  chartInstance.clear()
   chartInstance.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 58, 95, 0.95)', borderColor: '#1e3a5f', textStyle: { color: '#fff' } },
-    grid: { left: '4%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
-    xAxis: { type: 'category', boundaryGap: false, data: pointTrend.value.map(i => i.date), axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280', fontSize: 11, rotate: trendDays.value === 30 ? 30 : 0 } },
-    yAxis: { type: 'value', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280', fontSize: 11 } },
-    series: [{
-      type: 'line', smooth: true, data: pointTrend.value.map(i => i.balance),
-      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(30, 58, 95, 0.15)' }, { offset: 1, color: 'rgba(30, 58, 95, 0)' }]) },
-      lineStyle: { color: '#1e3a5f', width: 2 },
-      itemStyle: { color: '#1e3a5f' },
-      symbol: 'circle', symbolSize: 5
-    }]
-  })
+      animationDurationUpdate: 400,
+      animationEasingUpdate: 'cubicInOut',
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(59, 130, 246, 0.95)', borderColor: '#3b82f6', textStyle: { color: '#fff' } },
+      grid: { left: '4%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: pointTrend.value.map(i => i.date), axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280', fontSize: 11, rotate: trendDays.value === 30 ? 30 : 0 } },
+      yAxis: { type: 'value', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280', fontSize: 11 } },
+      series: [{
+        type: 'line', smooth: true, data: pointTrend.value.map(i => i.balance),
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59, 130, 246, 0.15)' }, { offset: 1, color: 'rgba(59, 130, 246, 0)' }]) },
+        lineStyle: { color: '#3b82f6', width: 2 },
+        itemStyle: { color: '#3b82f6' },
+        symbol: 'circle', symbolSize: 5
+      }]
+    })
 }
 </script>
 
@@ -628,6 +639,12 @@ function updateChart() {
   font-size: 15px;
   font-weight: 600;
   color: #1e3a5f;
+}
+
+.card-more {
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
 }
 
 .card-tabs {

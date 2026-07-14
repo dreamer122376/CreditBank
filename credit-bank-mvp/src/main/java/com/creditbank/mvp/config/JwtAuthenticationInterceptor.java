@@ -3,19 +3,15 @@ package com.creditbank.mvp.config;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.util.JwtUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.HashMap;
-import java.util.Map;
 
 public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
     private final SysUserMapper sysUserMapper;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static final String CURRENT_USER_ID = "currentUserId";
     public static final String CURRENT_USER_ROLE = "currentUserRole";
@@ -51,13 +47,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            response.setStatus(401);
-            response.setContentType("application/json;charset=UTF-8");
-            Map<String, Object> body = new HashMap<>();
-            body.put("code", 401);
-            body.put("message", "请先登录");
-            body.put("data", null);
-            response.getWriter().write(objectMapper.writeValueAsString(body));
+            ResponseUtil.writeError(response, 401, "请先登录");
             return false;
         }
 
@@ -72,13 +62,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
             SysUser user = sysUserMapper.selectById(userId);
             if (user == null) {
-                response.setStatus(401);
-                response.setContentType("application/json;charset=UTF-8");
-                Map<String, Object> body = new HashMap<>();
-                body.put("code", 401);
-                body.put("message", "用户不存在");
-                body.put("data", null);
-                response.getWriter().write(objectMapper.writeValueAsString(body));
+                ResponseUtil.writeError(response, 401, "用户不存在");
                 return false;
             }
 
@@ -88,13 +72,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             request.setAttribute("frozen", user.getStatus() != null && user.getStatus() == 0);
 
         } catch (Exception e) {
-            response.setStatus(401);
-            response.setContentType("application/json;charset=UTF-8");
-            Map<String, Object> body = new HashMap<>();
-            body.put("code", 401);
-            body.put("message", "登录已失效，请重新登录");
-            body.put("data", null);
-            response.getWriter().write(objectMapper.writeValueAsString(body));
+            ResponseUtil.writeError(response, 401, "登录已失效，请重新登录");
             return false;
         }
 

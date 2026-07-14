@@ -40,7 +40,7 @@ public class SignInController {
         return Result.ok(signInService.getSignInStatus(userId));
     }
 
-    @GetMapping("/signin/history")
+    @GetMapping("/history")
     @Operation(summary = "获取签到历史", description = "获取当前用户最近的签到记录")
     public Result<Map<String, Object>> getSignInHistory(@RequestParam(defaultValue = "30") int limit) {
         Long userId = CurrentUserUtil.getCurrentUserId();

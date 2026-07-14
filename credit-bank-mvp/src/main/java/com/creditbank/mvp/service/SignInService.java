@@ -52,10 +52,11 @@ public class SignInService {
             throw new BizException("今日已签到");
         }
 
-        Long signInRuleId = getSignInRuleId();
-        if (signInRuleId == null) {
+        CreditRule signInRule = getSignInRule();
+        if (signInRule == null) {
             throw new BizException("签到规则不存在或已停用");
         }
+        Long signInRuleId = signInRule.getId();
 
         LocalDate today = LocalDate.now();
         LocalDateTime todayStart = today.atStartOfDay();
@@ -73,8 +74,7 @@ public class SignInService {
             throw new BizException("今日已签到");
         }
 
-        CreditRule rule = creditRuleMapper.selectById(signInRuleId);
-        int creditValue = rule.getCreditValue();
+        int creditValue = signInRule.getCreditValue();
         int newBalance = user.getBalance() + creditValue;
         user.setBalance(newBalance);
         sysUserMapper.updateById(user);
@@ -84,7 +84,7 @@ public class SignInService {
         txn.setAmount(creditValue);
         txn.setBalanceAfter(newBalance);
         txn.setBizType("DAILY");
-        txn.setRelatedRuleId(rule.getId());
+        txn.setRelatedRuleId(signInRuleId);
         txn.setDescription("签到打卡");
         transactionLogMapper.insert(txn);
 
@@ -116,10 +116,11 @@ public class SignInService {
         Object cachedToday = redisService.get(todayKey);
         boolean hasSignedIn;
 
-        Long signInRuleId = getSignInRuleId();
-        if (signInRuleId == null) {
+        CreditRule signInRule = getSignInRule();
+        if (signInRule == null) {
             throw new BizException("签到规则不存在或已停用");
         }
+        Long signInRuleId = signInRule.getId();
 
         if (cachedToday instanceof Boolean) {
             hasSignedIn = (Boolean) cachedToday;
@@ -157,16 +158,17 @@ public class SignInService {
         result.put("hasSignedIn", hasSignedIn);
         result.put("streak", streak);
         result.put("currentBalance", user.getBalance());
-        result.put("signInCredit", getSignInCreditValue());
+        result.put("signInCredit", signInRule.getCreditValue());
 
         return result;
     }
 
     public List<TransactionLog> getSignInHistory(Long userId, int limit) {
-        Long signInRuleId = getSignInRuleId();
-        if (signInRuleId == null) {
+        CreditRule signInRule = getSignInRule();
+        if (signInRule == null) {
             return Collections.emptyList();
         }
+        Long signInRuleId = signInRule.getId();
         
         return transactionLogMapper.selectList(
                 new LambdaQueryWrapper<TransactionLog>()
@@ -178,10 +180,11 @@ public class SignInService {
     }
 
     private int calculateStreak(Long userId) {
-        Long signInRuleId = getSignInRuleId();
-        if (signInRuleId == null) {
+        CreditRule signInRule = getSignInRule();
+        if (signInRule == null) {
             return 0;
         }
+        Long signInRuleId = signInRule.getId();
 
         LocalDate today = LocalDate.now();
         LocalDateTime thirtyDaysAgo = today.minusDays(365).atStartOfDay();
@@ -209,19 +212,10 @@ public class SignInService {
         return streak;
     }
 
-    private Long getSignInRuleId() {
-        CreditRule rule = creditRuleMapper.selectOne(
+    private CreditRule getSignInRule() {
+        return creditRuleMapper.selectOne(
                 new LambdaQueryWrapper<CreditRule>()
                         .eq(CreditRule::getEventCode, SIGN_IN_EVENT_CODE)
                         .eq(CreditRule::getIsEnabled, 1));
-        return rule != null ? rule.getId() : null;
-    }
-
-    private int getSignInCreditValue() {
-        CreditRule rule = creditRuleMapper.selectOne(
-                new LambdaQueryWrapper<CreditRule>()
-                        .eq(CreditRule::getEventCode, SIGN_IN_EVENT_CODE)
-                        .eq(CreditRule::getIsEnabled, 1));
-        return rule != null ? rule.getCreditValue() : 10;
     }
 }

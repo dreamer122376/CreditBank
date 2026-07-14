@@ -1,18 +1,14 @@
 package com.creditbank.mvp.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class RoleAuthorizationInterceptor implements HandlerInterceptor {
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Map<String, List<String>> ADMIN_ONLY_PATHS = Map.ofEntries(
             Map.entry("/api/users/create", List.of("POST")),
@@ -111,24 +107,12 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
         }
 
         if (isAdminOnlyPath(path, method) && !"admin".equals(role)) {
-            response.setStatus(403);
-            response.setContentType("application/json;charset=UTF-8");
-            Map<String, Object> body = new HashMap<>();
-            body.put("code", 403);
-            body.put("message", "无权限，仅管理员可操作");
-            body.put("data", null);
-            response.getWriter().write(objectMapper.writeValueAsString(body));
+            ResponseUtil.writeError(response, 403, "无权限，仅管理员可操作");
             return false;
         }
 
         if (isAdminOrOrgAdminPath(path, method) && !"admin".equals(role) && !"org_admin".equals(role)) {
-            response.setStatus(403);
-            response.setContentType("application/json;charset=UTF-8");
-            Map<String, Object> body = new HashMap<>();
-            body.put("code", 403);
-            body.put("message", "无权限，仅管理员或机构管理员可操作");
-            body.put("data", null);
-            response.getWriter().write(objectMapper.writeValueAsString(body));
+            ResponseUtil.writeError(response, 403, "无权限，仅管理员或机构管理员可操作");
             return false;
         }
 

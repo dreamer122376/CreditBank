@@ -65,6 +65,7 @@ public class ApplicationService {
     private final CertStandardMapper certStandardMapper;
     private final CertAuditFlowMapper certAuditFlowMapper;
     private final StudentCertService studentCertService;
+    private final ExpertCertService expertCertService;
 
     public ApplicationService(ApplicationMapper applicationMapper,
                               SysUserMapper sysUserMapper,
@@ -72,7 +73,8 @@ public class ApplicationService {
                               ExpertCertMapper expertCertMapper,
                               CertStandardMapper certStandardMapper,
                               CertAuditFlowMapper certAuditFlowMapper,
-                              StudentCertService studentCertService) {
+                              StudentCertService studentCertService,
+                              ExpertCertService expertCertService) {
         this.applicationMapper = applicationMapper;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
@@ -80,6 +82,7 @@ public class ApplicationService {
         this.certStandardMapper = certStandardMapper;
         this.certAuditFlowMapper = certAuditFlowMapper;
         this.studentCertService = studentCertService;
+        this.expertCertService = expertCertService;
     }
 
     // ==================== 查询 ====================
@@ -237,16 +240,20 @@ public class ApplicationService {
             if (!"expert".equals(applicant.getRole())) {
                 throw new BizException("只有专家账号可以申请领域认证");
             }
-            if (hasValidCert(app.getApplicantId(), standardId)) {
-                throw new BizException("你已持有该认证标准的评审资质，无需重复申请");
+            if (expertCertService.hasCert(app.getApplicantId(), standardId)) {
+                throw new BizException("你已持有该认证标准的有效评审资质，无需重复申请");
             }
-            Long pending = applicationMapper.selectCount(
+            // 同一标准只允许一条在审申请；不同标准可并行申请
+            List<Application> pendingApps = applicationMapper.selectList(
                     new LambdaQueryWrapper<Application>()
                             .eq(Application::getBizType, "EXPERT_CERT")
                             .eq(Application::getApplicantId, app.getApplicantId())
                             .in(Application::getCurrentStatus, STATUS_IN_REVIEW, STATUS_LEGACY_IN_REVIEW));
-            if (pending > 0) {
-                throw new BizException("你有一条认证申请正在审核中，请等待结果");
+            boolean samePending = pendingApps.stream()
+                    .filter(p -> app.getId() == null || !p.getId().equals(app.getId()))
+                    .anyMatch(p -> standardId.equals(readStandardIdQuiet(p.getFormData())));
+            if (samePending) {
+                throw new BizException("该认证标准已有一条申请正在审核中，请等待结果");
             }
         }
         return standard;
@@ -326,7 +333,7 @@ public class ApplicationService {
         if (standardId == null) {
             throw new BizException("申请数据缺少认证标准，无法发证");
         }
-        if (hasValidCert(app.getApplicantId(), standardId)) {
+        if (expertCertService.hasCert(app.getApplicantId(), standardId)) {
             return; // 已持证（并发或重复审批），幂等处理
         }
         CertStandard standard = certStandardMapper.selectById(standardId);
@@ -335,19 +342,18 @@ public class ApplicationService {
             fieldName = standard != null ? standard.getStandardName() : ("认证标准#" + standardId);
         }
 
+        LocalDateTime now = LocalDateTime.now();
         ExpertCert cert = new ExpertCert();
         cert.setExpertId(app.getApplicantId());
         cert.setCertStandardId(standardId);
         cert.setFieldName(fieldName);
         cert.setApplicationId(app.getId());
         cert.setStatus(1);
+        cert.setIssuedAt(now);
+        cert.setValidUntil(now.plusYears(ExpertCertService.VALID_YEARS));
         expertCertMapper.insert(cert);
 
-        SysUser expert = sysUserMapper.selectById(app.getApplicantId());
-        if (expert != null) {
-            expert.setExpertField(fieldName);
-            sysUserMapper.updateById(expert);
-        }
+        expertCertService.syncExpertField(app.getApplicantId());
     }
 
     // ==================== DTO 组装 ====================
@@ -516,14 +522,6 @@ public class ApplicationService {
 
     private boolean isCertBiz(String bizType) {
         return CERT_BIZ.contains(bizType);
-    }
-
-    private boolean hasValidCert(Long expertId, Long certStandardId) {
-        return expertCertMapper.selectCount(
-                new LambdaQueryWrapper<ExpertCert>()
-                        .eq(ExpertCert::getExpertId, expertId)
-                        .eq(ExpertCert::getCertStandardId, certStandardId)
-                        .eq(ExpertCert::getStatus, 1)) > 0;
     }
 
     /** 兼容两种键名：EXPERT_CERT 用 certStandardId，CERT_APPLY 历史数据用 standardId */

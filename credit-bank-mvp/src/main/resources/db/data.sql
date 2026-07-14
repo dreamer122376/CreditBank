@@ -122,7 +122,7 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 (7, 8, 200, 1250, 'REWARD', 3, '智能教室系统参与', DATE_ADD(NOW(), INTERVAL -8 DAY)),
 (8, 2, -200, 4600, 'ATTACHMENT', 7, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -8 DAY)),
 -- 6天前：通用 REWARD（student_1 签到打卡 +10，650→660）
-(9, 6, 10, 660, 'REWARD', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -6 DAY)),
+(9, 6, 10, 660, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -6 DAY)),
 -- 5天前：机构2专属 REWARD（student_2 工程模拟平台 +250，330→580）→ ATTACHMENT（org_admin_2 扣减250，8000→7750）
 (10, 7, 250, 580, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -5 DAY)),
 (11, 3, -250, 7750, 'ATTACHMENT', 10, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -5 DAY)),

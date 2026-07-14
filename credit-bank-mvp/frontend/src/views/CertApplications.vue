@@ -1,14 +1,28 @@
 <template>
   <div class="cert-applications">
+    <div class="stat-row">
+      <div v-for="item in statItems" :key="item.key"
+           class="stat-card" :class="{ active: statFilter === item.key }"
+           @click="toggleStat(item.key)">
+        <div class="stat-value" :style="{ color: item.color }">{{ item.count }}</div>
+        <div class="stat-label">{{ item.label }}</div>
+      </div>
+    </div>
+
     <el-card>
       <template #header>
         <div class="card-header">
           <span>证书申请审核</span>
-          <el-tag type="info" effect="plain">学生认证 / 专家认证</el-tag>
+          <div class="header-right">
+            <el-tag v-if="statFilter" closable type="primary" effect="plain" @close="statFilter = null">
+              筛选：{{ statItems.find(item => item.key === statFilter)?.label }}
+            </el-tag>
+            <el-tag type="info" effect="plain">学生认证 / 专家认证</el-tag>
+          </div>
         </div>
       </template>
 
-      <el-table :data="apps" border style="width: 100%;">
+      <el-table :data="filteredApps" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="bizTypeName" label="申请类型" width="140" />
         <el-table-column label="认证标准" min-width="180">
@@ -43,7 +57,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!apps.length" description="暂无证书申请" />
+      <el-empty v-if="!filteredApps.length" :description="statFilter ? '当前筛选条件下暂无申请' : '暂无证书申请'" />
     </el-card>
 
     <el-dialog v-model="detailVisible" title="证书申请详情" width="760px">
@@ -133,6 +147,30 @@ const { currentUser } = useAuth()
 
 const apps = ref([])
 const standards = ref([])
+const statFilter = ref(null)
+
+const IN_REVIEW_STATUSES = [1, 2]
+
+const statItems = computed(() => [
+  { key: 'mine', label: '待我审核', color: '#e8590c', count: apps.value.filter(app => app.canAudit).length },
+  { key: 'inReview', label: '审核中', color: '#f08c00', count: apps.value.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus)).length },
+  { key: 'approved', label: '已通过', color: '#2f9e44', count: apps.value.filter(app => app.currentStatus === 3).length },
+  { key: 'rejected', label: '已驳回', color: '#c0392b', count: apps.value.filter(app => app.currentStatus === 4).length }
+])
+
+const filteredApps = computed(() => {
+  switch (statFilter.value) {
+    case 'mine': return apps.value.filter(app => app.canAudit)
+    case 'inReview': return apps.value.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus))
+    case 'approved': return apps.value.filter(app => app.currentStatus === 3)
+    case 'rejected': return apps.value.filter(app => app.currentStatus === 4)
+    default: return apps.value
+  }
+})
+
+function toggleStat(key) {
+  statFilter.value = statFilter.value === key ? null : key
+}
 const rejectVisible = ref(false)
 const rejectReason = ref('')
 const rejectTarget = ref(null)
@@ -255,6 +293,50 @@ function downloadUrl(att) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.stat-card:hover {
+  border-color: #adb5bd;
+}
+
+.stat-card.active {
+  border-color: #3b5bdb;
+  box-shadow: 0 0 0 2px rgba(59, 91, 219, 0.12);
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  color: #868e96;
+  font-size: 13px;
+  margin-top: 2px;
 }
 
 .att-row {

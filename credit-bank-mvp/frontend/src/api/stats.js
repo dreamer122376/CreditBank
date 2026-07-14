@@ -12,9 +12,9 @@ export function getTodoList(role, userId, limit = 10) {
   })
 }
 
-export function getRecentTransactions(userId, limit = 5) {
+export function getRecentTransactions(userId, role, limit = 5) {
   return request.get('/stats/recent-transactions', {
-    params: { userId, limit }
+    params: { userId, role, limit }
   })
 }
 

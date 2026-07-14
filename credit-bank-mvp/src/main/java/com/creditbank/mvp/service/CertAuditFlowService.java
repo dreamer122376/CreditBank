@@ -23,13 +23,16 @@ public class CertAuditFlowService {
     private final CertAuditFlowMapper certAuditFlowMapper;
     private final CertStandardMapper certStandardMapper;
     private final SysUserMapper sysUserMapper;
+    private final ExpertCertService expertCertService;
 
     public CertAuditFlowService(CertAuditFlowMapper certAuditFlowMapper,
                                 CertStandardMapper certStandardMapper,
-                                SysUserMapper sysUserMapper) {
+                                SysUserMapper sysUserMapper,
+                                ExpertCertService expertCertService) {
         this.certAuditFlowMapper = certAuditFlowMapper;
         this.certStandardMapper = certStandardMapper;
         this.sysUserMapper = sysUserMapper;
+        this.expertCertService = expertCertService;
     }
 
     /** 查询某认证标准的完整审批链（按链表顺序排列） */
@@ -89,9 +92,17 @@ public class CertAuditFlowService {
         if (auditorIds.size() != nodes.size()) {
             throw new BizException("每个流程节点必须指定审核人");
         }
+        // 学生认证类标准：专家审核人必须持有本标准的有效评审资质
+        // （专家认证类标准本身是发资质的入口，不做此校验，否则会循环依赖无人可审）
+        boolean requireExpertCert = "student".equals(standard.getTargetRole());
         for (SysUser auditor : sysUserMapper.selectBatchIds(auditorIds)) {
             if (auditor.getStatus() == null || auditor.getStatus() == 0) {
                 throw new BizException("审核人 " + auditor.getRealName() + " 已被冻结，不能作为审批人");
+            }
+            if (requireExpertCert && "expert".equals(auditor.getRole())
+                    && !expertCertService.hasCert(auditor.getId(), certStandardId)) {
+                throw new BizException("专家 " + auditor.getRealName()
+                        + " 未持有该认证标准的有效评审资质，不能作为审核人");
             }
         }
 

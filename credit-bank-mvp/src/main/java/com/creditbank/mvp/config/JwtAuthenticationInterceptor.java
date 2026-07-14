@@ -37,6 +37,14 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
                 || path.equals("/api/student-cert/verify")) {
             return true;
         }
+        // 文件预览/下载/查看由浏览器直接打开（window.open / <img>），带不上 Authorization 头；
+        // 文件名为随机串且 /uploads/** 本就公开，放行不会扩大暴露面
+        if ("GET".equals(request.getMethod())
+                && (path.startsWith("/api/files/preview/")
+                || path.startsWith("/api/files/download/")
+                || path.startsWith("/api/files/view/"))) {
+            return true;
+        }
         if (!path.startsWith("/api/")) {
             return true;
         }

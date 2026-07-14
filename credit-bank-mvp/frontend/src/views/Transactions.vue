@@ -22,6 +22,7 @@
               <el-option label="积分兑换" value="EXCHANGE" />
               <el-option label="报名项目" value="ENROLL" />
               <el-option label="撤销记录" value="REFUND" />
+              <el-option label="每日打卡" value="DAILY" />
             </el-select>
           </el-form-item>
           <el-form-item label="时间范围">
@@ -153,7 +154,8 @@ const BIZ_TYPE_MAP = {
   ENROLL: { name: '报名项目', type: 'info' },
   REFUND: { name: '撤销记录', type: 'danger' },
   ATTACHMENT: { name: '附加流水', type: 'primary' },
-  UPDATE_ADJUST: { name: '更新补差', type: 'info' }
+  UPDATE_ADJUST: { name: '更新补差', type: 'info' },
+  DAILY: { name: '每日打卡', type: 'success' }
 }
 
 const showUserIdFilter = computed(() => {

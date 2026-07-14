@@ -85,15 +85,16 @@
           <div class="info-card">
             <div class="card-header">
               <span class="card-title">最近交易</span>
+              <span class="card-more" @click="router.push('/transactions')">全部></span>
             </div>
             <div class="list-content">
-              <div class="list-item" v-for="item in recentTransactions" :key="item.id">
+              <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
                 <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
                 <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
                   {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
                 </span>
               </div>
-              <div v-if="recentTransactions.length === 0" class="empty-tip">暂无交易记录</div>
+              <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
             </div>
           </div>
         </div>
@@ -122,15 +123,16 @@
         <div class="info-card">
           <div class="card-header">
             <span class="card-title">最近交易</span>
+            <span class="card-more" @click="router.push('/transactions')">全部></span>
           </div>
           <div class="list-content">
-            <div class="list-item" v-for="item in recentTransactions" :key="item.id">
-              <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
+            <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
+              <span class="item-name">{{ item.userName ? item.userName + ' · ' : '' }}{{ getBizTypeName(item.bizType) }}</span>
               <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
                 {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
               </span>
             </div>
-            <div v-if="recentTransactions.length === 0" class="empty-tip">暂无交易记录</div>
+            <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
           </div>
         </div>
       </div>
@@ -140,6 +142,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
 import { getStatsSummary, getTodoList, getRecentTransactions, getPointTrend } from '@/api/stats'
@@ -148,6 +151,7 @@ import { signIn, getSignInStatus } from '@/api/signin'
 import * as echarts from 'echarts'
 
 const { currentUser } = useAuth()
+const router = useRouter()
 const summary = ref(null)
 const todoList = ref([])
 const recentTransactions = ref([])
@@ -275,9 +279,13 @@ function formatNumber(num) {
 }
 
 function getBizTypeName(bizType) {
-  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作' }
+  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作', DAILY: '每日打卡' }
   return map[bizType] || bizType
 }
+
+const filteredTransactions = computed(() => {
+  return recentTransactions.value.filter(item => item.bizType !== 'DAILY')
+})
 
 onMounted(async () => {
   await loadAllData()
@@ -293,7 +301,7 @@ async function loadAllData() {
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
-    const promises = [getStatsSummary(role, userId), getTodoList(role, userId, 5), getRecentTransactions(userId, 5), userId ? getProfile(userId) : Promise.resolve(null)]
+    const promises = [getStatsSummary(role, userId), getTodoList(role, userId, 5), getRecentTransactions(userId, role, role === 'admin' ? 10 : 5), userId ? getProfile(userId) : Promise.resolve(null)]
     if (role === 'student' && userId) promises.push(getPointTrend(userId, trendDays.value), getSignInStatus())
     const results = await Promise.all(promises)
     summary.value = results[0]
@@ -631,6 +639,12 @@ function updateChart() {
   font-size: 15px;
   font-weight: 600;
   color: #1e3a5f;
+}
+
+.card-more {
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
 }
 
 .card-tabs {

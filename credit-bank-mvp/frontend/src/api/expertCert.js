@@ -11,3 +11,7 @@ export function getCertsByExpert(expertId) {
 export function getCertifiedExperts(certStandardId) {
   return request.get('/expert-cert/certified-experts', { params: { certStandardId } })
 }
+
+export function revokeExpertCert(id, role, reason) {
+  return request.post(`/expert-cert/${id}/revoke`, { role, reason })
+}

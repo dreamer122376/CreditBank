@@ -20,7 +20,6 @@
             </el-tag>
           </div>
           <div>
-            <el-button size="small" @click="addNode">+ 添加节点</el-button>
             <el-button size="small" @click="goBack">返回列表</el-button>
           </div>
         </div>
@@ -33,47 +32,47 @@
       <div v-else>
         <div class="flow-tip">
           <el-icon><InfoFilled /></el-icon>
-          审批流程为链式结构：从第 1 步开始，每步通过后自动流转到下一步；最后一步通过即代表整个认证审批通过。
+          <span>
+            审批流程为链式结构：每步通过后自动流转到下一步，最后一步通过即整体通过。
+            <template v-if="requireExpertCert">专家候选人已过滤为持有本标准有效评审资质者。</template>
+          </span>
         </div>
 
-        <el-table :data="flowNodes" border style="width: 100%;">
-          <el-table-column label="步骤" width="70" align="center">
-            <template #default="scope">
-              <span class="step-num">{{ scope.$index + 1 }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="审核人" min-width="200">
-            <template #default="scope">
-              <el-select v-model="scope.row.auditorId" placeholder="选择审核人" filterable style="width: 100%;">
+        <div class="flow-canvas">
+          <template v-for="(node, index) in flowNodes" :key="index">
+            <div class="flow-card" :class="{ 'flow-card-empty': !node.auditorId }">
+              <div class="flow-card-head">
+                <span class="step-num">第 {{ index + 1 }} 步</span>
+                <el-button size="small" type="danger" link
+                           :disabled="flowNodes.length <= 1"
+                           @click="removeNode(index)">
+                  删除
+                </el-button>
+              </div>
+              <el-select v-model="node.auditorId" placeholder="选择审核人" filterable style="width: 100%;">
                 <el-option
                   v-for="u in auditorOptions"
                   :key="u.id"
-                  :label="`${u.realName}（${ROLE_NAME[u.role]}）`"
+                  :label="auditorLabel(u)"
                   :value="u.id"
+                  :disabled="u.disabled"
                 />
               </el-select>
-            </template>
-          </el-table-column>
-          <el-table-column label="流程走向" width="160" align="center">
-            <template #default="scope">
-              <el-tag v-if="scope.$index < flowNodes.length - 1" type="primary">
-                → 下一步
-              </el-tag>
-              <el-tag v-else type="success">
-                ✓ 审批通过
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100" align="center">
-            <template #default="scope">
-              <el-button size="small" type="danger" link
-                         :disabled="flowNodes.length <= 1"
-                         @click="removeNode(scope.$index)">
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+            </div>
+            <el-icon class="flow-arrow"><Right /></el-icon>
+          </template>
+
+          <div class="flow-card flow-card-add" @click="addNode">
+            <el-icon><Plus /></el-icon>
+            <span>添加节点</span>
+          </div>
+
+          <el-icon class="flow-arrow"><Right /></el-icon>
+          <div class="flow-end">
+            <el-icon><CircleCheck /></el-icon>
+            审批通过
+          </div>
+        </div>
 
         <div class="flow-actions">
           <el-button type="primary" @click="saveFlow">保存流程</el-button>
@@ -85,13 +84,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { InfoFilled } from '@element-plus/icons-vue'
+import { CircleCheck, InfoFilled, Plus, Right } from '@element-plus/icons-vue'
 import { getCertStandardById } from '@/api/certStandard'
 import { getAuditFlow, saveAuditFlow } from '@/api/auditFlow'
 import { getUsers } from '@/api/user'
+import { getCertifiedExperts } from '@/api/expertCert'
 
 const route = useRoute()
 const router = useRouter()
@@ -105,8 +105,26 @@ const ROLE_NAME = {
 
 const standard = ref({})
 const flowNodes = ref([])
-const auditorOptions = ref([])
+const allUsers = ref([])
+const certifiedExpertIds = ref(new Set())
 const loading = ref(false)
+
+/** 学生认证类标准：专家审核人必须持有本标准的有效评审资质 */
+const requireExpertCert = computed(() => standard.value.targetRole === 'student')
+
+const auditorOptions = computed(() => {
+  // 管理员/机构管理员始终可选；专家在学生认证类标准下只保留持证者，
+  // 已配置在流程里但失去资质的专家保留展示（置灰），由后端保存时兜底拦截
+  const referenced = new Set(flowNodes.value.map(n => n.auditorId).filter(Boolean))
+  return allUsers.value
+    .filter(u => ['admin', 'org_admin', 'expert'].includes(u.role) && u.status === 1)
+    .filter(u => u.role !== 'expert' || !requireExpertCert.value
+      || certifiedExpertIds.value.has(u.id) || referenced.has(u.id))
+    .map(u => ({
+      ...u,
+      disabled: u.role === 'expert' && requireExpertCert.value && !certifiedExpertIds.value.has(u.id)
+    }))
+})
 
 onMounted(async () => {
   loading.value = true
@@ -116,8 +134,11 @@ onMounted(async () => {
       getUsers()
     ])
     standard.value = std
-    // 审核人候选：管理员、机构管理员、专家（学生不能作为审核人）
-    auditorOptions.value = users.filter(u => ['admin', 'org_admin', 'expert'].includes(u.role) && u.status === 1)
+    allUsers.value = users
+    if (std.targetRole === 'student') {
+      const certified = await getCertifiedExperts(std.id)
+      certifiedExpertIds.value = new Set(certified.map(u => u.id))
+    }
     await loadFlow()
   } catch (error) {
     ElMessage.error(error.message || '加载失败')
@@ -125,6 +146,14 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function auditorLabel(u) {
+  const base = `${u.realName}（${ROLE_NAME[u.role]}）`
+  if (u.role === 'expert' && requireExpertCert.value && !certifiedExpertIds.value.has(u.id)) {
+    return `${base} - 已无本标准资质`
+  }
+  return base
+}
 
 async function loadFlow() {
   try {
@@ -212,10 +241,79 @@ function goBack() {
   border-radius: 4px;
 }
 
+.flow-canvas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px 6px;
+}
+
+.flow-card {
+  width: 220px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px 12px 14px;
+  background: #fff;
+  transition: box-shadow 0.2s;
+}
+
+.flow-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.flow-card-empty {
+  border-style: dashed;
+  border-color: #adb5bd;
+}
+
+.flow-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
 .step-num {
   font-weight: 600;
   color: #3b5bdb;
-  font-size: 15px;
+  font-size: 14px;
+}
+
+.flow-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 130px;
+  min-height: 78px;
+  border-style: dashed;
+  color: #868e96;
+  cursor: pointer;
+  user-select: none;
+}
+
+.flow-card-add:hover {
+  color: #3b5bdb;
+  border-color: #3b5bdb;
+}
+
+.flow-arrow {
+  color: #adb5bd;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.flow-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2f9e44;
+  font-weight: 600;
+  background: #ebfbee;
+  border: 1px solid #b2f2bb;
+  border-radius: 8px;
+  padding: 10px 16px;
 }
 
 .flow-actions {

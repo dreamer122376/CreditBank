@@ -441,7 +441,7 @@ CREATE TABLE `transaction_log` (
                                    `user_id` bigint NOT NULL COMMENT '用户ID',
                                    `amount` int NOT NULL COMMENT '变动金额（+增加，-减少）',
                                    `balance_after` int NOT NULL COMMENT '变动后的即时余额快照',
-                                   `biz_type` ENUM('REWARD', 'EXCHANGE', 'REFUND', 'ADMIN', 'ATTACHMENT', 'UPDATE_ADJUST') NOT NULL COMMENT '业务类型：REWARD/EXCHANGE/REFUND/ADMIN/ATTACHMENT(附加流水)/UPDATE_ADJUST(更新补差)',
+                                   `biz_type` ENUM('REWARD', 'EXCHANGE', 'REFUND', 'ADMIN', 'ATTACHMENT', 'UPDATE_ADJUST', 'DAILY') NOT NULL COMMENT '业务类型：REWARD/EXCHANGE/REFUND/ADMIN/ATTACHMENT(附加流水)/UPDATE_ADJUST(更新补差)/DAILY(每日打卡)',
                                    `related_rule_id` bigint DEFAULT NULL COMMENT '相关规则ID：REWARD对应积分规则id，EXCHANGE对应兑换规则id，REFUND对应原流水id，ATTACHMENT对应生成其的流水id，ADMIN无意义',
                                    `description` varchar(200) DEFAULT NULL COMMENT '备注说明',
                                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '交易发生时间',
@@ -476,8 +476,11 @@ CREATE TABLE `expert_cert` (
   `application_id` bigint DEFAULT NULL COMMENT '来源申请单ID',
   `status` tinyint DEFAULT '1' COMMENT '1有效 0撤销',
   `issued_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '颁发时间',
+  `valid_until` datetime DEFAULT NULL COMMENT '资质有效期截止，NULL为长期',
+  `revoke_reason` varchar(255) DEFAULT NULL COMMENT '撤销原因',
+  `revoked_at` datetime DEFAULT NULL COMMENT '撤销时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_expert_standard` (`expert_id`,`cert_standard_id`),
+  KEY `idx_expert_standard` (`expert_id`,`cert_standard_id`),
   KEY `idx_expert_id` (`expert_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='专家认证记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;

@@ -104,8 +104,7 @@ const routes = [
       },
       {
         path: 'cert-applications',
-        name: 'CertApplications',
-        component: () => import('@/views/CertApplications.vue'),
+        redirect: '/applications',
         meta: { title: '证书申请审核' }
       },
       {

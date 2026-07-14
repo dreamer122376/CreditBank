@@ -35,34 +35,34 @@
         </el-form>
       </div>
 
-      <el-table :data="list" border style="width: 100%;" v-loading="loading">
-        <el-table-column prop="id" label="流水ID" width="100" />
-        <el-table-column prop="userId" label="用户ID" width="100" />
-        <el-table-column prop="userName" label="用户名" width="120" />
-        <el-table-column prop="amount" label="金额" width="120">
+      <el-table :data="list" border style="width: 100%;" v-loading="loading" :size="isAdmin ? 'small' : 'default'">
+        <el-table-column prop="id" label="流水ID" width="70" />
+        <el-table-column prop="userId" label="用户ID" width="65" v-if="showUserIdFilter" />
+        <el-table-column prop="userName" label="用户" width="80" v-if="showUserIdFilter" />
+        <el-table-column prop="amount" label="金额" width="80">
           <template #default="scope">
             <span :class="scope.row.amount > 0 ? 'text-success' : 'text-danger'">
               {{ scope.row.amount > 0 ? '+' : '' }}{{ scope.row.amount }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="balanceAfter" label="变动后余额" width="130" />
-        <el-table-column prop="bizType" label="业务类型" width="120">
+        <el-table-column prop="balanceAfter" label="余额" width="70" />
+        <el-table-column prop="bizType" label="类型" width="80">
           <template #default="scope">
             <el-tag :type="getBizType(scope.row.bizType)" size="small">{{ getBizTypeName(scope.row.bizType) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" />
-        <el-table-column prop="createdAt" label="创建时间" width="180">
+        <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="createdAt" label="时间" width="150">
           <template #default="scope">
             <span v-if="scope.row.createdAt">{{ fmt(scope.row.createdAt) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" v-if="isAdmin">
+        <el-table-column label="操作" width="90" v-if="isAdmin">
           <template #default="scope">
-            <span v-if="scope.row.bizType === 'REFUND' || scope.row.bizType === 'UPDATE_ADJUST'" style="color:#868e96;font-size:12px;">无法撤销</span>
+            <span v-if="scope.row.bizType === 'REFUND' || scope.row.bizType === 'UPDATE_ADJUST'" style="color:#868e96;font-size:12px;">不可撤</span>
             <span v-else-if="scope.row.reverted" style="color:#868e96;font-size:12px;">已撤销</span>
-            <span v-else-if="scope.row.bizType === 'ATTACHMENT'" style="color:#868e96;font-size:12px;">无法主动撤销</span>
+            <span v-else-if="scope.row.bizType === 'ATTACHMENT'" style="color:#868e96;font-size:12px;">不可撤</span>
             <el-button v-else size="small" type="danger" plain @click="openRevertConfirm(scope.row)">撤销</el-button>
           </template>
         </el-table-column>

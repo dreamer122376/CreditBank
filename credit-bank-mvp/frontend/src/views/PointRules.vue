@@ -9,7 +9,6 @@
       </template>
       <el-table :data="rules" border style="width: 100%;">
         <el-table-column prop="id" label="规则ID" width="100" />
-        <el-table-column prop="eventCode" label="事件编码" />
         <el-table-column prop="eventName" label="事件名称" />
         <el-table-column prop="creditValue" label="奖励积分" width="120">
           <template #default="scope">
@@ -58,9 +57,6 @@
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑规则' : '新增规则'" width="480px">
       <el-form :model="form" label-width="90px">
-        <el-form-item label="事件编码" required>
-          <el-input v-model="form.eventCode" placeholder="如：COURSE_COMPLETE" />
-        </el-form-item>
         <el-form-item label="事件名称" required>
           <el-input v-model="form.eventName" placeholder="如：完成课程" />
         </el-form-item>
@@ -136,7 +132,7 @@ async function loadProjects() {
 function openCreate() {
   const now = new Date()
   const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
-  form.value = { eventCode: '', eventName: '', creditValue: 10, projectId: null, isEnabled: 1, startTime: now, endTime: oneYearLater }
+  form.value = { eventName: '', creditValue: 10, projectId: null, isEnabled: 1, startTime: now, endTime: oneYearLater }
   dialogVisible.value = true
 }
 
@@ -152,10 +148,6 @@ function openEdit(row) {
 }
 
 async function save() {
-  if (!form.value.eventCode) {
-    ElMessage.warning('请输入事件编码')
-    return
-  }
   if (!form.value.eventName) {
     ElMessage.warning('请输入事件名称')
     return

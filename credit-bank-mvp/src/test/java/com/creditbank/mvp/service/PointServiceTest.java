@@ -47,12 +47,15 @@ class PointServiceTest {
     @Mock
     private UserOpLogMapper userOpLogMapper;
 
+    @Mock
+    private RedisService redisService;
+
     private PointService pointService;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockitoAnnotations.openMocks(this);
-        pointService = new PointService(sysUserMapper, creditRuleMapper, transactionLogMapper, userOpLogMapper, campaignService, passwordEncoder);
+        pointService = new PointService(sysUserMapper, creditRuleMapper, transactionLogMapper, userOpLogMapper, campaignService, passwordEncoder, redisService);
         System.out.println("========== 开始执行: " + testInfo.getDisplayName() + " ==========");
     }
 

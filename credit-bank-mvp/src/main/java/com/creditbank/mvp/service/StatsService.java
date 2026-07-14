@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,18 +30,27 @@ public class StatsService {
     private final OrganizationMapper organizationMapper;
     private final ApplicationMapper applicationMapper;
     private final TransactionLogMapper transactionLogMapper;
+    private final RedisService redisService;
 
     public StatsService(SysUserMapper sysUserMapper,
                         OrganizationMapper organizationMapper,
                         ApplicationMapper applicationMapper,
-                        TransactionLogMapper transactionLogMapper) {
+                        TransactionLogMapper transactionLogMapper,
+                        RedisService redisService) {
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.applicationMapper = applicationMapper;
         this.transactionLogMapper = transactionLogMapper;
+        this.redisService = redisService;
     }
 
     public StatsSummaryDTO getSummary(String role, Long userId) {
+        String cacheKey = "stats:summary:" + role + ":" + (userId != null ? userId : "");
+        Object cached = redisService.get(cacheKey);
+        if (cached instanceof StatsSummaryDTO) {
+            return (StatsSummaryDTO) cached;
+        }
+
         StatsSummaryDTO dto = new StatsSummaryDTO();
 
         Long totalUsers = sysUserMapper.selectCount(
@@ -81,6 +91,7 @@ public class StatsService {
                 .sum();
         dto.setTotalCredit(totalCredit);
 
+        redisService.set(cacheKey, dto, 5, TimeUnit.MINUTES);
         return dto;
     }
 

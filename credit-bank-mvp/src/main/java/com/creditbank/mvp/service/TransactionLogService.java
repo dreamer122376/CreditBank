@@ -37,6 +37,7 @@ public class TransactionLogService {
         wrapper.orderByDesc(TransactionLog::getCreatedAt);
         Page<TransactionLog> result = transactionLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
         markReverted(result.getRecords());
+        fillUserName(result.getRecords());
         return result;
     }
 
@@ -47,7 +48,27 @@ public class TransactionLogService {
         wrapper.orderByDesc(TransactionLog::getCreatedAt);
         List<TransactionLog> records = transactionLogMapper.selectList(wrapper);
         markReverted(records);
+        fillUserName(records);
         return records;
+    }
+
+    private void fillUserName(List<TransactionLog> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        List<Long> userIds = records.stream().map(TransactionLog::getUserId).distinct().collect(Collectors.toList());
+        if (userIds.isEmpty()) {
+            return;
+        }
+        List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
+        for (TransactionLog log : records) {
+            for (SysUser user : users) {
+                if (user.getId().equals(log.getUserId())) {
+                    log.setUserName(user.getRealName());
+                    break;
+                }
+            }
+        }
     }
 
     private void markReverted(List<TransactionLog> records) {

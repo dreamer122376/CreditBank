@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class PointService {
@@ -24,34 +25,60 @@ public class PointService {
     private final UserOpLogMapper userOpLogMapper;
     private final CampaignService campaignService;
     private final PasswordEncoder passwordEncoder;
+    private final RedisService redisService;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
                         TransactionLogMapper transactionLogMapper,
                         UserOpLogMapper userOpLogMapper,
                         CampaignService campaignService,
-                        PasswordEncoder passwordEncoder) {
+                        PasswordEncoder passwordEncoder,
+                        RedisService redisService) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
         this.userOpLogMapper = userOpLogMapper;
         this.campaignService = campaignService;
         this.passwordEncoder = passwordEncoder;
+        this.redisService = redisService;
     }
 
     public SysUser login(String username, String password) {
+        // 登录限流：连续失败 5 次后锁定 1 分钟
+        String failKey = "login:fail:" + username;
+        Object failCount = redisService.get(failKey);
+        if (failCount instanceof Integer && (Integer) failCount >= 5) {
+            long ttl = redisService.getExpire(failKey, TimeUnit.SECONDS);
+            throw new BizException("登录失败次数过多，请 " + ttl + " 秒后再试");
+        }
+
         SysUser user = sysUserMapper.selectOne(
                 new LambdaQueryWrapper<SysUser>()
                         .eq(SysUser::getUsername, username));
         if (user == null) {
+            redisService.increment(failKey);
+            if (redisService.getExpire(failKey) <= 0) {
+                redisService.expire(failKey, 1, TimeUnit.MINUTES);
+            }
             throw new BizException("用户不存在");
         }
         // 冻结用户允许登录，读写权限由 FreezePermissionInterceptor 控制
         if (!passwordEncoder.matches(password, user.getPassword())) {
+            redisService.increment(failKey);
+            if (redisService.getExpire(failKey) <= 0) {
+                redisService.expire(failKey, 1, TimeUnit.MINUTES);
+            }
             throw new BizException("密码错误");
         }
+
+        // 登录成功，清除失败计数
+        redisService.delete(failKey);
+
         user.setLastLoginAt(java.time.LocalDateTime.now());
         sysUserMapper.updateById(user);
+
+        // 刷新用户缓存
+        redisService.set("user:info:" + user.getId(), user, 30, TimeUnit.MINUTES);
         return user;
     }
 
@@ -101,6 +128,9 @@ public class PointService {
         if (rows == 0) {
             throw new BizException("用户数据更新失败");
         }
+
+        // 用户余额变更，清除缓存
+        redisService.delete("user:info:" + userId);
 
         TransactionLog txn = new TransactionLog();
         txn.setUserId(userId);
@@ -175,6 +205,8 @@ public class PointService {
         student.setBalance(newBalance);
         sysUserMapper.updateById(student);
 
+        redisService.delete("user:info:" + studentId);
+
         TransactionLog txn = new TransactionLog();
         txn.setUserId(studentId);
         txn.setAmount(finalCredit);
@@ -216,10 +248,16 @@ public class PointService {
     }
 
     public SysUser getUser(Long id) {
+        String cacheKey = "user:info:" + id;
+        Object cached = redisService.get(cacheKey);
+        if (cached instanceof SysUser) {
+            return (SysUser) cached;
+        }
         SysUser user = sysUserMapper.selectById(id);
         if (user == null) {
             throw new BizException("用户不存在：" + id);
         }
+        redisService.set(cacheKey, user, 30, TimeUnit.MINUTES);
         return user;
     }
 

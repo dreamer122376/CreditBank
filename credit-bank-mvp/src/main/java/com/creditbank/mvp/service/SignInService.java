@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,13 +27,16 @@ public class SignInService {
     private final SysUserMapper sysUserMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
+    private final RedisService redisService;
 
     public SignInService(SysUserMapper sysUserMapper,
                          CreditRuleMapper creditRuleMapper,
-                         TransactionLogMapper transactionLogMapper) {
+                         TransactionLogMapper transactionLogMapper,
+                         RedisService redisService) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
+        this.redisService = redisService;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -39,6 +44,12 @@ public class SignInService {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在");
+        }
+
+        String todayKey = "sign:today:" + userId;
+        Object cached = redisService.get(todayKey);
+        if (cached instanceof Boolean && (Boolean) cached) {
+            throw new BizException("今日已签到");
         }
 
         Long signInRuleId = getSignInRuleId();
@@ -77,7 +88,13 @@ public class SignInService {
         txn.setDescription("签到打卡");
         transactionLogMapper.insert(txn);
 
+        // 标记今日已签到（过期时间为当天结束）
+        long secondsUntilEndOfDay = ChronoUnit.SECONDS.between(
+                LocalDateTime.now(), today.atTime(LocalTime.MAX));
+        redisService.set(todayKey, true, secondsUntilEndOfDay, TimeUnit.SECONDS);
+
         int streak = calculateStreak(userId);
+        redisService.set("sign:streak:" + userId, streak, secondsUntilEndOfDay, TimeUnit.SECONDS);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -95,27 +112,49 @@ public class SignInService {
             throw new BizException("用户不存在");
         }
 
+        String todayKey = "sign:today:" + userId;
+        Object cachedToday = redisService.get(todayKey);
+        boolean hasSignedIn;
+
         Long signInRuleId = getSignInRuleId();
         if (signInRuleId == null) {
             throw new BizException("签到规则不存在或已停用");
         }
 
-        LocalDate today = LocalDate.now();
-        LocalDateTime todayStart = today.atStartOfDay();
-        LocalDateTime todayEnd = today.atTime(LocalTime.MAX);
+        if (cachedToday instanceof Boolean) {
+            hasSignedIn = (Boolean) cachedToday;
+        } else {
+            LocalDate today = LocalDate.now();
+            long todaySignInCount = transactionLogMapper.selectCount(
+                    new LambdaQueryWrapper<TransactionLog>()
+                            .eq(TransactionLog::getUserId, userId)
+                            .eq(TransactionLog::getBizType, "DAILY")
+                            .eq(TransactionLog::getRelatedRuleId, signInRuleId)
+                            .ge(TransactionLog::getCreatedAt, today.atStartOfDay())
+                            .le(TransactionLog::getCreatedAt, today.atTime(LocalTime.MAX)));
+            hasSignedIn = todaySignInCount > 0;
+            if (hasSignedIn) {
+                long expire = ChronoUnit.SECONDS.between(
+                        LocalDateTime.now(), today.atTime(LocalTime.MAX));
+                redisService.set(todayKey, true, expire, TimeUnit.SECONDS);
+            }
+        }
 
-        long todaySignInCount = transactionLogMapper.selectCount(
-                new LambdaQueryWrapper<TransactionLog>()
-                        .eq(TransactionLog::getUserId, userId)
-                        .eq(TransactionLog::getBizType, "DAILY")
-                        .eq(TransactionLog::getRelatedRuleId, signInRuleId)
-                        .ge(TransactionLog::getCreatedAt, todayStart)
-                        .le(TransactionLog::getCreatedAt, todayEnd));
-
-        int streak = calculateStreak(userId);
+        String streakKey = "sign:streak:" + userId;
+        Object cachedStreak = redisService.get(streakKey);
+        int streak;
+        if (cachedStreak instanceof Integer) {
+            streak = (Integer) cachedStreak;
+        } else {
+            streak = calculateStreak(userId);
+            LocalDate today = LocalDate.now();
+            long expire = ChronoUnit.SECONDS.between(
+                    LocalDateTime.now(), today.atTime(LocalTime.MAX));
+            redisService.set(streakKey, streak, expire, TimeUnit.SECONDS);
+        }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("hasSignedIn", todaySignInCount > 0);
+        result.put("hasSignedIn", hasSignedIn);
         result.put("streak", streak);
         result.put("currentBalance", user.getBalance());
         result.put("signInCredit", getSignInCreditValue());

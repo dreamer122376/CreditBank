@@ -22,6 +22,12 @@ public class ProjectListDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    /** 当前学生是否已报名（学生端列表时填充） */
+    private Boolean enrolled;
+
+    /** 当前学生的报名状态（学生端列表时填充） */
+    private String enrollmentStatus;
+
     public Long getId() {
         return id;
     }
@@ -124,5 +130,21 @@ public class ProjectListDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getEnrolled() {
+        return enrolled;
+    }
+
+    public void setEnrolled(Boolean enrolled) {
+        this.enrolled = enrolled;
+    }
+
+    public String getEnrollmentStatus() {
+        return enrollmentStatus;
+    }
+
+    public void setEnrollmentStatus(String enrollmentStatus) {
+        this.enrollmentStatus = enrollmentStatus;
     }
 }

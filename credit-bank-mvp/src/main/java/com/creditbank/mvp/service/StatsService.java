@@ -267,43 +267,49 @@ public class StatsService {
         LocalDate startDate = LocalDate.now().minusDays(days - 1);
         LocalDate endDate = LocalDate.now();
 
+        SysUser user = sysUserMapper.selectById(userId);
+        int currentBalance = user != null && user.getBalance() != null ? user.getBalance() : 0;
+
         List<TransactionLog> allLogs = transactionLogMapper.selectList(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getUserId, userId)
                         .ge(TransactionLog::getCreatedAt, startDate.atStartOfDay())
                         .le(TransactionLog::getCreatedAt, endDate.atTime(23, 59, 59))
-                        .orderByAsc(TransactionLog::getCreatedAt));
+                        .orderByDesc(TransactionLog::getCreatedAt));
 
         Map<String, Integer> dailyBalance = new HashMap<>();
-        int currentBalance = 0;
-
-        for (int i = days - 1; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            String dateStr = date.format(formatter);
-            dailyBalance.put(dateStr, 0);
-        }
+        int workingBalance = currentBalance;
 
         for (TransactionLog log : allLogs) {
             String logDate = log.getCreatedAt().toLocalDate().format(formatter);
-            if (dailyBalance.containsKey(logDate)) {
-                currentBalance = log.getBalanceAfter() != null ? log.getBalanceAfter() : 0;
-                dailyBalance.put(logDate, currentBalance);
-            }
+            workingBalance = log.getBalanceAfter() != null ? log.getBalanceAfter() : workingBalance;
+            dailyBalance.put(logDate, workingBalance);
         }
 
         int accumulatedBalance = 0;
-        for (int i = days - 1; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            String dateStr = date.format(formatter);
+        LocalDate checkDate = endDate;
+        for (int i = 0; i < days; i++) {
+            String dateStr = checkDate.format(formatter);
+            Integer balance = dailyBalance.get(dateStr);
+            if (balance != null) {
+                accumulatedBalance = balance;
+            }
+            checkDate = checkDate.minusDays(1);
+        }
+
+        checkDate = startDate;
+        for (int i = 0; i < days; i++) {
+            String dateStr = checkDate.format(formatter);
             Map<String, Object> dayData = new HashMap<>();
             dayData.put("date", dateStr);
 
             Integer balance = dailyBalance.get(dateStr);
-            if (balance != null && balance > 0) {
+            if (balance != null) {
                 accumulatedBalance = balance;
             }
             dayData.put("balance", accumulatedBalance);
             result.add(dayData);
+            checkDate = checkDate.plusDays(1);
         }
 
         return result;

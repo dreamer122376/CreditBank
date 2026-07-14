@@ -3,8 +3,9 @@ import request from './request'
 // ==================== 新的 /api/projects 接口 ====================
 
 /** 学生端：查询已上架项目列表 */
-export function getActiveProjects() {
-  return request.get('/projects/active')
+export function getActiveProjects(studentId) {
+  const params = studentId ? { studentId } : {}
+  return request.get('/projects/active', { params })
 }
 
 /** 项目详情（学生端查看时传 studentId 以标记是否已报名） */

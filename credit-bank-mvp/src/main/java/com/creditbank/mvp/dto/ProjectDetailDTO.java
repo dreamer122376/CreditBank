@@ -32,6 +32,9 @@ public class ProjectDetailDTO {
     /** 当前登录学生是否已报名（学生端查看时填充） */
     private Boolean enrolled;
 
+    /** 当前登录学生的报名状态（学生端查看时填充） */
+    private String enrollmentStatus;
+
     public Long getId() {
         return id;
     }
@@ -150,5 +153,13 @@ public class ProjectDetailDTO {
 
     public void setEnrolled(Boolean enrolled) {
         this.enrolled = enrolled;
+    }
+
+    public String getEnrollmentStatus() {
+        return enrollmentStatus;
+    }
+
+    public void setEnrollmentStatus(String enrollmentStatus) {
+        this.enrollmentStatus = enrollmentStatus;
     }
 }

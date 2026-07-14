@@ -1,7 +1,5 @@
 package com.creditbank.mvp.dto;
 
-import com.creditbank.mvp.entity.SysUser;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,7 +27,7 @@ public class ProjectDetailDTO {
     private LocalDateTime updatedAt;
 
     /** 已报名学生列表，只有机构/管理端查询时才填充 */
-    private List<SysUser> enrolledStudents;
+    private List<EnrolledStudentDTO> enrolledStudents;
 
     /** 当前登录学生是否已报名（学生端查看时填充） */
     private Boolean enrolled;
@@ -138,11 +136,11 @@ public class ProjectDetailDTO {
         this.updatedAt = updatedAt;
     }
 
-    public List<SysUser> getEnrolledStudents() {
+    public List<EnrolledStudentDTO> getEnrolledStudents() {
         return enrolledStudents;
     }
 
-    public void setEnrolledStudents(List<SysUser> enrolledStudents) {
+    public void setEnrolledStudents(List<EnrolledStudentDTO> enrolledStudents) {
         this.enrolledStudents = enrolledStudents;
     }
 

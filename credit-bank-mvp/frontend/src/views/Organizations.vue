@@ -25,14 +25,24 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220">
+        <el-table-column prop="rejectReason" label="拒绝原因">
+          <template #default="scope">
+            <span v-if="scope.row.status === 3 && scope.row.rejectReason" style="color: #909399;">
+              {{ scope.row.rejectReason }}
+            </span>
+            <span v-else style="color: #c0c4cc;">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="260">
           <template #default="scope">
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
-            <el-button v-if="scope.row.status === 0" size="small" type="success"
-                       @click="changeStatus(scope.row, 1)">审核通过</el-button>
+            <template v-if="scope.row.status === 0">
+              <el-button size="small" type="success" @click="changeStatus(scope.row, 1)">审核通过</el-button>
+              <el-button size="small" type="danger" @click="openReject(scope.row)">拒绝</el-button>
+            </template>
             <el-button v-else-if="scope.row.status === 1" size="small" type="danger"
                        @click="changeStatus(scope.row, 2)">禁用</el-button>
-            <el-button v-else size="small" type="success"
+            <el-button v-else-if="scope.row.status === 2" size="small" type="success"
                        @click="changeStatus(scope.row, 1)">启用</el-button>
           </template>
         </el-table-column>
@@ -80,6 +90,22 @@
         <el-button type="primary" @click="auditResultVisible = false">知道了</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="rejectDialogVisible" title="拒绝机构入驻" width="420px">
+      <el-form :model="rejectForm" label-width="90px">
+        <el-form-item label="机构名称">
+          <span>{{ rejectForm.orgName }}</span>
+        </el-form-item>
+        <el-form-item label="拒绝原因" required>
+          <el-input v-model="rejectForm.reason" type="textarea" :rows="3"
+                    placeholder="请输入拒绝原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmReject">确认拒绝</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -90,15 +116,18 @@ import {
   getOrganizations,
   createOrganization,
   updateOrganization,
-  changeOrganizationStatus
+  changeOrganizationStatus,
+  rejectOrganization
 } from '@/api/organization'
 
 const auditResultVisible = ref(false)
 const auditResult = ref({})
 const adminAccount = ref({})
+const rejectDialogVisible = ref(false)
+const rejectForm = ref({ id: null, orgName: '', reason: '' })
 
-const STATUS_NAME = { 0: '待审核', 1: '启用', 2: '禁用' }
-const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger' }
+const STATUS_NAME = { 0: '待审核', 1: '启用', 2: '禁用', 3: '已拒绝' }
+const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger', 3: 'info' }
 
 const orgs = ref([])
 const dialogVisible = ref(false)
@@ -156,6 +185,26 @@ async function changeStatus(row, status) {
     await loadData()
   } catch (error) {
     if (error === 'cancel' || error === 'close') return
+    ElMessage.error(error.message || '操作失败')
+  }
+}
+
+function openReject(row) {
+  rejectForm.value = { id: row.id, orgName: row.name, reason: '' }
+  rejectDialogVisible.value = true
+}
+
+async function confirmReject() {
+  if (!rejectForm.value.reason || rejectForm.value.reason.trim() === '') {
+    ElMessage.warning('请输入拒绝原因')
+    return
+  }
+  try {
+    await rejectOrganization(rejectForm.value.id, rejectForm.value.reason)
+    ElMessage.success('已拒绝该机构入驻申请')
+    rejectDialogVisible.value = false
+    await loadData()
+  } catch (error) {
     ElMessage.error(error.message || '操作失败')
   }
 }

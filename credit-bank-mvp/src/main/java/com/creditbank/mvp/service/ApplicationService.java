@@ -427,6 +427,7 @@ public class ApplicationService {
     }
 
     /** 终审通过后的落地动作（与状态更新同一事务） */
+
     private void onApproved(Application app) {
         if ("EXPERT_CERT".equals(app.getBizType())) {
             issueExpertCert(app);
@@ -441,7 +442,6 @@ public class ApplicationService {
             unfreezeUser(app);
         }
     }
-
     @Transactional(rollbackFor = Exception.class)
     public void onOrgRegisterApproved(Application app) {
         String formData = app.getFormData() == null ? "" : app.getFormData();
@@ -456,7 +456,7 @@ public class ApplicationService {
         org.setContactPerson(contactPerson != null ? contactPerson : applicantName);
         org.setContactPhone(contactPhone);
         org.setAddress(address);
-        org.setStatus(OrganizationService.STATUS_ENABLED);
+        org.setStatus(Organization.STATUS_ENABLED);
         organizationMapper.insert(org);
 
         // 自动生成管理员账号：org_admin_{机构ID}，默认密码 123456

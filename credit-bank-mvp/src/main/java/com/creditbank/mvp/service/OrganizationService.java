@@ -18,11 +18,6 @@ import java.util.List;
 @Service
 public class OrganizationService {
 
-    /** 机构状态：0待审核，1启用，2禁用 */
-    public static final int STATUS_PENDING = 0;
-    public static final int STATUS_ENABLED = 1;
-    public static final int STATUS_DISABLED = 2;
-
     private static final String DEFAULT_ADMIN_PASSWORD = "123456";
 
     private final OrganizationMapper organizationMapper;
@@ -56,7 +51,7 @@ public class OrganizationService {
             throw new BizException("机构名称不能为空");
         }
         org.setId(null);
-        org.setStatus(STATUS_PENDING);
+        org.setStatus(Organization.STATUS_PENDING);
         organizationMapper.insert(org);
         return organizationMapper.selectById(org.getId());
     }
@@ -77,13 +72,13 @@ public class OrganizationService {
         if (exist == null) {
             throw new BizException("机构不存在：" + id);
         }
-        if (status == null || (status != STATUS_ENABLED && status != STATUS_DISABLED)) {
+        if (status == null || (status != Organization.STATUS_ENABLED && status != Organization.STATUS_DISABLED)) {
             throw new BizException("非法的机构状态：" + status);
         }
 
-        boolean isAuditPass = exist.getStatus() == STATUS_PENDING && status == STATUS_ENABLED;
-        boolean isDisable = status == STATUS_DISABLED;
-        boolean isReEnable = exist.getStatus() == STATUS_DISABLED && status == STATUS_ENABLED;
+        boolean isAuditPass = exist.getStatus() == Organization.STATUS_PENDING && status == Organization.STATUS_ENABLED;
+        boolean isDisable = status == Organization.STATUS_DISABLED;
+        boolean isReEnable = exist.getStatus() == Organization.STATUS_DISABLED && status == Organization.STATUS_ENABLED;
         exist.setStatus(status);
         organizationMapper.updateById(exist);
 
@@ -130,6 +125,23 @@ public class OrganizationService {
         }
 
         return OrganizationAuditResult.of(exist, false, null, null, "状态更新成功");
+    }
+
+    /** 拒绝机构入驻申请 */
+    public void reject(Long id, String reason) {
+        Organization exist = organizationMapper.selectById(id);
+        if (exist == null) {
+            throw new BizException("机构不存在：" + id);
+        }
+        if (exist.getStatus() != Organization.STATUS_PENDING) {
+            throw new BizException("只有待审核状态的机构才能拒绝");
+        }
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BizException("拒绝原因不能为空");
+        }
+        exist.setStatus(Organization.STATUS_REJECTED);
+        exist.setRejectReason(reason);
+        organizationMapper.updateById(exist);
     }
 
     private String generateAdminUsername(String orgName) {

@@ -15,3 +15,7 @@ export function updateOrganization(org) {
 export function changeOrganizationStatus(id, status) {
   return request.post(`/organization/${id}/status`, { status })
 }
+
+export function rejectOrganization(id, reason) {
+  return request.post(`/organization/${id}/reject`, { reason })
+}

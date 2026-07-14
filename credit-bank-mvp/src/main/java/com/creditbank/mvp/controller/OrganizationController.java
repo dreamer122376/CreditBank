@@ -38,6 +38,12 @@ public class OrganizationController {
         return Result.ok(organizationService.changeStatus(id, req.getStatus()));
     }
 
+    @PostMapping("/{id}/reject")
+    public Result<Void> reject(@PathVariable Long id, @RequestBody RejectRequest req) {
+        organizationService.reject(id, req.getReason());
+        return Result.ok(null);
+    }
+
     public static class StatusRequest {
         private Integer status;
 
@@ -47,6 +53,18 @@ public class OrganizationController {
 
         public void setStatus(Integer status) {
             this.status = status;
+        }
+    }
+
+    public static class RejectRequest {
+        private String reason;
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
         }
     }
 }

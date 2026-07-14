@@ -82,20 +82,17 @@ public class ApplicationController {
         private Long userId;
         private String formData;
 
-        public Long getUserId() {
-            return userId;
-        }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getFormData() { return formData; }
+        public void setFormData(String formData) { this.formData = formData; }
+    }
 
-        public void setUserId(Long userId) {
-            this.userId = userId;
-        }
-
-        public String getFormData() {
-            return formData;
-        }
-
-        public void setFormData(String formData) {
-            this.formData = formData;
-        }
+    /** 公开接口：查询机构入驻申请状态 */
+    @GetMapping("/org-register-status")
+    public Result<java.util.Map<String, Object>> queryOrgRegisterStatus(
+            @RequestParam String orgName,
+            @RequestParam String applicantName) {
+        return Result.ok(applicationService.queryOrgRegisterStatus(orgName, applicantName));
     }
 }

@@ -123,11 +123,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, uploadImage } from '@/api/campaign'
+import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, uploadImage, getCampaignDetail } from '@/api/campaign'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
@@ -266,7 +267,16 @@ function fmt(t) {
 function statusType(s) { return s === 1 ? 'success' : s === 2 ? 'info' : '' }
 function statusText(s) { return s === 1 ? '进行中' : s === 2 ? '已结束' : '未开始' }
 
-onMounted(() => { loadData() })
+onMounted(async () => {
+  await loadData()
+  const editIdFromQuery = route.query.edit
+  if (editIdFromQuery) {
+    try {
+      const campaign = await getCampaignDetail(Number(editIdFromQuery))
+      if (campaign) openEdit(campaign)
+    } catch (e) { /* ignore */ }
+  }
+})
 </script>
 
 <style scoped>

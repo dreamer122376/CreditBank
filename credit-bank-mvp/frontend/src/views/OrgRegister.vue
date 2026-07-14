@@ -7,11 +7,18 @@
       </div>
 
       <div class="header">
-        <h1>机构入驻申请</h1>
-        <p class="subtitle">填写以下信息，审核通过后系统将自动创建管理员账号</p>
+        <h1>机构入驻</h1>
+        <p class="subtitle" v-if="activeTab === 'apply'">填写以下信息，审核通过后系统将自动创建管理员账号</p>
+        <p class="subtitle" v-else>输入机构名称和申请人查询审核进度</p>
       </div>
 
-      <div class="form-scroll">
+      <div class="tab-switch">
+        <span class="tab" :class="{ active: activeTab === 'apply' }" @click="activeTab = 'apply'">提交申请</span>
+        <span class="tab" :class="{ active: activeTab === 'query' }" @click="activeTab = 'query'">查询进度</span>
+      </div>
+
+      <!-- 提交申请 -->
+      <div class="form-scroll" v-if="activeTab === 'apply'">
         <el-form :model="form" label-position="top" class="register-form">
           <div class="section-title">机构信息</div>
 
@@ -21,6 +28,10 @@
 
           <el-form-item label="申请人" required>
             <el-input v-model="form.applicantName" placeholder="请输入您的姓名" />
+          </el-form-item>
+
+          <el-form-item label="联系人" required>
+            <el-input v-model="form.contactPerson" placeholder="请输入机构联系人" />
           </el-form-item>
 
           <el-form-item label="联系电话" required>
@@ -39,6 +50,34 @@
         </el-form>
       </div>
 
+      <!-- 查询进度 -->
+      <div class="form-scroll" v-else>
+        <el-form :model="queryForm" label-position="top" class="register-form">
+          <div class="section-title">查询申请进度</div>
+
+          <el-form-item label="机构名称" required>
+            <el-input v-model="queryForm.orgName" placeholder="请输入申请时填写的机构名称" />
+          </el-form-item>
+
+          <el-form-item label="申请人" required>
+            <el-input v-model="queryForm.applicantName" placeholder="请输入申请时填写的申请人姓名" />
+          </el-form-item>
+
+          <el-button type="primary" class="submit-btn" @click="handleQuery" :loading="querying">
+            查询
+          </el-button>
+
+          <div class="query-result" v-if="queryResult">
+            <el-alert :title="queryResult.message" :type="queryResult.status === 3 ? 'success' : queryResult.status === 4 ? 'error' : 'warning'" :closable="false" show-icon />
+            <div class="result-detail" v-if="queryResult.status === 3">
+              <p><b>管理员账号：</b>{{ queryResult.adminUsername }}</p>
+              <p><b>初始密码：</b>{{ queryResult.adminPassword }}</p>
+              <p class="hint">请使用以上账号登录后尽快修改密码</p>
+            </div>
+          </div>
+        </el-form>
+      </div>
+
       <div class="footer">
         <el-button link class="back-link" @click="goLogin">已有账号？返回登录</el-button>
       </div>
@@ -50,12 +89,15 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { submitApplication } from '@/api/application'
+import request from '@/api/request'
 
 const router = useRouter()
+const activeTab = ref('apply')
 
 const form = ref({
   orgName: '',
   applicantName: '',
+  contactPerson: '',
   contactPhone: '',
   address: ''
 })
@@ -64,12 +106,35 @@ const loading = ref(false)
 const msg = ref('')
 const isError = ref(false)
 
+// 查询进度
+const queryForm = ref({ orgName: '', applicantName: '' })
+const querying = ref(false)
+const queryResult = ref(null)
+
+async function handleQuery() {
+  const { orgName, applicantName } = queryForm.value
+  if (!orgName || !applicantName) {
+    queryResult.value = { status: -1, message: '请填写机构名称和申请人' }
+    return
+  }
+  querying.value = true
+  try {
+    queryResult.value = await request.get('/application/org-register-status', {
+      params: { orgName, applicantName }
+    })
+  } catch (e) {
+    queryResult.value = { status: -1, message: '查询失败，请稍后重试' }
+  } finally {
+    querying.value = false
+  }
+}
+
 function goLogin() {
   router.push('/login')
 }
 
 async function handleSubmit() {
-  const { orgName, applicantName, contactPhone } = form.value
+  const { orgName, applicantName, contactPerson, contactPhone } = form.value
   if (!orgName || !applicantName || !contactPhone) {
     isError.value = true
     msg.value = '请填写所有必填项'
@@ -85,13 +150,14 @@ async function handleSubmit() {
       formData: JSON.stringify({
         orgName,
         applicantName,
+        contactPerson,
         contactPhone,
         address: form.value.address
       })
     })
     loading.value = false
     msg.value = '提交成功，请等待平台管理员审核。审核通过后系统将自动创建管理员账号。'
-    form.value = { orgName: '', applicantName: '', contactPhone: '', address: '' }
+    form.value = { orgName: '', applicantName: '', contactPerson: '', contactPhone: '', address: '' }
   } catch (error) {
     loading.value = false
     isError.value = true
@@ -262,5 +328,50 @@ async function handleSubmit() {
 
 .back-link:hover {
   color: #7a1e1e;
+}
+
+.tab-switch {
+  display: flex;
+  margin: 0 36px 16px;
+  border-bottom: 1px solid #d4c5a9;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 14px;
+  color: #8b7355;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab.active {
+  color: #5c4033;
+  font-weight: 600;
+  border-bottom-color: #7a1e1e;
+}
+.tab:hover {
+  color: #5c4033;
+}
+
+.query-result {
+  margin-top: 16px;
+}
+.result-detail {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #f0f7eb;
+  border: 1px solid #c3d9a5;
+  border-radius: 4px;
+}
+.result-detail p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #3e2b1f;
+}
+.result-detail .hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #856404;
 }
 </style>

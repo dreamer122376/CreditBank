@@ -82,11 +82,12 @@ public class CampaignService {
         if (campaign.getMultiplier() == null) {
             campaign.setMultiplier(BigDecimal.ONE);
         }
-        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0) {
-            checkMultiplierCampaignConflict(campaign.getStartTime(), campaign.getEndTime(), null);
-        }
         // 根据起止时间设置初始状态
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
+        // 只有当前活动是进行中 + 积分倍率>1 时才检查冲突
+        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0 && campaign.getStatus() == 1) {
+            checkMultiplierCampaignConflict(campaign.getStartTime(), campaign.getEndTime(), null);
+        }
         campaignMapper.insert(campaign);
 
         redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
@@ -108,11 +109,12 @@ public class CampaignService {
         if (campaign.getMultiplier() == null) {
             campaign.setMultiplier(BigDecimal.ONE);
         }
-        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0) {
-            checkMultiplierCampaignConflict(campaign.getStartTime(), campaign.getEndTime(), campaign.getId());
-        }
         // 重新计算状态
         campaign.setStatus(calcStatus(campaign.getStartTime(), campaign.getEndTime()));
+        // 只有当前活动是进行中 + 积分倍率>1 时才检查冲突
+        if (campaign.getMultiplier().compareTo(BigDecimal.ONE) > 0 && campaign.getStatus() == 1) {
+            checkMultiplierCampaignConflict(campaign.getStartTime(), campaign.getEndTime(), campaign.getId());
+        }
         campaignMapper.updateById(campaign);
 
         redisService.delete(CACHE_KEY_ACTIVE_MULTIPLIER);
@@ -284,16 +286,15 @@ public class CampaignService {
      * 积分活动互斥校验：同一时间段不允许存在第二个 multiplier>1.0 的活动
      */
     private void checkMultiplierCampaignConflict(LocalDateTime start, LocalDateTime end, Long excludeId) {
-        // 查所有 multiplier>1.0 的活动，判断时间段是否重叠
+        // 只检查进行中（status=1）的 multiplier>1.0 活动，未开始和已结束的不影响
         LambdaQueryWrapper<Campaign> wrapper = new LambdaQueryWrapper<Campaign>()
                 .gt(Campaign::getMultiplier, BigDecimal.ONE)
-                .ne(Campaign::getStatus, 2); // 排除已结束的
+                .eq(Campaign::getStatus, 1);
         if (excludeId != null) {
             wrapper.ne(Campaign::getId, excludeId);
         }
         List<Campaign> multiplierCampaigns = campaignMapper.selectList(wrapper);
         for (Campaign existing : multiplierCampaigns) {
-            // 时间段重叠判断：existing.start < newEnd AND existing.end > newStart
             if (existing.getStartTime().isBefore(end) && existing.getEndTime().isAfter(start)) {
                 throw new BizException("当前已存在进行中的积分翻倍活动「" + existing.getTitle()
                         + "」（" + existing.getStartTime().toLocalDate() + " ~ "

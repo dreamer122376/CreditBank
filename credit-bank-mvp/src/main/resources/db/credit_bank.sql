@@ -54,10 +54,12 @@ DROP TABLE IF EXISTS `application`;
 CREATE TABLE `application` (
                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '申请单ID',
                                `biz_type` varchar(30) NOT NULL COMMENT '业务类型：PROJECT_UP/EXCHANGE/CERT_APPLY',
-                               `biz_key` bigint DEFAULT NULL COMMENT '关联的认证标准ID（指向cert_standard.id）',
+                               `biz_key` bigint DEFAULT NULL COMMENT '关联的具体业务主键ID',
                                `applicant_id` bigint NOT NULL COMMENT '申请人ID',
+                               `org_id` bigint DEFAULT NULL COMMENT '申请所属机构ID',
+                               `expert_id` bigint DEFAULT NULL COMMENT '指派的专家审批人ID',
                                `form_data` json DEFAULT NULL COMMENT '前端表单的JSON数据',
-                               `current_status` tinyint DEFAULT '1' COMMENT '状态：1审核中/2通过/3驳回',
+                               `current_status` tinyint DEFAULT '0' COMMENT '状态：0草稿/1审核中/3通过/4驳回（2为旧数据，兼容为审核中）',
                                `current_node_id` bigint DEFAULT NULL COMMENT '认证业务当前审批节点ID（cert_audit_flow.id，非认证业务为NULL）',
                                `reject_reason` varchar(200) DEFAULT NULL COMMENT '驳回原因',
                                `applied_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
@@ -65,8 +67,7 @@ CREATE TABLE `application` (
                                PRIMARY KEY (`id`),
                                KEY `idx_applicant_id` (`applicant_id`),
                                KEY `idx_current_status` (`current_status`),
-                               KEY `idx_current_node_id` (`current_node_id`),
-                               KEY `idx_biz_key` (`biz_key`)
+                               KEY `idx_current_node_id` (`current_node_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='统一申请审批表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 

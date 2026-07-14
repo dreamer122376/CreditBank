@@ -31,6 +31,13 @@ public class ExpertCert {
 
     private LocalDateTime issuedAt;
 
+    /** 资质有效期截止，NULL 为长期有效 */
+    private LocalDateTime validUntil;
+
+    private String revokeReason;
+
+    private LocalDateTime revokedAt;
+
     public Long getId() {
         return id;
     }
@@ -85,5 +92,29 @@ public class ExpertCert {
 
     public void setIssuedAt(LocalDateTime issuedAt) {
         this.issuedAt = issuedAt;
+    }
+
+    public LocalDateTime getValidUntil() {
+        return validUntil;
+    }
+
+    public void setValidUntil(LocalDateTime validUntil) {
+        this.validUntil = validUntil;
+    }
+
+    public String getRevokeReason() {
+        return revokeReason;
+    }
+
+    public void setRevokeReason(String revokeReason) {
+        this.revokeReason = revokeReason;
+    }
+
+    public LocalDateTime getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(LocalDateTime revokedAt) {
+        this.revokedAt = revokedAt;
     }
 }

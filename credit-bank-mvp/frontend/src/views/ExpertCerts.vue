@@ -14,13 +14,19 @@
         </div>
       </template>
 
-      <div v-if="certs.length > 0" class="badge-wall">
-        <el-tag v-for="cert in certs" :key="cert.id" class="cert-badge" effect="plain">
+      <div v-if="validCerts.length > 0" class="badge-wall">
+        <el-tag v-for="cert in validCerts" :key="cert.id" class="cert-badge" effect="plain">
           <el-icon><Medal /></el-icon>
           {{ cert.fieldName }}
+          <span class="badge-until">有效期至 {{ formatDate(cert.validUntil) || '长期' }}</span>
         </el-tag>
       </div>
-      <el-empty v-else description="暂无评审资质" />
+      <el-empty v-else description="暂无有效评审资质" :image-size="80" />
+      <div v-if="invalidCerts.length > 0" class="badge-wall invalid-wall">
+        <el-tag v-for="cert in invalidCerts" :key="cert.id" class="cert-badge-invalid" type="info" effect="plain">
+          {{ cert.fieldName }} · {{ cert.status === 0 ? '已撤销' : '已过期，可重新申请' }}
+        </el-tag>
+      </div>
     </el-card>
 
     <el-card style="margin-top: 16px;">
@@ -61,18 +67,62 @@
             <span v-else>{{ parseForm(row).reason || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row)">详情</el-button>
             <el-button v-if="canResubmit(row)" size="small" type="warning" plain @click="openResubmit(row)">
               <el-icon><RefreshRight /></el-icon>
               重新提交
             </el-button>
-            <span v-else class="muted">-</span>
           </template>
         </el-table-column>
       </el-table>
       <el-empty v-if="myApplies.length === 0" description="暂无申请记录" />
     </el-card>
+
+    <el-dialog v-model="detailVisible" title="认证申请详情" width="700px">
+      <template v-if="detailRow">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="申请单号">{{ detailRow.id }}</el-descriptions-item>
+          <el-descriptions-item label="申请领域">{{ certTitle(detailRow) }}</el-descriptions-item>
+          <el-descriptions-item label="申请理由">{{ parseForm(detailRow).reason || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="当前状态">
+            <el-tag :type="detailRow.statusType">{{ detailRow.statusName }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item v-if="detailRow.rejectReason" label="驳回原因">
+            <span class="reject-text">{{ detailRow.rejectReason }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="证明材料">
+            <template v-if="attachmentsOf(detailRow).length">
+              <div v-for="(att, index) in attachmentsOf(detailRow)" :key="index" class="att-row">
+                <span class="att-name">{{ att.name }}</span>
+                <el-link v-if="isPreviewable(att)" :href="previewUrl(att)" target="_blank" type="primary">预览</el-link>
+                <el-link :href="downloadUrl(att)" type="primary">下载</el-link>
+              </div>
+            </template>
+            <span v-else class="muted">未提供</span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <template v-if="detailRow.flowSteps?.length">
+          <el-divider content-position="left">审核流程</el-divider>
+          <el-steps align-center>
+            <el-step
+              v-for="step in detailRow.flowSteps"
+              :key="step.nodeId"
+              :title="`第 ${step.stepNo} 步`"
+              :description="step.auditorName"
+              :status="stepStatus(step)"
+            />
+          </el-steps>
+        </template>
+      </template>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+        <el-button v-if="detailRow && canResubmit(detailRow)" type="warning" @click="detailVisible = false; openResubmit(detailRow)">
+          重新提交
+        </el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="applyVisible" :title="editingApplication ? '重新提交领域认证' : '申请领域认证'" width="620px">
       <el-form :model="applyForm" label-width="100px" label-position="left">
@@ -154,6 +204,16 @@ const editingApplication = ref(null)
 const applyForm = ref({ certStandardId: null, fieldName: '', reason: '', attachments: [] })
 const uploadList = ref([])
 const flowPreview = ref([])
+const detailVisible = ref(false)
+const detailRow = ref(null)
+
+// 后端返回全部资质记录（含过期/撤销），有效性在前端判断
+function isCertValid(cert) {
+  return cert.status === 1 && (!cert.validUntil || new Date(cert.validUntil) > new Date())
+}
+
+const validCerts = computed(() => certs.value.filter(isCertValid))
+const invalidCerts = computed(() => certs.value.filter(cert => !isCertValid(cert)))
 
 const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx']
 const uploadHeaders = computed(() => {
@@ -162,7 +222,7 @@ const uploadHeaders = computed(() => {
 })
 
 const applicableStandards = computed(() => {
-  const held = new Set(certs.value.map(cert => cert.certStandardId))
+  const held = new Set(validCerts.value.map(cert => cert.certStandardId))
   return standards.value.filter(standard => {
     const selected = standard.id === applyForm.value.certStandardId
     return standard.isEnabled === 1 && standard.targetRole === 'expert' && (selected || !held.has(standard.id))
@@ -322,6 +382,20 @@ function canResubmit(row) {
   return row.currentStatus === 4
 }
 
+function openDetail(row) {
+  detailRow.value = row
+  detailVisible.value = true
+}
+
+function stepStatus(step) {
+  const map = { done: 'success', current: 'process', rejected: 'error', pending: 'wait' }
+  return map[step.state] || 'wait'
+}
+
+function formatDate(time) {
+  return time ? String(time).slice(0, 10) : ''
+}
+
 function fileNameFromUrl(url) {
   return (url || '').split('?')[0].split('/').pop()
 }
@@ -374,6 +448,21 @@ function downloadUrl(att) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.badge-until {
+  font-weight: 400;
+  font-size: 11px;
+  color: #b08a2e;
+  margin-left: 2px;
+}
+
+.invalid-wall {
+  margin-top: 10px;
+}
+
+.cert-badge-invalid {
+  color: #868e96;
 }
 
 .standard-hint {

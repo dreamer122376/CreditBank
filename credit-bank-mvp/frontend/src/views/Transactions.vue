@@ -38,6 +38,7 @@
       <el-table :data="list" border style="width: 100%;" v-loading="loading">
         <el-table-column prop="id" label="流水ID" width="100" />
         <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="userName" label="用户名" width="120" />
         <el-table-column prop="amount" label="金额" width="120">
           <template #default="scope">
             <span :class="scope.row.amount > 0 ? 'text-success' : 'text-danger'">

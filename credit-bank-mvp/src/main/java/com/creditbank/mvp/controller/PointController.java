@@ -88,13 +88,17 @@ public class PointController {
     public Result<SysUser> earn(@RequestBody EarnRequest req) {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = pointService.getUser(operatorId);
-        if ("org_admin".equals(operator.getRole())) {
+        if ("ADMIN".equals(req.getEventCode())) {
+            if (!"admin".equals(operator.getRole())) {
+                throw new BizException("无权限使用管理员加分规则");
+            }
+        } else if ("org_admin".equals(operator.getRole())) {
             SysUser target = pointService.getUser(req.getUserId());
             if (!operator.getOrgId().equals(target.getOrgId())) {
                 throw new BizException("只能给本机构学生加分");
             }
         }
-        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId));
+        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId, req.getCreditValue()));
     }
 
     @GetMapping("/user/{id}/transactions")
@@ -140,11 +144,14 @@ public class PointController {
     public static class EarnRequest {
         private Long userId;
         private String eventCode;
+        private Integer creditValue;
 
         public Long getUserId() { return userId; }
         public void setUserId(Long userId) { this.userId = userId; }
         public String getEventCode() { return eventCode; }
         public void setEventCode(String eventCode) { this.eventCode = eventCode; }
+        public Integer getCreditValue() { return creditValue; }
+        public void setCreditValue(Integer creditValue) { this.creditValue = creditValue; }
     }
 
     public static class RegisterRequest {

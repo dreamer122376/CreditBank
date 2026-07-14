@@ -121,7 +121,8 @@ INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is
 (6, 'PROJECT_EXCELLENT', '数据分析大赛优秀', 600, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 4, 2),
 (7, 'ONLINE_TEST', '在线测试', 50, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
 (8, 'ATTENDANCE', '签到打卡', 10, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
-(9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL);
+(9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
+(10, 'ADMIN', '管理员手动加分', 0, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL);
 
 -- 积分转换规则表初始数据（无外键依赖）
 INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `per_user_limit`, `is_enabled`, `org_id`, `created_at`) VALUES

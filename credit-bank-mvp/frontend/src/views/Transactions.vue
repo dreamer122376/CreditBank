@@ -47,7 +47,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="balanceAfter" label="余额" width="70" />
-        <el-table-column prop="bizType" label="类型" width="80">
+        <el-table-column prop="bizType" label="类型" width="100">
           <template #default="scope">
             <el-tag :type="getBizType(scope.row.bizType)" size="small">{{ getBizTypeName(scope.row.bizType) }}</el-tag>
           </template>

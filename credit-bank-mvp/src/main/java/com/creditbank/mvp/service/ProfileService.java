@@ -60,7 +60,11 @@ public class ProfileService {
         if (newPassword == null || newPassword.length() < 6) {
             throw new BizException("新密码至少 6 位");
         }
-        user.setPassword(passwordEncoder.encode(newPassword));
-        sysUserMapper.updateById(user);
+        sysUserMapper.update(
+                null,
+                new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<SysUser>()
+                        .eq("id", userId)
+                        .set("password", passwordEncoder.encode(newPassword))
+        );
     }
 }

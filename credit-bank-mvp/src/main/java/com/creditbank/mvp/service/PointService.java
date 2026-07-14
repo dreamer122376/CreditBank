@@ -97,6 +97,11 @@ public class PointService {
 
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode, Long operatorId) {
+        return earn(userId, eventCode, operatorId, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser earn(Long userId, String eventCode, Long operatorId, Integer customCreditValue) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
@@ -110,15 +115,24 @@ public class PointService {
             throw new BizException("积分规则不存在或已停用：" + eventCode);
         }
 
-        // 活动倍率加成：查用户已报名的进行中积分活动
-        int finalCredit = rule.getCreditValue();
+        boolean isAdminRule = "ADMIN".equals(eventCode);
+
+        int finalCredit;
         String campaignDesc = "";
-        Campaign enrolledCampaign = campaignService.getEnrolledMultiplierCampaign(userId);
-        if (enrolledCampaign != null) {
-            BigDecimal multiplied = BigDecimal.valueOf(rule.getCreditValue())
-                    .multiply(enrolledCampaign.getMultiplier());
-            finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
-            campaignDesc = "（活动翻倍 ×" + enrolledCampaign.getMultiplier() + "）";
+        if (isAdminRule) {
+            if (customCreditValue == null || customCreditValue <= 0) {
+                throw new BizException("管理员手动加分必须指定积分值");
+            }
+            finalCredit = customCreditValue;
+        } else {
+            finalCredit = rule.getCreditValue();
+            Campaign enrolledCampaign = campaignService.getEnrolledMultiplierCampaign(userId);
+            if (enrolledCampaign != null) {
+                BigDecimal multiplied = BigDecimal.valueOf(rule.getCreditValue())
+                        .multiply(enrolledCampaign.getMultiplier());
+                finalCredit = multiplied.setScale(0, RoundingMode.HALF_UP).intValue();
+                campaignDesc = "（活动翻倍 ×" + enrolledCampaign.getMultiplier() + "）";
+            }
         }
 
         Integer newBalance = user.getBalance() + finalCredit;
@@ -128,28 +142,26 @@ public class PointService {
             throw new BizException("用户数据更新失败");
         }
 
-        // 用户余额变更，清除缓存
         redisService.delete("user:info:" + userId);
 
         TransactionLog txn = new TransactionLog();
         txn.setUserId(userId);
         txn.setAmount(finalCredit);
         txn.setBalanceAfter(newBalance);
-        txn.setBizType("REWARD");
+        txn.setBizType(isAdminRule ? "ADMIN" : "REWARD");
         txn.setRelatedRuleId(rule.getId());
-        txn.setDescription(rule.getEventName() + campaignDesc);
+        txn.setDescription(isAdminRule ? "管理员手动加分" : (rule.getEventName() + campaignDesc));
         transactionLogMapper.insert(txn);
 
-        // 操作人：管理员手动加分时取 operatorId，否则默认为被加分学生自己
         Long realOperatorId = operatorId != null ? operatorId : userId;
         SysUser operator = sysUserMapper.selectById(realOperatorId);
         String operatorName = operator != null ? operator.getRealName() : String.valueOf(realOperatorId);
         userOpLogMapper.insert(UserOpLog.createLog(
                 realOperatorId, operatorName, userId, user.getRealName(),
                 UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
-                "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + rule.getEventName() + campaignDesc + "，当前余额：" + newBalance));
+                "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + (isAdminRule ? "管理员手动加分" : (rule.getEventName() + campaignDesc)) + "，当前余额：" + newBalance));
 
-        if (rule.getOrgId() != null) {
+        if (!isAdminRule && rule.getOrgId() != null) {
             SysUser orgAdmin = sysUserMapper.selectOne(
                     new LambdaQueryWrapper<SysUser>()
                             .eq(SysUser::getOrgId, rule.getOrgId())

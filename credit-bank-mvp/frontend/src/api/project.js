@@ -42,6 +42,14 @@ export function updateProjectStatus(id, status) {
   return request.put('/student-projects/' + id + '/status', null, { params: { status } })
 }
 
+export function submitProjectForReview(id) {
+  return request.post('/student-projects/' + id + '/submit')
+}
+
+export function auditProjectCompletion(id, approve) {
+  return request.post('/student-projects/' + id + '/audit', null, { params: { approve } })
+}
+
 export function getStudentsByProject(projectId) {
   return request.get('/student-projects/project/' + projectId + '/students')
 }

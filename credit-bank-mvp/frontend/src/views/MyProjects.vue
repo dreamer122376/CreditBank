@@ -17,7 +17,16 @@
             <div class="card-desc">{{ (item.description || '').substring(0, 80) }}{{ (item.description || '').length > 80 ? '...' : '' }}</div>
             <div class="card-footer">
               <el-tag :type="statusType(item.status)" size="small">{{ item.status }}</el-tag>
-              <span style="color:#3b5bdb;font-size:13px;">查看详情 →</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <el-button
+                  v-if="item.status === '进行中'"
+                  size="small"
+                  type="success"
+                  plain
+                  @click.stop="handleSubmit(item)"
+                >提交完成</el-button>
+                <span style="color:#3b5bdb;font-size:13px;">查看详情 →</span>
+              </div>
             </div>
           </div>
         </el-card>
@@ -35,8 +44,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getMyProjects } from '@/api/project'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getMyProjects, submitProjectForReview } from '@/api/project'
 
 const router = useRouter()
 const loading = ref(true)
@@ -62,8 +71,20 @@ function fmt(t) {
   return t.length >= 16 ? t.substring(0, 16).replace('T', ' ') : t
 }
 
+async function handleSubmit(item) {
+  try {
+    await ElMessageBox.confirm('确定要提交项目完成申请吗？', '提交完成', { type: 'info' })
+    await submitProjectForReview(item.enrollmentId)
+    ElMessage.success('已提交，等待机构管理员审核')
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.message || '提交失败')
+  }
+}
+
 function statusType(status) {
   if (status === '已完成') return 'success'
+  if (status === '待审核') return 'warning'
   if (status === '进行中') return 'warning'
   if (status === '已报名') return 'primary'
   return 'info'

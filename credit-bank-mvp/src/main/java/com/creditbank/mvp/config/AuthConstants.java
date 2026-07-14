@@ -21,7 +21,8 @@ public final class AuthConstants {
             "/api/user/test-login",
             "/api/user/test-users",
             "/api/student-cert/verify",
-            "/api/application/submit"
+            "/api/application/submit",
+            "/api/organization/list"
     );
 
     /** 前缀匹配的公开路径 */

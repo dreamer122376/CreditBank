@@ -67,18 +67,26 @@
               <el-input v-model="registerForm.password" type="password" placeholder="设置密码" size="large" />
             </el-form-item>
             <el-form-item>
-              <el-select v-model="registerForm.userType" placeholder="角色类型" size="large">
+              <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" size="large" />
+            </el-form-item>
+            <el-form-item>
+              <el-select v-model="registerForm.userType" placeholder="角色类型" size="large" @change="onUserTypeChange">
                 <el-option label="学生" value="student" />
-                <el-option label="机构管理员" value="org_admin" />
                 <el-option label="专家" value="expert" />
-                <el-option label="系统管理员" value="admin" />
               </el-select>
             </el-form-item>
             <el-form-item v-if="showInstId">
-              <el-input v-model="registerForm.institutionId" type="number" placeholder="所属机构ID" size="large" />
+              <el-select v-model="registerForm.institutionId" placeholder="请选择所属机构" size="large">
+                <el-option
+                  v-for="org in orgList"
+                  :key="org.id"
+                  :label="org.name"
+                  :value="org.id"
+                />
+              </el-select>
             </el-form-item>
             <el-form-item v-if="showInstName">
-              <el-input v-model="registerForm.institutionName" placeholder="所属机构名称" size="large" />
+              <el-input v-model="registerForm.institutionName" placeholder="专家领域" size="large" />
             </el-form-item>
             <el-button type="primary" size="large" class="btn-block" @click="handleRegister" :loading="loading">注 册</el-button>
             <p class="login-msg" v-if="registerMsg">{{ registerMsg }}</p>
@@ -90,11 +98,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { Switch, Loading } from '@element-plus/icons-vue'
 import { getTestUsers } from '@/api/user'
+import { getOrganizations } from '@/api/organization'
 
 const router = useRouter()
 const { login, register, testLogin } = useAuth()
@@ -119,13 +128,17 @@ const registerForm = ref({
   username: '',
   realName: '',
   password: '',
+  confirmPassword: '',
   userType: 'student',
   institutionId: '',
   institutionName: ''
 })
 
+const orgList = ref([])
+const orgListLoaded = ref(false)
+
 const showInstId = computed(() => {
-  return registerForm.value.userType === 'student' || registerForm.value.userType === 'org_admin'
+  return registerForm.value.userType === 'student' || registerForm.value.userType === 'expert'
 })
 
 const showInstName = computed(() => {
@@ -172,6 +185,12 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
 })
 
+watch(activeTab, (newTab) => {
+  if (newTab === 'register' && !orgListLoaded.value) {
+    loadOrgList()
+  }
+})
+
 // [TEST-ONLY]
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
@@ -209,10 +228,33 @@ async function handleTestLoginByUser(username) {
   }
 }
 
+async function loadOrgList() {
+  if (orgListLoaded.value) return
+  try {
+    orgList.value = await getOrganizations()
+    orgListLoaded.value = true
+  } catch (error) {
+    console.error('加载机构列表失败:', error)
+  }
+}
+
+function onUserTypeChange() {
+  registerForm.value.institutionId = ''
+  registerForm.value.institutionName = ''
+}
+
 async function handleRegister() {
-  const { username, password, realName } = registerForm.value
+  const { username, password, confirmPassword, realName, userType } = registerForm.value
   if (!username || !password || !realName) {
     registerMsg.value = '请填写完整信息'
+    return
+  }
+  if (password !== confirmPassword) {
+    registerMsg.value = '两次输入的密码不一致'
+    return
+  }
+  if ((userType === 'student' || userType === 'expert') && !registerForm.value.institutionId) {
+    registerMsg.value = '请选择所属机构'
     return
   }
   registerMsg.value = ''

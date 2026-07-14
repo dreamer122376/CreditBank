@@ -72,9 +72,7 @@
             <el-form-item>
               <el-select v-model="registerForm.userType" placeholder="角色类型" size="large" @change="onUserTypeChange">
                 <el-option label="学生" value="student" />
-                <el-option label="机构管理员" value="org_admin" />
                 <el-option label="专家" value="expert" />
-                <el-option label="系统管理员" value="admin" />
               </el-select>
             </el-form-item>
             <el-form-item v-if="showInstId">
@@ -140,7 +138,7 @@ const orgList = ref([])
 const orgListLoaded = ref(false)
 
 const showInstId = computed(() => {
-  return registerForm.value.userType === 'student' || registerForm.value.userType === 'org_admin' || registerForm.value.userType === 'expert'
+  return registerForm.value.userType === 'student' || registerForm.value.userType === 'expert'
 })
 
 const showInstName = computed(() => {
@@ -255,7 +253,7 @@ async function handleRegister() {
     registerMsg.value = '两次输入的密码不一致'
     return
   }
-  if ((userType === 'student' || userType === 'org_admin' || userType === 'expert') && !registerForm.value.institutionId) {
+  if ((userType === 'student' || userType === 'expert') && !registerForm.value.institutionId) {
     registerMsg.value = '请选择所属机构'
     return
   }

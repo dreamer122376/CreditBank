@@ -48,7 +48,7 @@
           <span class="freeze-icon">⚠️</span>
           <span class="freeze-text">
             您的账户已于 <strong>{{ fmt(currentUser?.frozenAt) }}</strong> 被冻结，
-            若有问题请咨询阿米娅和迷迭香。
+            若有问题请咨询系统管理员。
           </span>
           <el-button type="warning" size="small" @click="appealVisible = true">提交解冻申诉</el-button>
         </div>

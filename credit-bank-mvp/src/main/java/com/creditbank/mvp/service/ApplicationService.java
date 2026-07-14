@@ -46,7 +46,7 @@ public class ApplicationService {
     public static final int STATUS_REJECTED = 4;
 
     /** 认证类业务：审批链由认证流程表驱动 */
-    private static final Set<String> CERT_BIZ = new HashSet<>(Arrays.asList("CERT_APPLY", "EXPERT_CERT", "ORG_REGISTER"));
+    private static final Set<String> CERT_BIZ = new HashSet<>(Arrays.asList("CERT_APPLY", "EXPERT_CERT", "ORG_REGISTER", "UNFREEZE_APPEAL"));
 
     private static final Map<String, String> BIZ_TYPE_NAME = new HashMap<>();
     private static final Map<Integer, String[]> STATUS_MAP = new HashMap<>();
@@ -242,7 +242,11 @@ public class ApplicationService {
 
     /** 认证业务提交校验，返回对应的认证标准 */
     private CertStandard loadStandardForSubmit(Application app, SysUser applicant) {
-        Long standardId = readStandardId(app.getFormData());
+        Long tempStandardId = readStandardId(app.getFormData());
+        if ("UNFREEZE_APPEAL".equals(app.getBizType())) {
+            tempStandardId = UNFREEZE_APPEAL_STANDARD_ID;
+        }
+        final Long standardId = tempStandardId;
         if (standardId == null) {
             throw new BizException("请选择要申请的认证标准");
         }
@@ -280,6 +284,9 @@ public class ApplicationService {
 
     /** 机构入驻认证标准ID */
     private static final Long ORG_REGISTER_STANDARD_ID = 5L;
+
+    /** 解冻申诉认证标准ID */
+    private static final Long UNFREEZE_APPEAL_STANDARD_ID = 16L;
 
     @Transactional(rollbackFor = Exception.class)
     public Application submitOrgRegister(Application app) {
@@ -430,6 +437,9 @@ public class ApplicationService {
         if ("ORG_REGISTER".equals(app.getBizType())) {
             onOrgRegisterApproved(app);
         }
+        if ("UNFREEZE_APPEAL".equals(app.getBizType())) {
+            unfreezeUser(app);
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -467,6 +477,17 @@ public class ApplicationService {
 
         app.setOrgId(org.getId());
         applicationMapper.updateById(app);
+    }
+
+    private void unfreezeUser(Application app) {
+        SysUser user = sysUserMapper.selectById(app.getApplicantId());
+        if (user != null && user.getStatus() != null && user.getStatus() == 0) {
+            SysUser update = new SysUser();
+            update.setId(user.getId());
+            update.setStatus(1);
+            update.setFrozenAt(null);
+            sysUserMapper.updateById(update);
+        }
     }
 
     private void issueExpertCert(Application app) {

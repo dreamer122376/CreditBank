@@ -7,38 +7,38 @@
           <el-button v-if="currentUser?.role === 'admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
-      <el-table :data="rules" border style="width: 100%;">
-        <el-table-column prop="id" label="规则ID" width="100" />
-        <el-table-column prop="eventName" label="事件名称" />
-        <el-table-column prop="creditValue" label="奖励积分" width="120">
+      <el-table :data="rules" border style="width: 100%;" size="small">
+        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="eventName" label="事件名称" min-width="120" />
+        <el-table-column prop="creditValue" label="奖励积分" width="90">
           <template #default="scope">
             <span class="points">+{{ scope.row.creditValue }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="projectId" label="关联项目" width="140">
+        <el-table-column prop="projectId" label="关联项目" width="110">
           <template #default="scope">
-            <el-tag v-if="scope.row.projectId" type="info">项目 #{{ scope.row.projectId }}</el-tag>
+            <el-tag v-if="scope.row.projectId" type="info">#{{ scope.row.projectId }}</el-tag>
             <el-tag v-else type="info">通用</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="isEnabled" label="状态" width="100">
+        <el-table-column prop="isEnabled" label="状态" width="70">
           <template #default="scope">
-            <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'">
+            <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'" size="small">
               {{ scope.row.isEnabled === 1 ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="startTime" label="开始时间" width="180">
+        <el-table-column prop="startTime" label="开始" width="125">
           <template #default="scope">
             {{ formatDateTime(scope.row.startTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="endTime" label="结束时间" width="180">
+        <el-table-column prop="endTime" label="结束" width="125">
           <template #default="scope">
             {{ formatDateTime(scope.row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column v-if="currentUser?.role === 'admin'" label="操作" width="280">
+        <el-table-column v-if="currentUser?.role === 'admin'" label="操作" width="220">
           <template #default="scope">
             <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
             <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"

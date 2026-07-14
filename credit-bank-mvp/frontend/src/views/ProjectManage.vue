@@ -103,7 +103,7 @@
           <el-descriptions-item label="更新时间">{{ fmt(detail.updatedAt) }}</el-descriptions-item>
         </el-descriptions>
 
-        <!-- 报名学生列表仅机构管理员可见，管理员在审批页面处理 -->
+        <!-- 报名学生列表仅机构管理员可见 -->
         <div class="students-section" v-if="isOrgAdmin">
           <div class="section-title">报名学生（{{ students.length }} 人）</div>
           <el-table :data="students" border size="small" style="width:100%;">

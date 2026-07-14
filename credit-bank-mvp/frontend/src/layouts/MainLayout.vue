@@ -144,7 +144,6 @@ const menuItems = computed(() => {
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
-      { path: '/projects', title: '项目管理', icon: Files },
       { path: '/experts', title: '专家管理', icon: Avatar },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/exchange-rules', title: '转换规则', icon: Refresh },

@@ -1,7 +1,7 @@
 <template>
   <div class="applications">
-    <!-- 统计卡片（仅证书类显示） -->
-    <div class="stat-row" v-if="activeTab === 'cert'">
+    <!-- 统计卡片 -->
+    <div class="stat-row">
       <div v-for="item in statItems" :key="item.key"
            class="stat-card" :class="{ active: statFilter === item.key }"
            @click="toggleStat(item.key)">
@@ -15,12 +15,13 @@
         <div class="card-header">
           <div class="header-tabs">
             <span class="tab" :class="{ active: activeTab === 'biz' }" @click="switchTab('biz')">业务流程审批</span>
-            <span class="tab" :class="{ active: activeTab === 'cert' }" @click="switchTab('cert')">证书申请审核</span>
+            <span class="tab" :class="{ active: activeTab === 'cert' }" @click="switchTab('cert')">证书申请</span>
           </div>
           <div class="header-right">
             <el-tag v-if="statFilter" closable type="primary" effect="plain" @close="statFilter = null">
-              筛选：{{ statItems.find(item => item.key === statFilter)?.label }}
+              {{ statItems.find(item => item.key === statFilter)?.label }}
             </el-tag>
+            <el-tag v-if="activeTab === 'cert'" type="info" effect="plain">学生认证 / 专家认证</el-tag>
           </div>
         </div>
       </template>
@@ -66,7 +67,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!filteredApps.length" :description="activeTab === 'cert' ? (statFilter ? '当前筛选条件下暂无申请' : '暂无证书申请') : '暂无业务流程申请'" />
+      <el-empty v-if="!filteredApps.length" :description="statFilter ? '当前筛选条件下暂无申请' : (activeTab === 'cert' ? '暂无证书申请' : '暂无业务流程申请')" />
     </el-card>
 
     <!-- 申请详情弹窗 -->
@@ -175,23 +176,27 @@ const certApps = computed(() => apps.value.filter(app => CERT_BIZ_TYPES.includes
 
 const bizApps = computed(() => apps.value.filter(app => !CERT_BIZ_TYPES.includes(app.bizType)))
 
-const statItems = computed(() => [
-  { key: 'mine', label: '待我审核', color: '#e8590c', count: certApps.value.filter(app => app.canAudit).length },
-  { key: 'inReview', label: '审核中', color: '#f08c00', count: certApps.value.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus)).length },
-  { key: 'approved', label: '已通过', color: '#2f9e44', count: certApps.value.filter(app => app.currentStatus === 3).length },
-  { key: 'rejected', label: '已驳回', color: '#c0392b', count: certApps.value.filter(app => app.currentStatus === 4).length }
-])
+const statItems = computed(() => {
+  const list = activeTab.value === 'cert' ? certApps.value : bizApps.value
+  return [
+    { key: 'mine', label: activeTab.value === 'cert' ? '待我审核' : '待处理', color: '#e8590c', count: list.filter(app => app.canAudit).length },
+    { key: 'inReview', label: '审核中', color: '#f08c00', count: list.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus)).length },
+    { key: 'approved', label: '已通过', color: '#2f9e44', count: list.filter(app => app.currentStatus === 3).length },
+    { key: 'rejected', label: '已驳回', color: '#c0392b', count: list.filter(app => app.currentStatus === 4).length }
+  ]
+})
 
 const currentApps = computed(() => activeTab.value === 'cert' ? certApps.value : bizApps.value)
 
 const filteredApps = computed(() => {
-  if (activeTab.value !== 'cert' || !statFilter.value) return currentApps.value
+  if (!statFilter.value) return currentApps.value
+  const list = currentApps.value
   switch (statFilter.value) {
-    case 'mine': return certApps.value.filter(app => app.canAudit)
-    case 'inReview': return certApps.value.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus))
-    case 'approved': return certApps.value.filter(app => app.currentStatus === 3)
-    case 'rejected': return certApps.value.filter(app => app.currentStatus === 4)
-    default: return certApps.value
+    case 'mine': return list.filter(app => app.canAudit)
+    case 'inReview': return list.filter(app => IN_REVIEW_STATUSES.includes(app.currentStatus))
+    case 'approved': return list.filter(app => app.currentStatus === 3)
+    case 'rejected': return list.filter(app => app.currentStatus === 4)
+    default: return list
   }
 })
 

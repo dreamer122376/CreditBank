@@ -1,6 +1,7 @@
 package com.creditbank.mvp.controller;
 
 import com.creditbank.mvp.common.Result;
+import com.creditbank.mvp.dto.OrganizationAuditResult;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.service.OrganizationService;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{id}/status")
-    public Result<Organization> changeStatus(@PathVariable Long id, @RequestBody StatusRequest req) {
+    public Result<OrganizationAuditResult> changeStatus(@PathVariable Long id, @RequestBody StatusRequest req) {
         return Result.ok(organizationService.changeStatus(id, req.getStatus()));
     }
 

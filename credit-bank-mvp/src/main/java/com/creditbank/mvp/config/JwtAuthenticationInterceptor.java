@@ -30,21 +30,19 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
                              Object handler) throws Exception {
         String path = request.getRequestURI();
 
-        if (path.equals("/api/user/login")
-                || path.equals("/api/user/register")
-                || path.equals("/api/user/test-login")
-                || path.equals("/api/user/test-users")
-                || path.equals("/api/student-cert/verify")
-                || path.equals("/api/application/submit")
-                || path.startsWith("/api/application/org-register-status")) {
+        // 公开路径放行
+        if (AuthConstants.PUBLIC_PATHS.contains(path)) {
             return true;
+        }
+        for (String prefix : AuthConstants.PUBLIC_PATH_PREFIXES) {
+            if (path.startsWith(prefix)) {
+                return true;
+            }
         }
         // 文件预览/下载/查看由浏览器直接打开（window.open / <img>），带不上 Authorization 头；
         // 文件名为随机串且 /uploads/** 本就公开，放行不会扩大暴露面
         if ("GET".equals(request.getMethod())
-                && (path.startsWith("/api/files/preview/")
-                || path.startsWith("/api/files/download/")
-                || path.startsWith("/api/files/view/"))) {
+                && AuthConstants.FILE_ACCESS_PREFIXES.stream().anyMatch(path::startsWith)) {
             return true;
         }
         if (!path.startsWith("/api/")) {

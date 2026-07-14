@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class RoleAuthorizationInterceptor implements HandlerInterceptor {
 
@@ -61,13 +62,7 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/sign-in/{id}/verify", List.of("POST"))
     );
 
-    private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/user/login",
-            "/api/user/register",
-            "/api/user/test-login",
-            "/api/user/test-users",
-            "/api/student-cert/verify"
-    );
+    private static final Set<String> PUBLIC_PATHS = AuthConstants.PUBLIC_PATHS;
 
     private static final List<String> AUTHENTICATED_ONLY_PATHS = List.of(
             "/api/profile/**",

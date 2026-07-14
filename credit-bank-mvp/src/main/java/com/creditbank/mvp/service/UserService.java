@@ -63,6 +63,18 @@ public class UserService {
         return user;
     }
 
+    public SysUser testLogin(String username) {
+        SysUser user = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username));
+        if (user == null) {
+            throw new BizException("用户不存在");
+        }
+        user.setLastLoginAt(java.time.LocalDateTime.now());
+        sysUserMapper.updateById(user);
+        return user;
+    }
+
     // ==================== 编辑用户 ====================
 
     @Transactional(rollbackFor = Exception.class)

@@ -153,8 +153,12 @@ public class UserService {
     public void resetPassword(Long id, String newPassword, SysUser operator) {
         SysUser user = getUser(id);
         checkAdminProtection(operator, user, "重置密码");
-        user.setPassword(passwordEncoder.encode(newPassword));
-        sysUserMapper.updateById(user);
+        sysUserMapper.update(
+                null,
+                new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<SysUser>()
+                        .eq("id", id)
+                        .set("password", passwordEncoder.encode(newPassword))
+        );
         writeLog(operator, user, "RESET_PW", "重置密码");
     }
 

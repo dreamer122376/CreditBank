@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,9 +15,11 @@ public class ExpertService {
     private static final String ROLE_EXPERT = "expert";
 
     private final SysUserMapper sysUserMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public ExpertService(SysUserMapper sysUserMapper) {
+    public ExpertService(SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<SysUser> list() {
@@ -40,6 +43,7 @@ public class ExpertService {
         }
         user.setId(null);
         user.setRole(ROLE_EXPERT);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         if (user.getBalance() == null) {
             user.setBalance(0);
         }

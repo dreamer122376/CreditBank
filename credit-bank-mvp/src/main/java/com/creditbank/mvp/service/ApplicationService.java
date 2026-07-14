@@ -277,14 +277,14 @@ public class ApplicationService {
     public Application submitOrgRegister(Application app) {
         String formData = app.getFormData() == null ? "" : app.getFormData();
         String orgName = readText(formData, "orgName");
-        String contactPerson = readText(formData, "contactPerson");
+        String applicantName = readText(formData, "applicantName");
         String contactPhone = readText(formData, "contactPhone");
 
         if (orgName == null || orgName.trim().isEmpty()) {
             throw new BizException("机构名称不能为空");
         }
-        if (contactPerson == null || contactPerson.trim().isEmpty()) {
-            throw new BizException("联系人不能为空");
+        if (applicantName == null || applicantName.trim().isEmpty()) {
+            throw new BizException("申请人不能为空");
         }
 
         app.setId(null);
@@ -374,13 +374,13 @@ public class ApplicationService {
     protected void onOrgRegisterApproved(Application app) {
         String formData = app.getFormData() == null ? "" : app.getFormData();
         String orgName = readText(formData, "orgName");
-        String contactPerson = readText(formData, "contactPerson");
+        String applicantName = readText(formData, "applicantName");
         String contactPhone = readText(formData, "contactPhone");
         String address = readText(formData, "address");
 
         Organization org = new Organization();
         org.setName(orgName);
-        org.setContactPerson(contactPerson);
+        org.setContactPerson(applicantName);
         org.setContactPhone(contactPhone);
         org.setAddress(address);
         org.setStatus(OrganizationService.STATUS_ENABLED);
@@ -388,12 +388,12 @@ public class ApplicationService {
 
         // 自动生成管理员账号：org_admin_{机构ID}，默认密码 123456
         String adminUsername = "org_admin_" + org.getId();
-        String adminPassword = "123456";
+        String adminPassword = DEFAULT_ADMIN_PASSWORD;
 
         SysUser admin = new SysUser();
         admin.setUsername(adminUsername);
         admin.setPassword(passwordEncoder.encode(adminPassword));
-        admin.setRealName(contactPerson);
+        admin.setRealName(applicantName);
         admin.setPhone(contactPhone);
         admin.setRole("org_admin");
         admin.setOrgId(org.getId());

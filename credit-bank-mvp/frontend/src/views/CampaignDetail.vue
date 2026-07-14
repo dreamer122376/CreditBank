@@ -67,7 +67,7 @@
       <div class="detail-actions">
         <el-button @click="goBack">← 返回列表</el-button>
         <template v-if="isAdmin">
-          <el-button type="primary" @click="goEdit">编辑</el-button>
+          <el-button v-if="campaign.status !== 2" type="primary" @click="goEdit">编辑</el-button>
           <el-button type="danger" @click="handleDelete">删除</el-button>
         </template>
         <template v-else-if="campaign.status === 1 && !isFrozen">

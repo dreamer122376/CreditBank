@@ -1,13 +1,13 @@
 import request from './request'
 
 export function signIn() {
-  return request.post('/signin')
+  return request.post('/sign-in')
 }
 
 export function getSignInStatus() {
-  return request.get('/signin/status')
+  return request.get('/sign-in/status')
 }
 
 export function getSignInHistory(limit = 30) {
-  return request.get('/signin/history', { params: { limit } })
+  return request.get('/sign-in/history', { params: { limit } })
 }

@@ -179,4 +179,14 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 (13, 2, -200, 4400, 'ATTACHMENT', 12, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -4 DAY)),
 -- 2天前：机构1专属 REWARD（student_1 校园APP优秀 +500，860→1360）→ ATTACHMENT（org_admin_1 扣减500，4400→3900）
 (14, 6, 500, 1360, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -2 DAY)),
-(15, 2, -500, 3900, 'ATTACHMENT', 14, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -2 DAY));
+(15, 2, -500, 3900, 'ATTACHMENT', 14, '学生获得积分，机构积分池扣减', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+-- 1天前：EXCHANGE（student_1 兑换精美笔记本 -100，1360→1260）
+(16, 6, -100, 1260, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- 1天前：EXCHANGE（student_3 兑换课程优惠券 -200，1250→1050）
+(17, 8, -200, 1050, 'EXCHANGE', 2, '兑换课程优惠券', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- 1天前：EXCHANGE（student_2 兑换书籍借阅卡 -300，580→280）
+(18, 7, -300, 280, 'EXCHANGE', 4, '兑换书籍借阅卡', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- 今天：EXCHANGE（student_1 兑换荣誉证书 -500，1260→760）
+(19, 6, -500, 760, 'EXCHANGE', 3, '兑换荣誉证书', NOW()),
+-- 今天：EXCHANGE（student_3 兑换充电宝 -800，1050→250）
+(20, 8, -800, 250, 'EXCHANGE', 5, '兑换充电宝', NOW());

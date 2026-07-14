@@ -18,6 +18,7 @@ import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,9 +55,12 @@ public class ApplicationService {
         BIZ_TYPE_NAME.put("CERT_APPLY", "证书认证申请");
         BIZ_TYPE_NAME.put("EXPERT_CERT", "专家认证申请");
         BIZ_TYPE_NAME.put("UNFREEZE_APPEAL", "解冻申诉");
+        BIZ_TYPE_NAME.put("ORG_REGISTER", "机构入驻申请");
     }
 
     private static final ObjectMapper JSON = new ObjectMapper();
+
+    private static final String DEFAULT_ADMIN_PASSWORD = "123456";
 
     private final ApplicationMapper applicationMapper;
     private final SysUserMapper sysUserMapper;
@@ -65,6 +69,7 @@ public class ApplicationService {
     private final CertStandardMapper certStandardMapper;
     private final CertAuditFlowMapper certAuditFlowMapper;
     private final StudentCertService studentCertService;
+    private final PasswordEncoder passwordEncoder;
     private final ExpertCertService expertCertService;
 
     public ApplicationService(ApplicationMapper applicationMapper,
@@ -74,7 +79,8 @@ public class ApplicationService {
                               CertStandardMapper certStandardMapper,
                               CertAuditFlowMapper certAuditFlowMapper,
                               StudentCertService studentCertService,
-                              ExpertCertService expertCertService) {
+                              ExpertCertService expertCertService,
+                              PasswordEncoder passwordEncoder) {
         this.applicationMapper = applicationMapper;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
@@ -83,6 +89,7 @@ public class ApplicationService {
         this.certAuditFlowMapper = certAuditFlowMapper;
         this.studentCertService = studentCertService;
         this.expertCertService = expertCertService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ==================== 查询 ====================
@@ -133,6 +140,11 @@ public class ApplicationService {
         if (app.getBizType() == null || !BIZ_TYPE_NAME.containsKey(app.getBizType())) {
             throw new BizException("非法的业务类型：" + app.getBizType());
         }
+
+        if ("ORG_REGISTER".equals(app.getBizType())) {
+            return submitOrgRegister(app);
+        }
+
         SysUser applicant = app.getApplicantId() == null ? null : sysUserMapper.selectById(app.getApplicantId());
         if (applicant == null) {
             throw new BizException("申请人不存在：" + app.getApplicantId());
@@ -259,6 +271,33 @@ public class ApplicationService {
         return standard;
     }
 
+    // ==================== 机构入驻申请提交 ====================
+
+    @Transactional(rollbackFor = Exception.class)
+    public Application submitOrgRegister(Application app) {
+        String formData = app.getFormData() == null ? "" : app.getFormData();
+        String orgName = readText(formData, "orgName");
+        String contactPerson = readText(formData, "contactPerson");
+        String contactPhone = readText(formData, "contactPhone");
+
+        if (orgName == null || orgName.trim().isEmpty()) {
+            throw new BizException("机构名称不能为空");
+        }
+        if (contactPerson == null || contactPerson.trim().isEmpty()) {
+            throw new BizException("联系人不能为空");
+        }
+
+        app.setId(null);
+        app.setApplicantId(-1L);
+        app.setOrgId(null);
+        app.setExpertId(null);
+        app.setRejectReason(null);
+        app.setCurrentNodeId(null);
+        app.setCurrentStatus(STATUS_IN_REVIEW);
+        applicationMapper.insert(app);
+        return applicationMapper.selectById(app.getId());
+    }
+
     // ==================== 审批 ====================
 
     /**
@@ -326,6 +365,45 @@ public class ApplicationService {
         if ("CERT_APPLY".equals(app.getBizType())) {
             studentCertService.issueForApplication(app);
         }
+        if ("ORG_REGISTER".equals(app.getBizType())) {
+            onOrgRegisterApproved(app);
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    protected void onOrgRegisterApproved(Application app) {
+        String formData = app.getFormData() == null ? "" : app.getFormData();
+        String orgName = readText(formData, "orgName");
+        String contactPerson = readText(formData, "contactPerson");
+        String contactPhone = readText(formData, "contactPhone");
+        String address = readText(formData, "address");
+
+        Organization org = new Organization();
+        org.setName(orgName);
+        org.setContactPerson(contactPerson);
+        org.setContactPhone(contactPhone);
+        org.setAddress(address);
+        org.setStatus(OrganizationService.STATUS_ENABLED);
+        organizationMapper.insert(org);
+
+        // 自动生成管理员账号：org_admin_{机构ID}，默认密码 123456
+        String adminUsername = "org_admin_" + org.getId();
+        String adminPassword = "123456";
+
+        SysUser admin = new SysUser();
+        admin.setUsername(adminUsername);
+        admin.setPassword(passwordEncoder.encode(adminPassword));
+        admin.setRealName(contactPerson);
+        admin.setPhone(contactPhone);
+        admin.setRole("org_admin");
+        admin.setOrgId(org.getId());
+        admin.setBalance(0);
+        admin.setStatus(1);
+        admin.setCreatedAt(LocalDateTime.now());
+        sysUserMapper.insert(admin);
+
+        app.setOrgId(org.getId());
+        applicationMapper.updateById(app);
     }
 
     private void issueExpertCert(Application app) {

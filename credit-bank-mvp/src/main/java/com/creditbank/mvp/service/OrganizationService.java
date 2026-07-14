@@ -1,6 +1,7 @@
 package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.OrganizationAuditResult;
 import com.creditbank.mvp.entity.Organization;
@@ -81,8 +82,24 @@ public class OrganizationService {
         }
 
         boolean isAuditPass = exist.getStatus() == STATUS_PENDING && status == STATUS_ENABLED;
+        boolean isDisable = status == STATUS_DISABLED;
+        boolean isReEnable = exist.getStatus() == STATUS_DISABLED && status == STATUS_ENABLED;
         exist.setStatus(status);
         organizationMapper.updateById(exist);
+
+        if (isDisable) {
+            sysUserMapper.update(null,
+                    new LambdaUpdateWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, id)
+                            .set(SysUser::getStatus, 0)
+                            .set(SysUser::getFrozenAt, LocalDateTime.now()));
+        } else if (isReEnable) {
+            sysUserMapper.update(null,
+                    new LambdaUpdateWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, id)
+                            .set(SysUser::getStatus, 1)
+                            .set(SysUser::getFrozenAt, null));
+        }
 
         if (isAuditPass) {
             SysUser existingAdmin = sysUserMapper.selectOne(

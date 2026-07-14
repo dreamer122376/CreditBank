@@ -85,7 +85,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getOrganizations,
   createOrganization,
@@ -140,7 +140,12 @@ async function save() {
 }
 
 async function changeStatus(row, status) {
+  const action = status === 1 ? '启用' : '禁用'
+  const tip = status === 1
+    ? '启用后将解冻本机构所有用户，是否继续？'
+    : '禁用后将联动冻结本机构所有用户，是否继续？'
   try {
+    await ElMessageBox.confirm(tip, `确认${action}`, { type: 'warning' })
     const res = await changeOrganizationStatus(row.id, status)
     const result = res.data || res
     if (status === 1 && row.status === 0) {
@@ -150,6 +155,7 @@ async function changeStatus(row, status) {
     ElMessage.success(result.message || '操作成功')
     await loadData()
   } catch (error) {
+    if (error === 'cancel' || error === 'close') return
     ElMessage.error(error.message || '操作失败')
   }
 }

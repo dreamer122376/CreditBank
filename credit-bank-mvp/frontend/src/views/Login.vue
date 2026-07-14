@@ -50,6 +50,14 @@
             </el-form-item>
             <el-button type="primary" size="large" class="btn-block" @click="handleLogin" :loading="loading">登 录</el-button>
             <p class="login-msg" v-if="loginMsg">{{ loginMsg }}</p>
+            <div class="login-tip">
+              <b>演示账号（密码均为 123456）：</b><br>
+              admin · 系统管理员　　instadmin · 机构管理员<br>
+              student · 学生　　　　expert · 专家
+            </div>
+            <div class="login-extra-link">
+              <el-button link type="primary" size="small" @click="goOrgRegister">机构入驻申请</el-button>
+            </div>
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="注册" name="register">
@@ -219,6 +227,10 @@ async function handleRegister() {
   } catch (error) {
     registerMsg.value = error.message || '注册失败，请稍后重试'
   }
+}
+
+function goOrgRegister() {
+  router.push('/org-register')
 }
 </script>
 
@@ -555,5 +567,10 @@ async function handleRegister() {
   .btn-block:active {
     transform: none;
   }
+}
+
+.login-extra-link {
+  text-align: center;
+  margin-top: 12px;
 }
 </style>

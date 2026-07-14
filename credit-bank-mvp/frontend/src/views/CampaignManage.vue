@@ -26,7 +26,7 @@
             <div class="card-footer">
               <el-tag :type="statusType(item.status)" size="small">{{ statusText(item.status) }}</el-tag>
               <div class="card-actions" @click.stop>
-                <el-button size="small" @click="openEdit(item)">编辑</el-button>
+                <el-button v-if="item.status !== 2" size="small" @click="openEdit(item)">编辑</el-button>
                 <el-button size="small" type="danger" plain @click="handleDelete(item)">删除</el-button>
               </div>
             </div>

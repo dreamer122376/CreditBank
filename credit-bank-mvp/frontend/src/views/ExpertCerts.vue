@@ -58,12 +58,13 @@
         </el-table-column>
         <el-table-column prop="statusName" label="状态" width="140">
           <template #default="{ row }">
-            <el-tag :type="row.statusType">{{ row.statusName }}</el-tag>
+            <el-tag :type="displayStatus(row).type">{{ displayStatus(row).text }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="说明" min-width="180">
           <template #default="{ row }">
-            <span v-if="row.rejectReason" class="reject-text">{{ row.rejectReason }}</span>
+            <span v-if="certStateOf(row)?.reason" class="reject-text">撤销原因：{{ certStateOf(row).reason }}</span>
+            <span v-else-if="row.rejectReason" class="reject-text">{{ row.rejectReason }}</span>
             <span v-else>{{ parseForm(row).reason || '-' }}</span>
           </template>
         </el-table-column>
@@ -87,7 +88,10 @@
           <el-descriptions-item label="申请领域">{{ certTitle(detailRow) }}</el-descriptions-item>
           <el-descriptions-item label="申请理由">{{ parseForm(detailRow).reason || '-' }}</el-descriptions-item>
           <el-descriptions-item label="当前状态">
-            <el-tag :type="detailRow.statusType">{{ detailRow.statusName }}</el-tag>
+            <el-tag :type="displayStatus(detailRow).type">{{ displayStatus(detailRow).text }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item v-if="certStateOf(detailRow)?.reason" label="撤销原因">
+            <span class="reject-text">{{ certStateOf(detailRow).reason }}</span>
           </el-descriptions-item>
           <el-descriptions-item v-if="detailRow.rejectReason" label="驳回原因">
             <span class="reject-text">{{ detailRow.rejectReason }}</span>
@@ -380,6 +384,26 @@ function doneSteps(row) {
 
 function canResubmit(row) {
   return row.currentStatus === 4
+}
+
+// 申请单通过后资质可能被撤销/过期（3=已通过），此时状态列直接显示资质现状
+function certStateOf(row) {
+  if (row.currentStatus !== 3) return null
+  const cert = certs.value.find(c => c.applicationId === row.id)
+  if (!cert) return null
+  if (cert.status === 0) {
+    return { type: 'danger', text: '已撤销', reason: cert.revokeReason }
+  }
+  if (cert.validUntil && new Date(cert.validUntil) <= new Date()) {
+    return { type: 'info', text: '已过期' }
+  }
+  return null
+}
+
+// 状态列只显示一个状态：资质被撤销/过期时覆盖申请单的"已通过"
+function displayStatus(row) {
+  const state = certStateOf(row)
+  return state || { type: row.statusType, text: row.statusName }
 }
 
 function openDetail(row) {

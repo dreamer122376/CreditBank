@@ -92,18 +92,9 @@ INSERT INTO `campaign` (`id`, `title`, `multiplier`, `start_time`, `end_time`, `
 (2, '技能挑战赛', 2.0, DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 14 DAY), 0, NOW(), '各类技能挑战赛活动', 'campaign2.jpg', '工程学院', '["img3.jpg"]'),
 (3, '迎新活动', 1.2, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL -15 DAY), 2, NOW(), '新生入学迎新活动', 'campaign3.jpg', '校团委', '["img4.jpg","img5.jpg","img6.jpg"]');
 
--- 统一申请审批表初始数据（依赖 sys_user.id 和 organization.org_id 和 project.id）
-INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
-(1, 'PROJECT_UP', 4, 2, 2, 4, '{"projectName":"数据分析大赛","description":"校园数据分析竞赛项目"}', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), NOW()),
-(2, 'EXCHANGE', NULL, 6, 1, NULL, '{"itemId":1,"quantity":1}', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 HOUR), NOW()),
-(3, 'CERT_APPLY', 2, 6, 1, 4, '{"standardId":2,"applyReason":"已完成1000积分要求"}', 1, 101, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY), NOW()),
-(4, 'PROJECT_UP', NULL, 3, 2, NULL, '{"projectName":"智能建筑项目","description":"智能建筑控制系统开发"}', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 HOUR), NOW()),
-(5, 'CERT_APPLY', 1, 8, 1, 5, '{"standardId":1,"applyReason":"已完成500积分要求"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), NOW()),
-(6, 'EXCHANGE', NULL, 7, 2, NULL, '{"itemId":2,"quantity":1}', 4, NULL, '积分不足', DATE_ADD(NOW(), INTERVAL -4 DAY), NOW());
-
--- 学生证书发放记录初始数据（对应已通过的申请单 5）
+-- 学生证书发放记录初始数据
 INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES
-(1, 8, 1, 5, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0005'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
+(1, 8, 1, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0001'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
 -- 交易流水表初始数据（依赖 sys_user.id 和 credit_rule.id）
 -- REWARD 类型：平台通用规则只生成学生流水；机构专属规则同步生成 ATTACHMENT 附加流水（机构积分池扣减）
 INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES

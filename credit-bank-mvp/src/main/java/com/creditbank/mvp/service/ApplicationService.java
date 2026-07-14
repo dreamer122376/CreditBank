@@ -5,11 +5,13 @@ import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.ApplicationDetailDTO;
 import com.creditbank.mvp.dto.FlowStepDTO;
 import com.creditbank.mvp.entity.Application;
+import com.creditbank.mvp.entity.ApplicationAuditLog;
 import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.ExpertCert;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.mapper.ApplicationAuditLogMapper;
 import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
@@ -26,28 +28,16 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * 业务流程管理。
- * 审批路径按业务类型分两类：
- * - 非认证业务（PROJECT_UP/EXCHANGE）：系统管理员单级审核；
- * - 认证业务（CERT_APPLY/EXPERT_CERT）：按认证标准（cert_standard）配置的
- *   审批链（cert_audit_flow）逐节点流转，need_manual_audit=0 的标准提交即通过。
- */
 @Service
 public class ApplicationService {
 
-    /** 审批状态：0草稿，1审核中，3已通过，4已驳回。2 为旧数据遗留，兼容为"审核中"。 */
-    public static final int STATUS_DRAFT = 0;
     public static final int STATUS_IN_REVIEW = 1;
-    public static final int STATUS_LEGACY_IN_REVIEW = 2;
-    public static final int STATUS_APPROVED = 3;
-    public static final int STATUS_REJECTED = 4;
+    public static final int STATUS_APPROVED = 2;
+    public static final int STATUS_REJECTED = 3;
 
-    /** 认证类业务：审批链由认证流程表驱动 */
     private static final Set<String> CERT_BIZ = new HashSet<>(Arrays.asList("CERT_APPLY", "EXPERT_CERT"));
 
     private static final Map<String, String> BIZ_TYPE_NAME = new HashMap<>();
-    private static final Map<Integer, String[]> STATUS_MAP = new HashMap<>();
 
     static {
         BIZ_TYPE_NAME.put("PROJECT_UP", "项目上架审核");
@@ -63,6 +53,7 @@ public class ApplicationService {
     private static final String DEFAULT_ADMIN_PASSWORD = "123456";
 
     private final ApplicationMapper applicationMapper;
+    private final ApplicationAuditLogMapper applicationAuditLogMapper;
     private final SysUserMapper sysUserMapper;
     private final OrganizationMapper organizationMapper;
     private final ExpertCertMapper expertCertMapper;
@@ -73,6 +64,7 @@ public class ApplicationService {
     private final ExpertCertService expertCertService;
 
     public ApplicationService(ApplicationMapper applicationMapper,
+                              ApplicationAuditLogMapper applicationAuditLogMapper,
                               SysUserMapper sysUserMapper,
                               OrganizationMapper organizationMapper,
                               ExpertCertMapper expertCertMapper,
@@ -82,6 +74,7 @@ public class ApplicationService {
                               ExpertCertService expertCertService,
                               PasswordEncoder passwordEncoder) {
         this.applicationMapper = applicationMapper;
+        this.applicationAuditLogMapper = applicationAuditLogMapper;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.expertCertMapper = expertCertMapper;
@@ -92,18 +85,11 @@ public class ApplicationService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // ==================== 查询 ====================
-
-    /**
-     * 可见性：admin 看全部；org_admin 看本机构的 + 审批链轮到自己的；
-     * 专家/学生看自己发起的 + 审批链轮到自己的。
-     */
     public List<ApplicationDetailDTO> list(String role, Long userId) {
         LambdaQueryWrapper<Application> wrapper = new LambdaQueryWrapper<Application>()
                 .orderByDesc(Application::getAppliedAt);
 
         if (!"admin".equals(role)) {
-            // 审批链上分配给我的节点（无论我是什么角色）
             List<Long> myNodeIds = certAuditFlowMapper.selectList(
                             new LambdaQueryWrapper<CertAuditFlow>().eq(CertAuditFlow::getAuditorId, userId))
                     .stream().map(CertAuditFlow::getId).collect(Collectors.toList());
@@ -114,8 +100,13 @@ public class ApplicationService {
                     throw new BizException("用户不存在：" + userId);
                 }
                 Long orgId = user.getOrgId();
+                List<Long> orgStandardIds = certStandardMapper.selectList(
+                                new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getOrgId, orgId))
+                        .stream().map(CertStandard::getId).collect(Collectors.toList());
                 wrapper.and(w -> {
-                    w.eq(Application::getOrgId, orgId);
+                    if (!orgStandardIds.isEmpty()) {
+                        w.in(Application::getBizKey, orgStandardIds);
+                    }
                     if (!myNodeIds.isEmpty()) {
                         w.or().in(Application::getCurrentNodeId, myNodeIds);
                     }
@@ -133,8 +124,6 @@ public class ApplicationService {
         return toDetailList(applicationMapper.selectList(wrapper), role, userId);
     }
 
-    // ==================== 提交 ====================
-
     @Transactional(rollbackFor = Exception.class)
     public Application submit(Application app) {
         if (app.getBizType() == null || !BIZ_TYPE_NAME.containsKey(app.getBizType())) {
@@ -149,9 +138,6 @@ public class ApplicationService {
         if (applicant == null) {
             throw new BizException("申请人不存在：" + app.getApplicantId());
         }
-        if (app.getOrgId() == null) {
-            app.setOrgId(applicant.getOrgId());
-        }
 
         app.setId(null);
         app.setRejectReason(null);
@@ -159,8 +145,8 @@ public class ApplicationService {
 
         if (isCertBiz(app.getBizType())) {
             CertStandard standard = loadStandardForSubmit(app, applicant);
+            app.setBizKey(standard.getId());
             if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
-                // 自动通过型标准：提交即通过
                 app.setCurrentStatus(STATUS_APPROVED);
                 applicationMapper.insert(app);
                 onApproved(app);
@@ -172,7 +158,6 @@ public class ApplicationService {
             app.setCurrentNodeId(standard.getFirstNodeId());
             app.setCurrentStatus(STATUS_IN_REVIEW);
         } else {
-            // 非认证业务：系统管理员单级审核
             app.setCurrentStatus(STATUS_IN_REVIEW);
         }
 
@@ -189,16 +174,13 @@ public class ApplicationService {
         if (userId == null || !userId.equals(app.getApplicantId())) {
             throw new BizException("只能重新提交自己的申请");
         }
-        int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_DRAFT;
+        int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_IN_REVIEW;
         if (status != STATUS_REJECTED) {
             throw new BizException("只有已驳回的申请可以重新提交");
         }
         SysUser applicant = sysUserMapper.selectById(app.getApplicantId());
         if (applicant == null) {
             throw new BizException("申请人不存在：" + app.getApplicantId());
-        }
-        if (app.getOrgId() == null) {
-            app.setOrgId(applicant.getOrgId());
         }
 
         if (formData != null && !formData.trim().isEmpty()) {
@@ -209,6 +191,7 @@ public class ApplicationService {
 
         if (isCertBiz(app.getBizType())) {
             CertStandard standard = loadStandardForSubmit(app, applicant);
+            app.setBizKey(standard.getId());
             if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
                 app.setCurrentStatus(STATUS_APPROVED);
             } else {
@@ -235,9 +218,12 @@ public class ApplicationService {
         return applicationMapper.selectById(app.getId());
     }
 
-    /** 认证业务提交校验，返回对应的认证标准 */
     private CertStandard loadStandardForSubmit(Application app, SysUser applicant) {
-        Long standardId = readStandardId(app.getFormData());
+        Long tempStandardId = app.getBizKey();
+        if (tempStandardId == null) {
+            tempStandardId = readStandardId(app.getFormData());
+        }
+        final Long standardId = tempStandardId;
         if (standardId == null) {
             throw new BizException("请选择要申请的认证标准");
         }
@@ -255,15 +241,14 @@ public class ApplicationService {
             if (expertCertService.hasCert(app.getApplicantId(), standardId)) {
                 throw new BizException("你已持有该认证标准的有效评审资质，无需重复申请");
             }
-            // 同一标准只允许一条在审申请；不同标准可并行申请
             List<Application> pendingApps = applicationMapper.selectList(
                     new LambdaQueryWrapper<Application>()
                             .eq(Application::getBizType, "EXPERT_CERT")
                             .eq(Application::getApplicantId, app.getApplicantId())
-                            .in(Application::getCurrentStatus, STATUS_IN_REVIEW, STATUS_LEGACY_IN_REVIEW));
+                            .in(Application::getCurrentStatus, STATUS_IN_REVIEW));
             boolean samePending = pendingApps.stream()
                     .filter(p -> app.getId() == null || !p.getId().equals(app.getId()))
-                    .anyMatch(p -> standardId.equals(readStandardIdQuiet(p.getFormData())));
+                    .anyMatch(p -> standardId.equals(p.getBizKey()) || standardId.equals(readStandardIdQuiet(p.getFormData())));
             if (samePending) {
                 throw new BizException("该认证标准已有一条申请正在审核中，请等待结果");
             }
@@ -289,8 +274,6 @@ public class ApplicationService {
 
         app.setId(null);
         app.setApplicantId(-1L);
-        app.setOrgId(null);
-        app.setExpertId(null);
         app.setRejectReason(null);
         app.setCurrentNodeId(null);
         app.setCurrentStatus(STATUS_IN_REVIEW);
@@ -298,20 +281,14 @@ public class ApplicationService {
         return applicationMapper.selectById(app.getId());
     }
 
-    // ==================== 审批 ====================
-
-    /**
-     * 审批。认证业务：只有当前节点的审核人本人（或 admin 代审）可操作，
-     * 通过则流转到下一节点，末节点通过为终审；非认证业务：仅 admin 可审，单级。
-     */
     @Transactional(rollbackFor = Exception.class)
     public Application audit(Long id, String role, Long userId, boolean approve, String reason) {
         Application app = applicationMapper.selectById(id);
         if (app == null) {
             throw new BizException("申请不存在：" + id);
         }
-        int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_DRAFT;
-        if (status != STATUS_IN_REVIEW && status != STATUS_LEGACY_IN_REVIEW) {
+        int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_IN_REVIEW;
+        if (status != STATUS_IN_REVIEW) {
             throw new BizException("当前状态不可审核");
         }
 
@@ -326,7 +303,6 @@ public class ApplicationService {
                 throw new BizException("当前环节的审核人不是你");
             }
         } else {
-            // 非认证业务，以及无流程节点的旧数据：仅系统管理员可审
             if (!"admin".equals(role)) {
                 throw new BizException("该申请只能由系统管理员审核");
             }
@@ -336,14 +312,39 @@ public class ApplicationService {
             if (reason == null || reason.trim().isEmpty()) {
                 throw new BizException("驳回时必须填写原因");
             }
+
+            if (app.getCurrentNodeId() != null) {
+                ApplicationAuditLog log = new ApplicationAuditLog();
+                log.setApplicationId(app.getId());
+                log.setNodeId(app.getCurrentNodeId());
+                log.setStatus(STATUS_REJECTED);
+                log.setRejectReason(reason);
+                applicationAuditLogMapper.insert(log);
+            }
+
             app.setCurrentStatus(STATUS_REJECTED);
             app.setRejectReason(reason);
+            app.setCurrentNodeId(null);
         } else if (node != null && node.getNextNodeId() != null) {
-            // 链上还有下一环节：继续流转，状态保持审核中
+            ApplicationAuditLog log = new ApplicationAuditLog();
+            log.setApplicationId(app.getId());
+            log.setNodeId(app.getCurrentNodeId());
+            log.setStatus(STATUS_APPROVED);
+            applicationAuditLogMapper.insert(log);
+
             app.setCurrentNodeId(node.getNextNodeId());
             app.setCurrentStatus(STATUS_IN_REVIEW);
         } else {
+            if (app.getCurrentNodeId() != null) {
+                ApplicationAuditLog log = new ApplicationAuditLog();
+                log.setApplicationId(app.getId());
+                log.setNodeId(app.getCurrentNodeId());
+                log.setStatus(STATUS_APPROVED);
+                applicationAuditLogMapper.insert(log);
+            }
+
             app.setCurrentStatus(STATUS_APPROVED);
+            app.setCurrentNodeId(null);
         }
 
         int rows = applicationMapper.updateById(app);
@@ -357,7 +358,6 @@ public class ApplicationService {
         return app;
     }
 
-    /** 终审通过后的落地动作（与状态更新同一事务） */
     private void onApproved(Application app) {
         if ("EXPERT_CERT".equals(app.getBizType())) {
             issueExpertCert(app);
@@ -402,17 +402,19 @@ public class ApplicationService {
         admin.setCreatedAt(LocalDateTime.now());
         sysUserMapper.insert(admin);
 
-        app.setOrgId(org.getId());
         applicationMapper.updateById(app);
     }
 
     private void issueExpertCert(Application app) {
-        Long standardId = readStandardId(app.getFormData());
+        Long standardId = app.getBizKey();
+        if (standardId == null) {
+            standardId = readStandardId(app.getFormData());
+        }
         if (standardId == null) {
             throw new BizException("申请数据缺少认证标准，无法发证");
         }
         if (expertCertService.hasCert(app.getApplicantId(), standardId)) {
-            return; // 已持证（并发或重复审批），幂等处理
+            return;
         }
         CertStandard standard = certStandardMapper.selectById(standardId);
         String fieldName = readText(app.getFormData(), "fieldName");
@@ -434,21 +436,20 @@ public class ApplicationService {
         expertCertService.syncExpertField(app.getApplicantId());
     }
 
-    // ==================== DTO 组装 ====================
-
     private List<ApplicationDetailDTO> toDetailList(List<Application> apps, String role, Long userId) {
-        // 认证业务：申请单 → 认证标准
         Map<Long, Long> appStandardIds = new HashMap<>();
         for (Application app : apps) {
             if (isCertBiz(app.getBizType())) {
-                Long sid = readStandardIdQuiet(app.getFormData());
+                Long sid = app.getBizKey();
+                if (sid == null) {
+                    sid = readStandardIdQuiet(app.getFormData());
+                }
                 if (sid != null) {
                     appStandardIds.put(app.getId(), sid);
                 }
             }
         }
 
-        // 标准 → 审批链（按 first_node_id 沿 next_node_id 展开成有序列表）
         Map<Long, CertStandard> standardMap = new HashMap<>();
         Map<Long, List<CertAuditFlow>> chainMap = new HashMap<>();
         Set<Long> auditorIds = new HashSet<>();
@@ -478,14 +479,22 @@ public class ApplicationService {
             }
         }
 
-        // 批量取人名 / 机构名
+        Set<Long> currentNodeIds = apps.stream()
+                .map(Application::getCurrentNodeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, CertAuditFlow> currentNodeMap = new HashMap<>();
+        if (!currentNodeIds.isEmpty()) {
+            for (CertAuditFlow node : certAuditFlowMapper.selectBatchIds(currentNodeIds)) {
+                currentNodeMap.put(node.getId(), node);
+                auditorIds.add(node.getAuditorId());
+            }
+        }
+
         Set<Long> userIds = new HashSet<>(auditorIds);
         for (Application app : apps) {
             if (app.getApplicantId() != null) {
                 userIds.add(app.getApplicantId());
-            }
-            if (app.getExpertId() != null) {
-                userIds.add(app.getExpertId());
             }
         }
         Map<Long, String> userNames = new HashMap<>();
@@ -494,11 +503,12 @@ public class ApplicationService {
                 userNames.put(u.getId(), u.getRealName());
             }
         }
-        Map<Long, String> orgNames = new HashMap<>();
-        Set<Long> orgIds = apps.stream()
-                .map(Application::getOrgId)
+
+        Set<Long> orgIds = standardMap.values().stream()
+                .map(CertStandard::getOrgId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+        Map<Long, String> orgNames = new HashMap<>();
         if (!orgIds.isEmpty()) {
             for (Organization o : organizationMapper.selectBatchIds(orgIds)) {
                 orgNames.put(o.getId(), o.getName());
@@ -513,10 +523,20 @@ public class ApplicationService {
             dto.setBizTypeName(BIZ_TYPE_NAME.getOrDefault(app.getBizType(), app.getBizType()));
             dto.setApplicantId(app.getApplicantId());
             dto.setApplicantName(userNames.getOrDefault(app.getApplicantId(), "未知"));
-            dto.setOrgId(app.getOrgId());
-            dto.setOrgName(orgNames.getOrDefault(app.getOrgId(), ""));
-            dto.setExpertId(app.getExpertId());
-            dto.setExpertName(userNames.getOrDefault(app.getExpertId(), ""));
+
+            Long standardId = appStandardIds.get(app.getId());
+            CertStandard standard = standardId != null ? standardMap.get(standardId) : null;
+            if (standard != null) {
+                dto.setOrgId(standard.getOrgId());
+                dto.setOrgName(orgNames.getOrDefault(standard.getOrgId(), ""));
+            }
+
+            CertAuditFlow currentNode = app.getCurrentNodeId() != null ? currentNodeMap.get(app.getCurrentNodeId()) : null;
+            if (currentNode != null && currentNode.getAuditorId() != null) {
+                dto.setExpertId(currentNode.getAuditorId());
+                dto.setExpertName(userNames.getOrDefault(currentNode.getAuditorId(), ""));
+            }
+
             dto.setCurrentStatus(app.getCurrentStatus());
             dto.setRejectReason(app.getRejectReason());
             dto.setFormData(app.getFormData());
@@ -524,11 +544,9 @@ public class ApplicationService {
             dto.setUpdatedAt(app.getUpdatedAt());
             dto.setCurrentNodeId(app.getCurrentNodeId());
 
-            int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_DRAFT;
-            boolean inReview = status == STATUS_IN_REVIEW || status == STATUS_LEGACY_IN_REVIEW;
+            int status = app.getCurrentStatus() != null ? app.getCurrentStatus() : STATUS_IN_REVIEW;
+            boolean inReview = status == STATUS_IN_REVIEW;
 
-            // 审批链展示 + 当前审核人
-            Long standardId = appStandardIds.get(app.getId());
             List<CertAuditFlow> chain = standardId != null ? chainMap.get(standardId) : null;
             if (chain != null && !chain.isEmpty()) {
                 List<FlowStepDTO> steps = new ArrayList<>();
@@ -556,7 +574,6 @@ public class ApplicationService {
                 dto.setFlowSteps(steps);
             }
 
-            // 状态名
             if (inReview) {
                 if (dto.getCurrentAuditorName() != null) {
                     dto.setStatusName("待" + dto.getCurrentAuditorName() + "审核");
@@ -577,7 +594,6 @@ public class ApplicationService {
                 dto.setStatusType("info");
             }
 
-            // 当前登录人能否审批
             boolean canAudit = false;
             if (inReview && role != null) {
                 if ("admin".equals(role)) {
@@ -596,13 +612,10 @@ public class ApplicationService {
         return result;
     }
 
-    // ==================== 工具 ====================
-
     private boolean isCertBiz(String bizType) {
         return CERT_BIZ.contains(bizType);
     }
 
-    /** 兼容两种键名：EXPERT_CERT 用 certStandardId，CERT_APPLY 历史数据用 standardId */
     private Long readStandardId(String formData) {
         Long id = readLong(formData, "certStandardId");
         return id != null ? id : readLong(formData, "standardId");
@@ -616,7 +629,6 @@ public class ApplicationService {
         }
     }
 
-    /** 从 form_data JSON 里读一个 long 字段，读不到返回 null */
     private Long readLong(String formData, String field) {
         if (formData == null || formData.trim().isEmpty()) {
             return null;

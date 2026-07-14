@@ -18,15 +18,10 @@ public class Application {
 
     private Long applicantId;
 
-    private Long orgId;
-
-    private Long expertId;
-
     private String formData;
 
     private Integer currentStatus;
 
-    /** 认证业务当前审批节点ID（cert_audit_flow.id），非认证业务为 NULL */
     private Long currentNodeId;
 
     private String rejectReason;
@@ -65,22 +60,6 @@ public class Application {
 
     public void setApplicantId(Long applicantId) {
         this.applicantId = applicantId;
-    }
-
-    public Long getOrgId() {
-        return orgId;
-    }
-
-    public void setOrgId(Long orgId) {
-        this.orgId = orgId;
-    }
-
-    public Long getExpertId() {
-        return expertId;
-    }
-
-    public void setExpertId(Long expertId) {
-        this.expertId = expertId;
     }
 
     public String getFormData() {

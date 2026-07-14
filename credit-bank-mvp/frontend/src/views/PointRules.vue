@@ -15,10 +15,10 @@
             <span class="points">+{{ scope.row.creditValue }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="projectId" label="关联项目" width="110">
+        <el-table-column prop="projectId" label="关联项目" width="140">
           <template #default="scope">
-            <el-tag v-if="scope.row.projectId" type="info">#{{ scope.row.projectId }}</el-tag>
-            <el-tag v-else type="info">通用</el-tag>
+            <el-tag v-if="scope.row.projectId" type="info">{{ getProjectName(scope.row.projectId) }}</el-tag>
+            <el-tag v-else type="primary">通用</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="isEnabled" label="状态" width="70">
@@ -38,15 +38,25 @@
             {{ formatDateTime(scope.row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column v-if="currentUser?.role === 'admin'" label="操作" width="220">
+        <el-table-column label="所属机构" width="130">
           <template #default="scope">
-            <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
-            <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
-                       @click="toggle(scope.row)">
-              {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
-            </el-button>
-            <el-button size="small" type="warning" plain @click="handleAdjust(scope.row)">补差</el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">删除</el-button>
+            <el-tag v-if="scope.row.orgId" type="info" size="small">{{ getOrgName(scope.row.orgId) }}</el-tag>
+            <el-tag v-else type="primary" size="small">平台通用</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="220">
+          <template #default="scope">
+            <template v-if="canOperate(scope.row)">
+              <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
+              <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
+                         @click="toggle(scope.row)">
+                {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
+              </el-button>
+              <el-button v-if="currentUser?.role === 'admin'" size="small" type="warning" plain @click="handleAdjust(scope.row)">补差</el-button>
+              <el-button v-if="currentUser?.role === 'admin'" size="small" type="danger" plain @click="handleDelete(scope.row)">删除</el-button>
+            </template>
+            <span v-else-if="scope.row.orgId !== null" style="color:#868e96;font-size:12px;">非本机构</span>
+            <span v-else style="color:#868e96;font-size:12px;">通用规则</span>
           </template>
         </el-table-column>
       </el-table>
@@ -99,18 +109,21 @@ import {
   adjustRule,
   getProjects
 } from '@/api/point'
+import { getOrganizations } from '@/api/organization'
 import { useAuth } from '@/composables/useAuth'
 
 const { currentUser } = useAuth()
 
 const rules = ref([])
 const projects = ref([])
+const organizations = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
 
 onMounted(async () => {
   await loadData()
   await loadProjects()
+  await loadOrganizations()
 })
 
 async function loadData() {
@@ -127,6 +140,35 @@ async function loadProjects() {
   } catch (error) {
     projects.value = []
   }
+}
+
+async function loadOrganizations() {
+  try {
+    organizations.value = await getOrganizations()
+  } catch (error) {
+    organizations.value = []
+  }
+}
+
+function canOperate(row) {
+  if (currentUser.value?.role === 'admin') {
+    return true
+  }
+  if (currentUser.value?.role === 'org_admin' && row.orgId !== null) {
+    return row.orgId === currentUser.value.orgId
+  }
+  return false
+}
+
+function getProjectName(projectId) {
+  const project = projects.value.find(p => p.id === projectId)
+  return project ? project.name : `项目#${projectId}`
+}
+
+function getOrgName(orgId) {
+  if (!orgId) return ''
+  const org = organizations.value.find(o => o.id === orgId)
+  return org ? org.name : `机构#${orgId}`
 }
 
 function openCreate() {

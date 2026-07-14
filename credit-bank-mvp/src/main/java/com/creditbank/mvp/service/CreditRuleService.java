@@ -65,9 +65,9 @@ public class CreditRuleService {
         return creditRuleMapper.selectList(
                 new LambdaQueryWrapper<CreditRule>()
                         .and(wrapper -> wrapper
-                                .isNull(CreditRule::getProjectId)
+                                .isNull(CreditRule::getOrgId)
                                 .or()
-                                .inSql(CreditRule::getProjectId, "SELECT id FROM project WHERE org_id = " + orgId))
+                                .eq(CreditRule::getOrgId, orgId))
                         .orderByDesc(CreditRule::getId));
     }
 

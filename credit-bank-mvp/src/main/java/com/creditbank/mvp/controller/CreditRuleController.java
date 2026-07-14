@@ -65,20 +65,20 @@ public class CreditRuleController {
 
     @PostMapping("/update")
     public Result<CreditRule> update(@RequestBody CreditRule rule) {
-        checkAdmin();
+        checkRulePermission(rule.getId());
         return Result.ok(creditRuleService.update(rule));
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        checkAdmin();
+        checkRulePermission(id);
         creditRuleService.delete(id);
         return Result.ok();
     }
 
     @PostMapping("/{id}/toggle")
     public Result<CreditRule> toggle(@PathVariable Long id, @RequestBody ToggleRequest request) {
-        checkAdmin();
+        checkRulePermission(id);
         return Result.ok(creditRuleService.toggleEnabled(id, request.getIsEnabled()));
     }
 
@@ -98,6 +98,27 @@ public class CreditRuleController {
         SysUser operator = sysUserMapper.selectById(operatorId);
         if (operator == null || !"admin".equals(operator.getRole())) {
             throw new BizException("无权限");
+        }
+    }
+
+    private void checkRulePermission(Long ruleId) {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        if (operatorId == null) {
+            throw new BizException("未登录");
+        }
+        SysUser operator = sysUserMapper.selectById(operatorId);
+        if (operator == null) {
+            throw new BizException("用户不存在");
+        }
+        if ("admin".equals(operator.getRole())) {
+            return;
+        }
+        CreditRule rule = creditRuleService.getById(ruleId);
+        if (rule.getOrgId() == null) {
+            throw new BizException("无权限操作通用规则");
+        }
+        if (!rule.getOrgId().equals(operator.getOrgId())) {
+            throw new BizException("无权限操作其他机构的规则");
         }
     }
 

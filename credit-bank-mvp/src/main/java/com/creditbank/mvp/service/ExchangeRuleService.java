@@ -168,7 +168,7 @@ public class ExchangeRuleService {
             return;
         }
         if (rule.getOrgId() == null || !rule.getOrgId().equals(operator.getOrgId())) {
-            throw new BizException("只能管理本机构的转换规则");
+            throw new BizException("只能管理本机构的兑换规则");
         }
     }
 }

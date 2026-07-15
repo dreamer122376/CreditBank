@@ -55,7 +55,7 @@ public class ApplicationService {
 
     static {
         BIZ_TYPE_NAME.put("PROJECT_UP", "项目上架审核");
-        BIZ_TYPE_NAME.put("EXCHANGE", "学分转换申请");
+        // EXCHANGE（积分兑换）已定为直兑模式，不走审批，故从合法业务类型中移除
         BIZ_TYPE_NAME.put("CERT_APPLY", "证书认证申请");
         BIZ_TYPE_NAME.put("EXPERT_CERT", "专家认证申请");
         BIZ_TYPE_NAME.put("UNFREEZE_APPEAL", "解冻申诉");

@@ -10,6 +10,7 @@ import com.creditbank.mvp.mapper.ExchangeRuleMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
 import com.creditbank.mvp.mapper.UserOpLogMapper;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,14 @@ public class ExchangeRuleService {
         if (rule.getRequiredCredit() == null || rule.getRequiredCredit() <= 0) {
             throw new BizException("所需积分必须为正数");
         }
+        if (rule.getStock() != null && rule.getStock() < 0) {
+            throw new BizException("库存不能为负数");
+        }
+        SysUser operator = requireCurrentUser();
+        if ("org_admin".equals(operator.getRole())) {
+            // 机构管理员只能创建本机构的规则，归属以后端为准
+            rule.setOrgId(operator.getOrgId());
+        }
         rule.setId(null);
         if (rule.getIsEnabled() == null) {
             rule.setIsEnabled(1);
@@ -56,10 +65,19 @@ public class ExchangeRuleService {
     public ExchangeRule update(ExchangeRule rule) {
         ExchangeRule exist = exchangeRuleMapper.selectById(rule.getId());
         if (exist == null) {
-            throw new BizException("转换规则不存在：" + rule.getId());
+            throw new BizException("兑换规则不存在：" + rule.getId());
         }
+        SysUser operator = requireCurrentUser();
+        checkRuleOwnership(exist, operator);
         if (rule.getRequiredCredit() != null && rule.getRequiredCredit() <= 0) {
             throw new BizException("所需积分必须为正数");
+        }
+        if (rule.getStock() != null && rule.getStock() < 0) {
+            throw new BizException("库存不能为负数");
+        }
+        if ("org_admin".equals(operator.getRole())) {
+            // 机构管理员不能把规则改挂到别的机构
+            rule.setOrgId(exist.getOrgId());
         }
         exchangeRuleMapper.updateById(rule);
         return exchangeRuleMapper.selectById(rule.getId());
@@ -68,8 +86,9 @@ public class ExchangeRuleService {
     public ExchangeRule toggle(Long id) {
         ExchangeRule exist = exchangeRuleMapper.selectById(id);
         if (exist == null) {
-            throw new BizException("转换规则不存在：" + id);
+            throw new BizException("兑换规则不存在：" + id);
         }
+        checkRuleOwnership(exist, requireCurrentUser());
         exist.setIsEnabled(exist.getIsEnabled() != null && exist.getIsEnabled() == 1 ? 0 : 1);
         exchangeRuleMapper.updateById(exist);
         return exist;
@@ -79,7 +98,7 @@ public class ExchangeRuleService {
     public ExchangeRule exchange(Long userId, Long ruleId) {
         ExchangeRule rule = exchangeRuleMapper.selectById(ruleId);
         if (rule == null) {
-            throw new BizException("转换规则不存在：" + ruleId);
+            throw new BizException("兑换规则不存在：" + ruleId);
         }
         if (rule.getIsEnabled() == null || rule.getIsEnabled() != 1) {
             throw new BizException("该兑换品已停用");
@@ -89,13 +108,8 @@ public class ExchangeRuleService {
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
         }
-
-        if (rule.getStock() != null && rule.getStock() <= 0) {
-            throw new BizException("该兑换品库存不足");
-        }
-
-        if (user.getBalance() == null || user.getBalance() < rule.getRequiredCredit()) {
-            throw new BizException("积分不足，当前余额：" + user.getBalance() + "，需要：" + rule.getRequiredCredit());
+        if (rule.getOrgId() != null && !rule.getOrgId().equals(user.getOrgId())) {
+            throw new BizException("该兑换品仅限所属机构用户兑换");
         }
 
         if (rule.getPerUserLimit() != null && rule.getPerUserLimit() > 0) {
@@ -109,14 +123,16 @@ public class ExchangeRuleService {
             }
         }
 
-        Integer newBalance = user.getBalance() - rule.getRequiredCredit();
-        user.setBalance(newBalance);
-        sysUserMapper.updateById(user);
-
-        if (rule.getStock() != null) {
-            rule.setStock(rule.getStock() - 1);
-            exchangeRuleMapper.updateById(rule);
+        // 条件更新扣减，影响行数为 0 即余额/库存不足，避免并发超扣/超卖
+        if (sysUserMapper.deductBalance(userId, rule.getRequiredCredit()) == 0) {
+            throw new BizException("积分不足，当前余额：" + user.getBalance()
+                    + "，需要：" + rule.getRequiredCredit());
         }
+        if (rule.getStock() != null && exchangeRuleMapper.deductStock(ruleId) == 0) {
+            throw new BizException("该兑换品库存不足");
+        }
+
+        Integer newBalance = sysUserMapper.selectById(userId).getBalance();
 
         TransactionLog txn = new TransactionLog();
         txn.setUserId(userId);
@@ -133,5 +149,26 @@ public class ExchangeRuleService {
                 "用户「" + user.getRealName() + "」兑换「" + rule.getItemName() + "」，消耗 " + rule.getRequiredCredit() + " 积分，当前余额：" + newBalance));
 
         return exchangeRuleMapper.selectById(ruleId);
+    }
+
+    // ---- 内部方法 ----
+
+    private SysUser requireCurrentUser() {
+        Long userId = CurrentUserUtil.getCurrentUserId();
+        SysUser user = userId == null ? null : sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException("当前登录用户无效");
+        }
+        return user;
+    }
+
+    /** admin 可管理全部规则；org_admin 只能管理本机构规则，平台通用规则(orgId=NULL)不可动 */
+    private void checkRuleOwnership(ExchangeRule rule, SysUser operator) {
+        if ("admin".equals(operator.getRole())) {
+            return;
+        }
+        if (rule.getOrgId() == null || !rule.getOrgId().equals(operator.getOrgId())) {
+            throw new BizException("只能管理本机构的兑换规则");
+        }
     }
 }

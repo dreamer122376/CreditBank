@@ -124,13 +124,22 @@ INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is
 (9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
 (10, 'ADMIN', '管理员手动加分', 0, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL);
 
--- 积分转换规则表初始数据（无外键依赖）
+-- 积分兑换规则表初始数据（无外键依赖）
+-- item_icon 为图片地址：支持站内上传路径(/api/files/view/xxx)或外链(https://...)，
+-- 以下外链已在开发机网络实测可加载（Unsplash / Lorem Picsum，均允许热链）
 INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `per_user_limit`, `is_enabled`, `org_id`, `created_at`) VALUES
-(1, '精美笔记本', 'icon_notebook', 100, 100, 1, 1, NULL, NOW()),
-(2, '课程优惠券', 'icon_coupon', 200, 50, 1, 1, NULL, NOW()),
-(3, '荣誉证书', 'icon_certificate', 500, 20, 1, 1, NULL, NOW()),
-(4, '书籍借阅卡', 'icon_card', 300, 80, 1, 1, 1, NOW()),
-(5, '充电宝', 'icon_powerbank', 800, 30, 1, 1, 2, NOW());
+(1, '精美笔记本', 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=400&q=80', 100, 100, 1, 1, NULL, NOW()),
+(2, '课程优惠券', 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80', 200, 50, 1, 1, NULL, NOW()),
+(3, '荣誉证书', 'https://picsum.photos/id/24/400/300', 500, 20, 1, 1, NULL, NOW()),
+(4, '书籍借阅卡', 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80', 300, 80, 1, 1, 1, NOW()),
+(5, '充电宝', 'https://picsum.photos/id/0/400/300', 800, 30, 1, 1, 2, NOW()),
+(6, '蓝牙耳机', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80', 600, 25, 1, 1, NULL, NOW()),
+(7, '双肩背包', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80', 450, 40, 1, 1, NULL, NOW()),
+(8, '机械键盘', 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400&q=80', 700, 15, 1, 1, NULL, NOW()),
+(9, '保温杯', 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80', 250, 60, 1, 1, NULL, NOW()),
+(10, '校园咖啡券', 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=400&q=80', 120, 100, 3, 1, 1, NOW()),
+(11, '智能手环', 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=400&q=80', 900, 10, 1, 1, 2, NOW()),
+(12, '桌面文具套装', 'https://picsum.photos/id/20/400/300', 180, 50, 2, 1, 1, NOW());
 
 -- 平台活动表初始数据（无外键依赖）
 INSERT INTO `campaign` (`id`, `title`, `multiplier`, `start_time`, `end_time`, `status`, `created_at`, `description`, `cover_image`, `organizer`, `images`) VALUES

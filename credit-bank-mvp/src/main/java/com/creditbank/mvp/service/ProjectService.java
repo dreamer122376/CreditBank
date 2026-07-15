@@ -172,13 +172,21 @@ public class ProjectService {
     }
 
     /**
-     * 学生端：查询所有已上架项目（带报名状态）。
+     * 学生端：查询已上架项目（带报名状态）。
+     * 仅显示学生所属机构的项目和通用项目（orgId 为 null）。
      */
     public List<ProjectListDTO> listActive(Long studentId) {
-        List<Project> projects = projectMapper.selectList(
-                new LambdaQueryWrapper<Project>()
-                        .eq(Project::getStatus, STATUS_APPROVED)
-                        .orderByDesc(Project::getCreatedAt));
+        LambdaQueryWrapper<Project> wrapper = new LambdaQueryWrapper<Project>()
+                .eq(Project::getStatus, STATUS_APPROVED);
+        if (studentId != null) {
+            SysUser student = sysUserMapper.selectById(studentId);
+            if (student != null && student.getOrgId() != null) {
+                wrapper.and(w -> w.eq(Project::getOrgId, student.getOrgId())
+                        .or().isNull(Project::getOrgId));
+            }
+        }
+        wrapper.orderByDesc(Project::getCreatedAt);
+        List<Project> projects = projectMapper.selectList(wrapper);
         List<ProjectListDTO> dtos = toListDTO(projects);
         
         if (studentId != null && !dtos.isEmpty()) {

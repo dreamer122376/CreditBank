@@ -147,7 +147,7 @@ const menuItems = computed(() => {
       { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
       { path: '/experts', title: '专家管理', icon: Avatar },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
-      { path: '/exchange-rules', title: '转换规则', icon: Refresh },
+      { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '审核管理', icon: Tickets },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },

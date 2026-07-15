@@ -124,7 +124,7 @@ INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is
 (9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
 (10, 'ADMIN', '管理员手动加分', 0, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL);
 
--- 积分转换规则表初始数据（无外键依赖）
+-- 积分兑换规则表初始数据（无外键依赖）
 -- item_icon 为图片地址：支持站内上传路径(/api/files/view/xxx)或外链(https://...)，
 -- 以下外链已在开发机网络实测可加载（Unsplash / Lorem Picsum，均允许热链）
 INSERT INTO `exchange_rule` (`id`, `item_name`, `item_icon`, `required_credit`, `stock`, `per_user_limit`, `is_enabled`, `org_id`, `created_at`) VALUES

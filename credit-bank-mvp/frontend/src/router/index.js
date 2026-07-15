@@ -76,7 +76,7 @@ const routes = [
         path: 'exchange-rules',
         name: 'ExchangeRules',
         component: () => import('@/views/ExchangeRules.vue'),
-        meta: { title: '转换规则' }
+        meta: { title: '兑换规则' }
       },
       {
         path: 'cert-standards',

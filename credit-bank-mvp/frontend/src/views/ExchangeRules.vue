@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>积分转换规则</span>
+          <span>积分兑换规则</span>
           <el-button type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
@@ -57,7 +57,7 @@
         </el-table-column>
       </el-table>
       <div v-if="rules.length === 0" style="text-align: center; padding: 40px;">
-        暂无转换规则
+        暂无兑换规则
       </div>
     </el-card>
 

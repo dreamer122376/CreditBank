@@ -7,38 +7,42 @@
           <el-button v-if="currentUser?.role === 'admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
-      <el-table :data="rules" border style="width: 100%;" size="small">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="eventName" label="事件名称" min-width="120" />
-        <el-table-column prop="creditValue" label="奖励积分" width="90">
+      <el-table :data="rules" border style="width: 100%;" size="small" :max-height="tableMaxHeight" :cell-class-name="'table-cell-wrap'">
+        <el-table-column prop="id" label="ID" width="45" />
+        <el-table-column prop="eventName" label="事件名称" width="80">
+          <template #default="scope">
+            <span class="event-name">{{ scope.row.eventName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="creditValue" label="奖励积分" width="70">
           <template #default="scope">
             <span class="points">+{{ scope.row.creditValue }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="projectId" label="关联项目" width="140">
+        <el-table-column prop="projectId" label="关联项目" width="130">
           <template #default="scope">
-            <el-tag v-if="scope.row.projectId" type="info">{{ getProjectName(scope.row.projectId) }}</el-tag>
-            <el-tag v-else type="primary">通用</el-tag>
+            <el-tag v-if="scope.row.projectId" type="info" size="small">{{ getProjectName(scope.row.projectId) }}</el-tag>
+            <el-tag v-else type="primary" size="small">通用</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="isEnabled" label="状态" width="70">
+        <el-table-column prop="isEnabled" label="状态" width="65">
           <template #default="scope">
             <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'" size="small">
               {{ scope.row.isEnabled === 1 ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="startTime" label="开始" width="125">
+        <el-table-column prop="startTime" label="开始" width="105">
           <template #default="scope">
             {{ formatDateTime(scope.row.startTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="endTime" label="结束" width="125">
+        <el-table-column prop="endTime" label="结束" width="105">
           <template #default="scope">
             {{ formatDateTime(scope.row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="所属机构" width="130">
+        <el-table-column label="所属机构" width="110">
           <template #default="scope">
             <el-tag v-if="scope.row.orgId" type="info" size="small">{{ getOrgName(scope.row.orgId) }}</el-tag>
             <el-tag v-else type="primary" size="small">平台通用</el-tag>
@@ -47,13 +51,15 @@
         <el-table-column label="操作" width="220">
           <template #default="scope">
             <template v-if="canOperate(scope.row)">
-              <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
-              <el-button size="small" :type="scope.row.isEnabled === 1 ? 'danger' : 'success'"
-                         @click="toggle(scope.row)">
-                {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
-              </el-button>
-              <el-button v-if="currentUser?.role === 'admin'" size="small" type="warning" plain @click="handleAdjust(scope.row)">补差</el-button>
-              <el-button v-if="currentUser?.role === 'admin'" size="small" type="danger" plain @click="handleDelete(scope.row)">删除</el-button>
+              <div class="action-buttons">
+                <el-button size="small" type="primary" @click="openEdit(scope.row)">编辑</el-button>
+                <el-button size="small" :type="scope.row.isEnabled === 1 ? 'warning' : 'success'"
+                           @click="toggle(scope.row)">
+                  {{ scope.row.isEnabled === 1 ? '停用' : '启用' }}
+                </el-button>
+                <el-button v-if="currentUser?.role === 'admin'" size="small" type="info" @click="handleAdjust(scope.row)">补差</el-button>
+                <el-button v-if="currentUser?.role === 'admin'" size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+              </div>
             </template>
             <span v-else-if="scope.row.orgId !== null" style="color:#868e96;font-size:12px;">非本机构</span>
             <span v-else style="color:#868e96;font-size:12px;">通用规则</span>
@@ -98,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getRules,
@@ -120,6 +126,10 @@ const projects = ref([])
 const organizations = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
+
+const tableMaxHeight = computed(() => {
+  return Math.max(400, window.innerHeight - 280) + 'px'
+})
 
 onMounted(async () => {
   loading.value = true
@@ -277,5 +287,28 @@ async function handleAdjust(row) {
 .points {
   font-weight: 600;
   color: #0b7a4f;
+}
+
+.event-name {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+:deep(.table-cell-wrap) {
+  white-space: normal;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+
+.action-buttons .el-button {
+  flex-shrink: 0;
+  padding: 3px 6px;
+  font-size: 11px;
 }
 </style>

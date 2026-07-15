@@ -40,6 +40,8 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/exchange-rule/update", List.of("POST")),
             Map.entry("/api/exchange-rule/{id}/toggle", List.of("POST")),
             Map.entry("/api/notifications/publish", List.of("POST")),
+            Map.entry("/api/notifications/published", List.of("GET")),
+            Map.entry("/api/notifications/{id}/revoke", List.of("PUT")),
             Map.entry("/api/credit-rule/update", List.of("POST")),
             Map.entry("/api/credit-rule/{id}/toggle", List.of("POST")),
             Map.entry("/api/credit-rule/{id}", List.of("DELETE")),

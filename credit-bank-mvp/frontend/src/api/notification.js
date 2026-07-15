@@ -19,3 +19,15 @@ export function markAllNotificationsRead() {
 export function publishNotification(data) {
   return request.post('/notifications/publish', data)
 }
+
+export function getPublishedNotifications(params = {}) {
+  return request.get('/notifications/published', { params })
+}
+
+export function revokeNotification(id) {
+  return request.put(`/notifications/${id}/revoke`)
+}
+
+export function confirmNotification(id) {
+  return request.put(`/notifications/${id}/confirm`)
+}

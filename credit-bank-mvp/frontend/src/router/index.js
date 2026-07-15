@@ -76,7 +76,7 @@ const routes = [
         path: 'exchange-rules',
         name: 'ExchangeRules',
         component: () => import('@/views/ExchangeRules.vue'),
-        meta: { title: '转换规则' }
+        meta: { title: '兑换规则' }
       },
       {
         path: 'cert-standards',
@@ -172,6 +172,12 @@ const routes = [
         name: 'ProjectManage',
         component: () => import('@/views/ProjectManage.vue'),
         meta: { title: '项目管理' }
+      },
+      {
+        path: 'point-mall',
+        name: 'PointMall',
+        component: () => import('@/views/PointMall.vue'),
+        meta: { title: '积分商城' }
       }
     ]
   }

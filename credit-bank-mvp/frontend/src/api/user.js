@@ -26,6 +26,10 @@ export function getUsers() {
   return request.get('/users')
 }
 
+export function getAuditorCandidates() {
+  return request.get('/users/auditor-candidates')
+}
+
 export function getUser(id) {
   return request.get(`/users/${id}`)
 }

@@ -40,7 +40,7 @@
         <el-table-column label="审批流程" width="120" align="center">
           <template #default="scope">
             <el-button size="small" link type="warning"
-                       :disabled="scope.row.needManualAudit === 0"
+                       :disabled="scope.row.needManualAudit === 0 || !canOperate(scope.row)"
                        @click="goFlowManage(scope.row)">
               <el-icon><Connection /></el-icon>
               {{ scope.row.needManualAudit === 0 ? '无需审核' : `管理流程(${scope.row.flowStepCount || 0})` }}
@@ -90,8 +90,8 @@
         <el-form-item label="适用人员" required>
           <el-select v-model="form.targetRole" placeholder="选择适用对象" style="width: 200px;">
             <el-option label="学生" value="student" />
-            <el-option label="专家" value="expert" />
-            <el-option label="机构" value="org_admin" />
+            <el-option v-if="isAdmin" label="专家" value="expert" />
+            <el-option v-if="isAdmin" label="机构" value="org_admin" />
           </el-select>
         </el-form-item>
         <el-form-item label="认证要求表述">

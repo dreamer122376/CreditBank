@@ -1,5 +1,5 @@
 <template>
-  <div class="accounts">
+  <div class="accounts" v-loading="loading">
     <!-- 顶栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
@@ -14,9 +14,22 @@
       <el-button @click="$router.push('/op-logs')">📝 操作日志</el-button>
     </div>
 
+    <!-- 搜索筛选栏 -->
+    <div class="filter-bar">
+      <el-input v-model="searchKeyword" placeholder="搜索用户名/真实姓名" clearable style="width: 240px;" @keyup.enter="handleSearch">
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+      <el-select v-model="filterStatus" placeholder="状态筛选" clearable style="width: 120px;">
+        <el-option :value="1" label="正常" />
+        <el-option :value="0" label="已冻结" />
+      </el-select>
+      <el-button type="primary" @click="handleSearch">搜索</el-button>
+      <el-button @click="resetFilters">重置</el-button>
+    </div>
+
     <!-- 用户表格 -->
     <el-card>
-      <el-table :data="filteredUsers" border style="width: 100%;" @selection-change="handleSelectionChange" ref="tableRef">
+      <el-table :data="paginatedUsers" border style="width: 100%;" @selection-change="handleSelectionChange" ref="tableRef">
         <el-table-column v-if="isAdmin" type="selection" width="50" :selectable="row => row.role !== 'admin'" />
         <el-table-column prop="id" label="用户ID" width="80" />
         <el-table-column prop="username" label="用户名" />
@@ -51,7 +64,19 @@
         </el-table-column>
       </el-table>
 
-      <div v-if="filteredUsers.length === 0" style="text-align:center;padding:40px;color:#868e96;">暂无用户</div>
+      <div v-if="paginatedUsers.length === 0" style="text-align:center;padding:40px;color:#868e96;">暂无用户</div>
+
+      <!-- 分页 -->
+      <div class="pagination" v-if="totalUsers > 0">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, jumper"
+          :total="totalUsers"
+          :page-size="pageSize"
+          v-model:current-page="currentPage"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
     <!-- 批量操作栏 -->
@@ -88,11 +113,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getUsers, updateUserStatus, batchUpdateStatus, resetPassword } from '@/api/user'
 
 const router = useRouter()
 const { currentUser } = useAuth()
+const loading = ref(true)
 const users = ref([])
 const selectedIds = ref([])
 const tableRef = ref(null)
@@ -101,13 +128,39 @@ const resetting = ref(false)
 const resetPwForm = ref({ id: null, username: '', realName: '', newPassword: '' })
 const filterRole = ref('student')
 
+const searchKeyword = ref('')
+const filterStatus = ref(null)
+const currentPage = ref(1)
+const pageSize = ref(10)
+
 const ROLE_NAME = { admin: '系统管理员', org_admin: '机构管理员', student: '学生', expert: '专家' }
 const ROLE_TYPE = { admin: 'danger', org_admin: 'warning', student: 'success', expert: 'info' }
 
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 const filteredUsers = computed(() => {
-  return users.value.filter(u => u.role === filterRole.value)
+  let result = users.value.filter(u => u.role === filterRole.value)
+  
+  if (searchKeyword.value) {
+    const kw = searchKeyword.value.toLowerCase()
+    result = result.filter(u => 
+      (u.username && u.username.toLowerCase().includes(kw)) ||
+      (u.realName && u.realName.toLowerCase().includes(kw))
+    )
+  }
+  
+  if (filterStatus.value !== null && filterStatus.value !== '') {
+    result = result.filter(u => u.status === filterStatus.value)
+  }
+  
+  return result
+})
+
+const totalUsers = computed(() => filteredUsers.value.length)
+
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredUsers.value.slice(start, start + pageSize.value)
 })
 
 const showBalance = computed(() => ['student', 'org_admin'].includes(filterRole.value))
@@ -130,11 +183,29 @@ const unfreezeCount = computed(() => selectedIds.value.filter(id => {
 onMounted(() => { loadData() })
 
 async function loadData() {
+  loading.value = true
   try {
     users.value = await getUsers()
   } catch (e) {
     ElMessage.error('加载用户列表失败')
+  } finally {
+    loading.value = false
   }
+}
+
+function handleSearch() {
+  currentPage.value = 1
+}
+
+function resetFilters() {
+  searchKeyword.value = ''
+  filterStatus.value = null
+  currentPage.value = 1
+}
+
+function handlePageChange() {
+  tableRef.value?.clearSelection()
+  selectedIds.value = []
 }
 
 // ==================== 选择 ====================
@@ -237,6 +308,21 @@ function goEarn(id) { router.push(`/account/${id}`) }
 .toolbar-left { display: flex; align-items: center; gap: 12px; }
 .toolbar-title { font-size: 16px; font-weight: 600; color: #2c3e50; }
 .role-filter { width: 140px; }
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 16px;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
 .batch-bar {
   position: fixed; bottom: 0; left: 220px; right: 0; z-index: 50;
   background: #fff; border-top: 2px solid #3b5bdb;

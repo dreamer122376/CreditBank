@@ -1,5 +1,5 @@
 <template>
-  <div class="exchange-rules">
+  <div class="exchange-rules" v-loading="loading">
     <el-card>
       <template #header>
         <div class="card-header">

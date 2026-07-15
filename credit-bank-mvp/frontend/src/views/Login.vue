@@ -52,6 +52,7 @@
             <p class="login-msg" v-if="loginMsg">{{ loginMsg }}</p>
             <div class="login-extra-link">
               <el-button link type="primary" size="small" @click="goOrgRegister">机构入驻申请</el-button>
+              <el-button link type="warning" size="small" @click="$router.push('/dashboard-map')">📊 数据大屏</el-button>
             </div>
           </el-form>
         </el-tab-pane>

@@ -26,6 +26,8 @@ public class Organization {
 
     private String address;
 
+    private String province;
+
     private Integer status;
 
     private String rejectReason;
@@ -76,6 +78,9 @@ public class Organization {
     public void setAddress(String address) {
         this.address = address;
     }
+
+    public String getProvince() { return province; }
+    public void setProvince(String province) { this.province = province; }
 
     public Integer getStatus() {
         return status;

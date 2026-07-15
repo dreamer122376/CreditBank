@@ -96,6 +96,7 @@ import {
   FolderOpened,
   Collection,
   Files,
+  DataAnalysis,
   ShoppingCart
 } from '@element-plus/icons-vue'
 
@@ -143,6 +144,7 @@ const menuItems = computed(() => {
   const menus = {
     admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
+      { path: '/dashboard-map', title: '数据大屏', icon: DataAnalysis },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
       { path: '/experts', title: '专家管理', icon: Avatar },

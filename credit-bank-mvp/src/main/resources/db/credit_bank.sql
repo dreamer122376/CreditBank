@@ -283,6 +283,7 @@ CREATE TABLE `organization` (
                                 `contact_person` varchar(50) DEFAULT NULL COMMENT '联系人姓名',
                                 `contact_phone` varchar(20) DEFAULT NULL COMMENT '联系电话',
                                 `address` varchar(200) DEFAULT NULL COMMENT '机构地址',
+                                `province` varchar(20) DEFAULT NULL COMMENT '所在省份',
                                 `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1启用，2禁用，3已拒绝',
                                 `reject_reason` varchar(500) DEFAULT NULL COMMENT '拒绝原因',
                                 `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

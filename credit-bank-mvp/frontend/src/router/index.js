@@ -172,6 +172,12 @@ const routes = [
         name: 'ProjectManage',
         component: () => import('@/views/ProjectManage.vue'),
         meta: { title: '项目管理' }
+      },
+      {
+        path: 'point-mall',
+        name: 'PointMall',
+        component: () => import('@/views/PointMall.vue'),
+        meta: { title: '积分商城' }
       }
     ]
   }

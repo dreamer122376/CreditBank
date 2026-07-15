@@ -15,3 +15,7 @@ export function updateExchangeRule(rule) {
 export function toggleExchangeRule(id) {
   return request.post(`/exchange-rule/${id}/toggle`)
 }
+
+export function exchangeItem(id) {
+  return request.post(`/exchange-rule/${id}/exchange`)
+}

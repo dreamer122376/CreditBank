@@ -95,7 +95,8 @@ import {
   Postcard,
   FolderOpened,
   Collection,
-  Files
+  Files,
+  ShoppingCart
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -160,6 +161,7 @@ const menuItems = computed(() => {
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/exchange-rules', title: '转换规则', icon: Refresh },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled },
@@ -172,6 +174,7 @@ const menuItems = computed(() => {
       { path: '/student-certs', title: '学生证书认证', icon: Medal },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
+      { path: '/point-mall', title: '积分商城', icon: ShoppingCart },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '我的钱包', icon: WalletFilled }
     ],

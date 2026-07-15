@@ -80,10 +80,14 @@ public class StatsService {
             List<Long> myNodeIds = certAuditFlowMapper.selectList(
                             new LambdaQueryWrapper<CertAuditFlow>().eq(CertAuditFlow::getAuditorId, userId))
                     .stream().map(CertAuditFlow::getId).collect(Collectors.toList());
-            pendingCount = applicationMapper.selectCount(
-                    new LambdaQueryWrapper<Application>()
-                            .in(Application::getCurrentNodeId, myNodeIds)
-                            .eq(Application::getCurrentStatus, 1));
+            if (myNodeIds.isEmpty()) {
+                pendingCount = 0L;
+            } else {
+                pendingCount = applicationMapper.selectCount(
+                        new LambdaQueryWrapper<Application>()
+                                .in(Application::getCurrentNodeId, myNodeIds)
+                                .eq(Application::getCurrentStatus, 1));
+            }
         } else {
             pendingCount = applicationMapper.selectCount(
                     new LambdaQueryWrapper<Application>()
@@ -168,12 +172,16 @@ public class StatsService {
             List<Long> myNodeIds = certAuditFlowMapper.selectList(
                             new LambdaQueryWrapper<CertAuditFlow>().eq(CertAuditFlow::getAuditorId, userId))
                     .stream().map(CertAuditFlow::getId).collect(Collectors.toList());
-            apps = applicationMapper.selectList(
-                    new LambdaQueryWrapper<Application>()
-                            .in(Application::getCurrentNodeId, myNodeIds)
-                            .eq(Application::getCurrentStatus, 1)
-                            .orderByDesc(Application::getAppliedAt)
-                            .last("LIMIT " + limit));
+            if (myNodeIds.isEmpty()) {
+                apps = new ArrayList<>();
+            } else {
+                apps = applicationMapper.selectList(
+                        new LambdaQueryWrapper<Application>()
+                                .in(Application::getCurrentNodeId, myNodeIds)
+                                .eq(Application::getCurrentStatus, 1)
+                                .orderByDesc(Application::getAppliedAt)
+                                .last("LIMIT " + limit));
+            }
         } else {
             apps = applicationMapper.selectList(
                     new LambdaQueryWrapper<Application>()

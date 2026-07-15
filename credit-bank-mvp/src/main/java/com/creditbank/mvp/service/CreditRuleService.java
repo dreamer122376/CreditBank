@@ -74,7 +74,7 @@ public class CreditRuleService {
     @Transactional(rollbackFor = Exception.class)
     public CreditRule create(CreditRule rule) {
         if (rule.getEventCode() == null || rule.getEventCode().trim().isEmpty()) {
-            throw new BizException("事件编码不能为空");
+            rule.setEventCode("/");
         }
         if (rule.getEventName() == null || rule.getEventName().trim().isEmpty()) {
             throw new BizException("事件名称不能为空");

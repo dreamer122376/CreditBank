@@ -1,6 +1,7 @@
 package com.creditbank.mvp.controller;
 
 import com.creditbank.mvp.common.Result;
+import com.creditbank.mvp.dto.DashboardVO;
 import com.creditbank.mvp.dto.PointOverviewDTO;
 import com.creditbank.mvp.dto.StatsSummaryDTO;
 import com.creditbank.mvp.dto.TodoItemDTO;
@@ -49,5 +50,11 @@ public class StatsController {
     public Result<List<java.util.Map<String, Object>>> pointTrend(@RequestParam Long userId,
                                                                   @RequestParam(defaultValue = "7") int days) {
         return Result.ok(statsService.getPointTrend(userId, days));
+    }
+
+    /** 数据大屏聚合接口（公开） */
+    @GetMapping("/dashboard")
+    public Result<DashboardVO> dashboard() {
+        return Result.ok(statsService.getDashboardData());
     }
 }

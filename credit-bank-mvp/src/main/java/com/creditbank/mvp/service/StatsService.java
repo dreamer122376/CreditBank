@@ -1,6 +1,7 @@
 package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.creditbank.mvp.dto.DashboardVO;
 import com.creditbank.mvp.dto.PointOverviewDTO;
 import com.creditbank.mvp.dto.StatsSummaryDTO;
 import com.creditbank.mvp.dto.TodoItemDTO;
@@ -332,5 +333,104 @@ public class StatsService {
         }
 
         return result;
+    }
+
+    // ==================== 数据大屏 ====================
+
+    public DashboardVO getDashboardData() {
+        DashboardVO vo = new DashboardVO();
+
+        // KPI
+        DashboardVO.KpiDTO kpi = new DashboardVO.KpiDTO();
+        kpi.setTotalArchives(sysUserMapper.selectCount(null));
+        kpi.setTotalCertifications(transactionLogMapper.selectCount(
+                new LambdaQueryWrapper<TransactionLog>().eq(TransactionLog::getBizType, "REWARD")));
+        kpi.setTotalRules(certStandardMapper.selectCount(
+                new LambdaQueryWrapper<CertStandard>().eq(CertStandard::getIsEnabled, 1)));
+        kpi.setTotalCenters(organizationMapper.selectCount(null));
+        vo.setKpi(kpi);
+
+        // 分类统计（用角色模拟）
+        List<Map<String, Object>> categories = new ArrayList<>();
+        addCategory(categories, "学生档案", sysUserMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getRole, "student")));
+        addCategory(categories, "机构管理员", sysUserMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getRole, "org_admin")));
+        addCategory(categories, "专家", sysUserMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getRole, "expert")));
+        addCategory(categories, "系统管理员", sysUserMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getRole, "admin")));
+        vo.setCategories(categories);
+
+        // 同比对比（去年 vs 今年，用 created_at 年份过滤）
+        List<DashboardVO.YoYDTO> yoy = new ArrayList<>();
+        long thisYearUsers = sysUserMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>().ge(SysUser::getCreatedAt, LocalDate.now().withDayOfYear(1).atStartOfDay()));
+        long lastYearUsers = sysUserMapper.selectCount(
+                new LambdaQueryWrapper<SysUser>()
+                        .ge(SysUser::getCreatedAt, LocalDate.now().minusYears(1).withDayOfYear(1).atStartOfDay())
+                        .lt(SysUser::getCreatedAt, LocalDate.now().withDayOfYear(1).atStartOfDay()));
+        addYoY(yoy, "新增档案", lastYearUsers, thisYearUsers);
+
+        long thisYearTxn = transactionLogMapper.selectCount(
+                new LambdaQueryWrapper<TransactionLog>().ge(TransactionLog::getCreatedAt, LocalDate.now().withDayOfYear(1).atStartOfDay()));
+        long lastYearTxn = transactionLogMapper.selectCount(
+                new LambdaQueryWrapper<TransactionLog>()
+                        .ge(TransactionLog::getCreatedAt, LocalDate.now().minusYears(1).withDayOfYear(1).atStartOfDay())
+                        .lt(TransactionLog::getCreatedAt, LocalDate.now().withDayOfYear(1).atStartOfDay()));
+        addYoY(yoy, "积分流水", lastYearTxn, thisYearTxn);
+        vo.setYoy(yoy);
+
+        // 省份分布（模拟数据）
+        List<Map<String, Object>> provinces = new ArrayList<>();
+        String[] provinceNames = {"北京", "上海", "广东", "江苏", "浙江", "四川", "重庆", "湖北", "山东", "河南"};
+        long base = kpi.getTotalArchives();
+        for (String name : provinceNames) {
+            Map<String, Object> p = new HashMap<>();
+            p.put("name", name);
+            p.put("value", base / 10 + (long)(Math.random() * base / 5));
+            provinces.add(p);
+        }
+        vo.setProvinces(provinces);
+
+        // 月度趋势（近12个月）
+        List<Map<String, Object>> monthly = new ArrayList<>();
+        for (int i = 11; i >= 0; i--) {
+            LocalDate month = LocalDate.now().minusMonths(i).withDayOfMonth(1);
+            LocalDate nextMonth = month.plusMonths(1);
+            Map<String, Object> m = new HashMap<>();
+            m.put("month", month.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+            m.put("earn", transactionLogMapper.selectCount(
+                    new LambdaQueryWrapper<TransactionLog>()
+                            .eq(TransactionLog::getBizType, "REWARD")
+                            .ge(TransactionLog::getCreatedAt, month.atStartOfDay())
+                            .lt(TransactionLog::getCreatedAt, nextMonth.atStartOfDay())));
+            m.put("exchange", transactionLogMapper.selectCount(
+                    new LambdaQueryWrapper<TransactionLog>()
+                            .eq(TransactionLog::getBizType, "EXCHANGE")
+                            .ge(TransactionLog::getCreatedAt, month.atStartOfDay())
+                            .lt(TransactionLog::getCreatedAt, nextMonth.atStartOfDay())));
+            monthly.add(m);
+        }
+        vo.setMonthlyTrend(monthly);
+
+        return vo;
+    }
+
+    private void addCategory(List<Map<String, Object>> list, String name, long value) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("name", name);
+        m.put("value", value);
+        list.add(m);
+    }
+
+    private void addYoY(List<DashboardVO.YoYDTO> list, String name, long last, long thisYear) {
+        DashboardVO.YoYDTO dto = new DashboardVO.YoYDTO();
+        dto.setName(name);
+        dto.setLastYear(last);
+        dto.setThisYear(thisYear);
+        dto.setGrowth(thisYear - last);
+        dto.setGrowthRate(last > 0 ? String.format("%.1f%%", (thisYear - last) * 100.0 / last) : "—");
+        list.add(dto);
     }
 }

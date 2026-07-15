@@ -200,3 +200,111 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 (19, 6, -500, 760, 'EXCHANGE', 3, '兑换荣誉证书', NOW()),
 -- 今天：EXCHANGE（student_3 兑换充电宝 -800，1050→250）
 (20, 8, -800, 250, 'EXCHANGE', 5, '兑换充电宝', NOW());
+-- ========== 大屏测试数据 ==========
+INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES
+(21, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -30 DAY)),
+(22, 7, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -30 DAY)),
+(23, 8, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -30 DAY)),
+(24, 6, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -60 DAY)),
+(25, 7, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -60 DAY)),
+(26, 8, 500, 500, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -60 DAY)),
+(27, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -90 DAY)),
+(28, 7, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -90 DAY)),
+(29, 8, 300, 300, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -90 DAY)),
+(30, 6, 100, 200, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -120 DAY)),
+(31, 7, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -120 DAY)),
+(32, 8, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -120 DAY)),
+(33, 6, 200, 0, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -120 DAY)),
+(34, 6, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -150 DAY)),
+(35, 7, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -150 DAY)),
+(36, 8, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -150 DAY)),
+(37, 6, 300, 300, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -180 DAY)),
+(38, 7, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -180 DAY)),
+(39, 8, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -180 DAY)),
+(40, 6, 400, 0, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -180 DAY)),
+(41, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -210 DAY)),
+(42, 7, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -210 DAY)),
+(43, 8, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -210 DAY)),
+(44, 6, 500, 500, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -240 DAY)),
+(45, 7, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -240 DAY)),
+(46, 8, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -240 DAY)),
+(47, 6, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -270 DAY)),
+(48, 7, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -270 DAY)),
+(49, 8, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -270 DAY)),
+(50, 6, 500, 0, 'EXCHANGE', 3, '兑换荣誉证书', DATE_ADD(NOW(), INTERVAL -270 DAY)),
+(51, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -300 DAY)),
+(52, 7, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -300 DAY)),
+(53, 8, 300, 300, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -300 DAY)),
+(54, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -330 DAY)),
+(55, 7, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -330 DAY)),
+(56, 8, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -330 DAY));
+
+INSERT INTO `organization` (`id`, `name`, `contact_person`, `contact_phone`, `address`, `status`, `created_at`, `updated_at`) VALUES
+(4, '继续教育学院', '刘主任', '13800138015', '行政楼101', 1, NOW(), NOW()),
+(5, '职业教育中心', '黄老师', '13800138016', '培训楼202', 1, NOW(), NOW()),
+(6, '远程教育中心', '林老师', '13800138017', '网络中心303', 1, NOW(), NOW()),
+(7, '艺术学院', '吴院长', '13800138018', '艺术楼401', 1, NOW(), NOW()),
+(8, '理学院', '周教授', '13800138019', '理学楼501', 1, NOW(), NOW());
+
+INSERT INTO `sys_user` (`id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `org_id`, `expert_field`, `balance`, `status`, `created_at`) VALUES
+(16, 'student_4', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小丽', '13800138020', 'xiaoli@student.com', 'student', 4, NULL, 600, 1, NOW()),
+(17, 'student_5', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小强', '13800138021', 'xiaoqiang@student.com', 'student', 5, NULL, 400, 1, NOW()),
+(18, 'student_6', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小美', '13800138022', 'xiaomei@student.com', 'student', 6, NULL, 700, 1, NOW()),
+(19, 'student_7', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '大鹏', '13800138023', 'dapeng@student.com', 'student', 7, NULL, 300, 1, NOW()),
+(20, 'student_8', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小雪', '13800138024', 'xiaoxue@student.com', 'student', 8, NULL, 900, 1, NOW());
+
+-- ========== 大屏测试数据补充 ==========
+-- 更多学生参与不同项目获取积分，覆盖全年各月
+INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES
+-- 去年数据（用于同比对比）
+(57, 16, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -360 DAY)),
+(58, 17, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -360 DAY)),
+(59, 18, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -360 DAY)),
+(60, 16, 300, 400, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -355 DAY)),
+(61, 17, 100, 300, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -350 DAY)),
+(62, 19, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -350 DAY)),
+(63, 20, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -345 DAY)),
+(64, 18, -100, 0, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -345 DAY)),
+(65, 16, 500, 900, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -330 DAY)),
+(66, 17, 50, 350, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -330 DAY)),
+(67, 20, 100, 300, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -320 DAY)),
+-- 更多 Exchange 用于分月展示
+(68, 6, -200, 100, 'EXCHANGE', 2, '兑换课程优惠券', DATE_ADD(NOW(), INTERVAL -90 DAY)),
+(69, 7, -100, 100, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -85 DAY)),
+(70, 8, -300, 200, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -80 DAY)),
+(71, 16, -150, 750, 'EXCHANGE', 7, '兑换校园咖啡券', DATE_ADD(NOW(), INTERVAL -80 DAY)),
+(72, 17, -200, 150, 'EXCHANGE', 2, '兑换课程优惠券', DATE_ADD(NOW(), INTERVAL -70 DAY)),
+(73, 18, -250, 0, 'EXCHANGE', 4, '兑换书籍借阅卡', DATE_ADD(NOW(), INTERVAL -65 DAY)),
+(74, 19, -500, 0, 'EXCHANGE', 3, '兑换荣誉证书', DATE_ADD(NOW(), INTERVAL -60 DAY)),
+(75, 20, -450, 0, 'EXCHANGE', 8, '兑换机械键盘', DATE_ADD(NOW(), INTERVAL -55 DAY)),
+(76, 6, 200, 300, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -50 DAY)),
+(77, 7, 250, 350, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -45 DAY)),
+(78, 8, 100, 300, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(79, 16, 300, 1050, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -35 DAY)),
+(80, 17, -800, 0, 'EXCHANGE', 5, '兑换充电宝', DATE_ADD(NOW(), INTERVAL -30 DAY)),
+(81, 18, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -25 DAY)),
+(82, 19, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -20 DAY)),
+(83, 20, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -15 DAY)),
+(84, 6, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+(85, 7, 10, 360, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(86, 8, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(87, 16, 10, 1060, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(88, 17, 30, 180, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(89, 6, -120, 210, 'EXCHANGE', 10, '兑换校园咖啡券', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(90, 8, -600, 0, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- 更多机构
+INSERT INTO `organization` (`id`, `name`, `contact_person`, `contact_phone`, `address`, `status`, `created_at`, `updated_at`) VALUES
+(9, '外国语学院', '陈院长', '13800138025', '外语楼201', 1, NOW(), NOW()),
+(10, '体育学院', '马主任', '13800138026', '体育馆101', 1, NOW(), NOW()),
+(11, '法学院', '张教授', '13800138027', '法学楼301', 1, NOW(), NOW()),
+(12, '医学院', '李主任', '13800138028', '医学楼401', 1, NOW(), NOW()),
+(13, '农学院', '王老师', '13800138029', '农学楼102', 1, NOW(), NOW());
+
+-- 更多学生
+INSERT INTO `sys_user` (`id`, `username`, `password`, `real_name`, `phone`, `email`, `role`, `org_id`, `expert_field`, `balance`, `status`, `created_at`) VALUES
+(21, 'student_9', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '阿杰', '13800138030', 'ajie@student.com', 'student', 9, NULL, 550, 1, NOW()),
+(22, 'student_10', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小雨', '13800138031', 'xiaoyu@student.com', 'student', 10, NULL, 350, 1, NOW()),
+(23, 'student_11', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '大壮', '13800138032', 'dazhuang@student.com', 'student', 11, NULL, 800, 1, NOW()),
+(24, 'student_12', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '小芳', '13800138033', 'xiaofang@student.com', 'student', 12, NULL, 200, 1, NOW()),
+(25, 'student_13', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '阿飞', '13800138034', 'afei@student.com', 'student', 13, NULL, 650, 1, NOW());

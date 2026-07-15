@@ -13,6 +13,12 @@ const routes = [
     component: () => import('@/views/OrgRegister.vue')
   },
   {
+    path: '/dashboard-map',
+    name: 'DashboardMap',
+    component: () => import('@/views/DashboardMap.vue'),
+    meta: { public: true, title: '数据大屏' }
+  },
+  {
     path: '/certificate-verify',
     name: 'CertificateVerify',
     component: () => import('@/views/CertificateVerify.vue'),

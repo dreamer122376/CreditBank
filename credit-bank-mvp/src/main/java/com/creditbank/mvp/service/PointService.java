@@ -76,9 +76,6 @@ public class PointService {
 
         user.setLastLoginAt(java.time.LocalDateTime.now());
         sysUserMapper.updateById(user);
-
-        // 刷新用户缓存
-        redisService.set("user:info:" + user.getId(), user, 30, TimeUnit.MINUTES);
         return user;
     }
 
@@ -141,8 +138,6 @@ public class PointService {
         if (rows == 0) {
             throw new BizException("用户数据更新失败");
         }
-
-        redisService.delete("user:info:" + userId);
 
         TransactionLog txn = new TransactionLog();
         txn.setUserId(userId);
@@ -215,8 +210,6 @@ public class PointService {
         student.setBalance(newBalance);
         sysUserMapper.updateById(student);
 
-        redisService.delete("user:info:" + studentId);
-
         TransactionLog txn = new TransactionLog();
         txn.setUserId(studentId);
         txn.setAmount(finalCredit);
@@ -258,16 +251,10 @@ public class PointService {
     }
 
     public SysUser getUser(Long id) {
-        String cacheKey = "user:info:" + id;
-        Object cached = redisService.get(cacheKey);
-        if (cached instanceof SysUser) {
-            return (SysUser) cached;
-        }
         SysUser user = sysUserMapper.selectById(id);
         if (user == null) {
             throw new BizException("用户不存在：" + id);
         }
-        redisService.set(cacheKey, user, 30, TimeUnit.MINUTES);
         return user;
     }
 

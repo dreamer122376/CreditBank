@@ -161,6 +161,7 @@ const menuItems = computed(() => {
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/exchange-rules', title: '转换规则', icon: Refresh },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },

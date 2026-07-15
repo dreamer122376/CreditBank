@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>认证标准管理</span>
-          <el-button type="primary" size="small" @click="openCreate">新增标准</el-button>
+          <el-button v-if="canCreate" type="primary" size="small" @click="openCreate">新增标准</el-button>
         </div>
       </template>
       <el-table :data="standards" border style="width: 100%;">
@@ -15,13 +15,12 @@
             <el-tag size="small" type="info" style="margin-left: 6px;">v{{ scope.row.version }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="orgId" label="机构ID" width="120">
+        <el-table-column prop="orgId" label="归属机构" width="130">
           <template #default="scope">
             <template v-if="scope.row.orgId != null">
-              {{ scope.row.orgId }}
-              <div class="org-name">{{ scope.row.orgName }}</div>
+              {{ scope.row.orgName }}
             </template>
-            <span v-else class="org-name" style="color: #67c23a;">全平台通用</span>
+            <span class="org-name" style="color: #67c23a;">全平台通用</span>
           </template>
         </el-table-column>
         <el-table-column prop="targetRole" label="适用人员" width="110">
@@ -56,13 +55,17 @@
               <el-switch v-model="scope.row.isEnabled"
                          :active-value="1"
                          :inactive-value="0"
+                         :disabled="!canOperate(scope.row)"
                          @change="toggle(scope.row)" />
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="90">
+        <el-table-column label="操作" width="160">
           <template #default="scope">
-            <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
+            <template v-if="canOperate(scope.row)">
+              <el-button size="small" @click="openEdit(scope.row)">编辑</el-button>
+            </template>
+            <span v-else style="color:#868e96;font-size:12px;">不可操作</span>
           </template>
         </el-table-column>
       </el-table>
@@ -79,7 +82,7 @@
         <el-form-item label="版本号" required>
           <el-input v-model="form.version" placeholder="如：1.0" style="width: 160px;" />
         </el-form-item>
-        <el-form-item label="归属机构ID">
+        <el-form-item v-if="isAdmin" label="归属机构ID">
           <el-input-number v-model="form.orgId" :min="1" controls-position="right"
                            placeholder="留空=平台通用" style="width: 200px;" />
           <span class="form-hint">留空表示平台通用认证</span>
@@ -109,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document, Connection } from '@element-plus/icons-vue'
@@ -119,8 +122,10 @@ import {
   updateCertStandard,
   toggleCertStandard
 } from '@/api/certStandard'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { currentUser } = useAuth()
 
 const ROLE_NAME = {
   admin: '系统管理员',
@@ -128,6 +133,10 @@ const ROLE_NAME = {
   expert: '专家',
   student: '学生'
 }
+
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const isOrgAdmin = computed(() => currentUser.value?.role === 'org_admin')
+const canCreate = computed(() => isAdmin.value || isOrgAdmin.value)
 
 const standards = ref([])
 const dialogVisible = ref(false)
@@ -143,6 +152,14 @@ async function loadData() {
   }
 }
 
+function canOperate(row) {
+  if (isAdmin.value) return true
+  if (isOrgAdmin.value && row.orgId != null) {
+    return row.orgId === currentUser.value.orgId
+  }
+  return false
+}
+
 function roleTagType(role) {
   const map = { student: 'success', expert: 'warning', org_admin: 'primary' }
   return map[role] || 'info'
@@ -152,7 +169,7 @@ function openCreate() {
   form.value = {
     standardName: '',
     version: '1.0',
-    orgId: null,
+    orgId: isAdmin.value ? null : (currentUser.value?.orgId || null),
     targetRole: 'student',
     requirementText: '',
     needManualAudit: 1

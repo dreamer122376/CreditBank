@@ -48,6 +48,21 @@ public class CertStandardService {
         return list;
     }
 
+    /** 按机构过滤：查询机构可见的认证标准（通用 + 本机构） */
+    public List<CertStandard> listByOrg(Long orgId) {
+        LambdaQueryWrapper<CertStandard> wrapper = new LambdaQueryWrapper<CertStandard>();
+        if (orgId != null) {
+            wrapper.and(w -> w.isNull(CertStandard::getOrgId).or().eq(CertStandard::getOrgId, orgId));
+        }
+        wrapper.orderByDesc(CertStandard::getId);
+        List<CertStandard> list = certStandardMapper.selectList(wrapper);
+        if (list.isEmpty()) {
+            return list;
+        }
+        enrichDisplayFields(list);
+        return list;
+    }
+
     public CertStandard getById(Long id) {
         CertStandard standard = certStandardMapper.selectById(id);
         if (standard == null) {

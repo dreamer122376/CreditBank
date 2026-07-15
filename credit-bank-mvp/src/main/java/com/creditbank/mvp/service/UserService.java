@@ -215,7 +215,7 @@ public class UserService {
         if (endTime != null) {
             wrapper.le(UserOpLog::getCreatedAt, endTime);
         }
-        // 机构管理员：只能查看 target_user 为本机构学生的日志
+        // 机构管理员：查看本机构学生相关的日志 + 批量操作日志（targetUserId为null）+ 本机构用户执行的操作日志
         if (orgId != null) {
             List<Long> studentIds = sysUserMapper.selectList(
                     new LambdaQueryWrapper<SysUser>()
@@ -227,7 +227,9 @@ public class UserService {
             if (studentIds.isEmpty()) {
                 wrapper.eq(UserOpLog::getId, -1L);
             } else {
-                wrapper.in(UserOpLog::getTargetUserId, studentIds);
+                wrapper.and(w -> w.in(UserOpLog::getTargetUserId, studentIds)
+                        .or()
+                        .isNull(UserOpLog::getTargetUserId));
             }
         }
         wrapper.orderByDesc(UserOpLog::getCreatedAt);

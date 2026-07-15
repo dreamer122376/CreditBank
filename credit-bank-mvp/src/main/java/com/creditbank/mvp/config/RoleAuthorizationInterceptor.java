@@ -22,7 +22,6 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/cert-standard/create", List.of("POST")),
             Map.entry("/api/cert-standard/update", List.of("POST")),
             Map.entry("/api/cert-standard/{id}/toggle", List.of("POST")),
-            Map.entry("/api/credit-rule/create", List.of("POST")),
             Map.entry("/api/credit-rule/{id}/adjust", List.of("POST")),
             Map.entry("/api/campaigns", List.of("POST")),
             Map.entry("/api/campaigns/{id}", List.of("PUT", "DELETE")),

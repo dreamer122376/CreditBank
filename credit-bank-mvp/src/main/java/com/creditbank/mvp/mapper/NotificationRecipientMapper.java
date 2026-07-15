@@ -14,7 +14,8 @@ public interface NotificationRecipientMapper extends BaseMapper<NotificationReci
     @Select({"<script>",
             "SELECT n.id AS id, n.event_code AS eventCode, n.category AS category,",
             "n.level AS level, n.title AS title, n.content AS content,",
-            "n.action_path AS actionPath, n.created_at AS createdAt, r.read_at AS readAt",
+            "n.action_path AS actionPath, n.created_at AS createdAt, n.expires_at AS expiresAt,",
+            "r.read_at AS readAt, r.confirmed_at AS confirmedAt",
             "FROM notification_recipient r JOIN notification n ON n.id = r.notification_id",
             "WHERE r.user_id = #{userId} AND n.status = 'PUBLISHED'",
             "AND (n.expires_at IS NULL OR n.expires_at &gt; NOW())",
@@ -54,6 +55,17 @@ public interface NotificationRecipientMapper extends BaseMapper<NotificationReci
 
     @Update("UPDATE notification_recipient r JOIN notification n ON n.id = r.notification_id " +
             "SET r.read_at = NOW() WHERE r.user_id = #{userId} AND r.read_at IS NULL " +
-            "AND n.status = 'PUBLISHED'")
+            "AND n.status = 'PUBLISHED' AND (n.expires_at IS NULL OR n.expires_at > NOW())")
     int markAllRead(@Param("userId") Long userId);
+
+    @Select("SELECT COUNT(*) FROM notification_recipient WHERE notification_id = #{notificationId}")
+    long countRecipients(@Param("notificationId") Long notificationId);
+
+    @Select("SELECT COUNT(*) FROM notification_recipient " +
+            "WHERE notification_id = #{notificationId} AND read_at IS NOT NULL")
+    long countRead(@Param("notificationId") Long notificationId);
+
+    @Select("SELECT COUNT(*) FROM notification_recipient " +
+            "WHERE notification_id = #{notificationId} AND confirmed_at IS NOT NULL")
+    long countConfirmed(@Param("notificationId") Long notificationId);
 }

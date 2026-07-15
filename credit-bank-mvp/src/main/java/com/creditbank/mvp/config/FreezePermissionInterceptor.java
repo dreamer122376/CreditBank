@@ -38,7 +38,8 @@ public class FreezePermissionInterceptor implements HandlerInterceptor {
         }
 
         // 阅读通知只改变个人阅读状态，不属于业务写操作。
-        if ("PUT".equals(method) && path.startsWith("/api/notifications/")) {
+        if ("PUT".equals(method) && (path.equals("/api/notifications/read-all")
+                || path.matches("/api/notifications/\\d+/(read|confirm)"))) {
             return true;
         }
 

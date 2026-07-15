@@ -4,6 +4,7 @@ import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.dto.NotificationPageDTO;
 import com.creditbank.mvp.dto.PublishNotificationRequest;
 import com.creditbank.mvp.dto.PublishNotificationResult;
+import com.creditbank.mvp.dto.PublishedNotificationPageDTO;
 import com.creditbank.mvp.service.NotificationService;
 import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
@@ -52,5 +53,27 @@ public class NotificationController {
     public Result<PublishNotificationResult> publish(@RequestBody PublishNotificationRequest request) {
         return Result.ok(notificationService.publishManualNotice(
                 CurrentUserUtil.getCurrentUserId(), request));
+    }
+
+    @GetMapping("/published")
+    public Result<PublishedNotificationPageDTO> published(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword) {
+        return Result.ok(notificationService.listPublished(
+                CurrentUserUtil.getCurrentUserId(), page, size, status, keyword));
+    }
+
+    @PutMapping("/{id}/revoke")
+    public Result<Void> revoke(@PathVariable Long id) {
+        notificationService.revokeManualNotice(CurrentUserUtil.getCurrentUserId(), id);
+        return Result.ok();
+    }
+
+    @PutMapping("/{id}/confirm")
+    public Result<Void> confirm(@PathVariable Long id) {
+        notificationService.confirmImportantNotice(CurrentUserUtil.getCurrentUserId(), id);
+        return Result.ok();
     }
 }

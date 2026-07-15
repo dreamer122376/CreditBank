@@ -2,8 +2,15 @@
   <el-container class="layout">
     <el-aside width="220px" class="sidebar">
       <div class="brand">
-        学分银行
-        <small>{{ roleTitle }}</small>
+        <div class="brand-mark" aria-hidden="true">
+          <img src="/logo.jpg" alt="学分银行 Logo" width="40" height="40" />
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">学分银行</div>
+          <div class="brand-role">
+            <span class="brand-role-dot"></span>{{ roleTitle }}
+          </div>
+        </div>
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -223,20 +230,89 @@ function handleCommand(command) {
 }
 
 .brand {
-  padding: 20px 16px;
-  font-size: 17px;
-  font-weight: 600;
-  text-align: center;
-  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 18px;
+  position: relative;
   border-bottom: 1px solid #3a4a5c;
 }
 
-.brand small {
+/* 品牌区底部的金蓝渐变细线：唯一配饰，区分品牌与菜单 */
+.brand::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(245, 159, 0, 0.45) 30%, rgba(59, 91, 219, 0.65) 70%, transparent 100%);
+  pointer-events: none;
+}
+
+.brand-mark {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  overflow: hidden;
+  filter: drop-shadow(0 4px 10px rgba(59, 91, 219, 0.35));
+  transition: transform 0.3s ease;
+}
+
+/* 图片填满容器，长宽一致，保持圆角裁剪 */
+.brand-mark img {
   display: block;
-  font-size: 11px;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+.brand:hover .brand-mark {
+  transform: translateY(-1px) scale(1.03);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* 中文字距即个性：呈现银行铭牌的正式感 */
+.brand-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.brand-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
   color: #adb5bd;
-  font-weight: normal;
-  margin-top: 4px;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+.brand-role-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f59f00;
+  box-shadow: 0 0 6px rgba(245, 159, 0, 0.6);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark,
+  .brand:hover .brand-mark {
+    transition: none;
+    transform: none;
+  }
 }
 
 .menu {

@@ -69,6 +69,17 @@
       </el-col>
     </el-row>
 
+    <!-- 所属机构信息 -->
+    <el-card v-if="user.orgId && orgInfo" class="org-card" style="margin-top: 16px;">
+      <template #header><span>🏛️ 所属机构</span></template>
+      <el-descriptions :column="3" border size="small">
+        <el-descriptions-item label="机构名称">{{ orgInfo.name || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="联系人">{{ orgInfo.contactPerson || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ orgInfo.contactPhone || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="机构地址" :span="3">{{ orgInfo.address || '—' }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+
     <el-card v-if="user.role === 'expert'" class="cert-entry" style="margin-top: 16px;">
       <div class="entry-row">
         <span class="empty-tip">评审资质与领域认证申请已移至"我的资质"页面。</span>
@@ -85,10 +96,12 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
 import { getProfile, updateProfile, changePassword } from '@/api/profile'
+import { getOrganizations } from '@/api/organization'
 
 const { currentUser, ROLE_NAME } = useAuth()
 
 const user = ref({})
+const orgInfo = ref(null)
 const form = ref({ realName: '', phone: '', email: '' })
 const pwdForm = ref({ oldPassword: '', newPassword: '', confirm: '' })
 
@@ -106,6 +119,13 @@ async function loadAll() {
     }
   } catch (error) {
     ElMessage.error(error.message || '加载资料失败')
+  }
+  // 加载机构信息（独立 try，不阻塞资料加载）
+  if (user.value.orgId) {
+    try {
+      const orgs = await getOrganizations()
+      orgInfo.value = orgs.find(o => Number(o.id) === Number(user.value.orgId)) || null
+    } catch (e) { /* 机构信息加载失败不影响资料展示 */ }
   }
 }
 

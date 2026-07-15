@@ -59,7 +59,20 @@ public class CreditRuleController {
 
     @PostMapping("/create")
     public Result<CreditRule> create(@RequestBody CreditRule rule) {
-        checkAdmin();
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        if (operatorId == null) {
+            throw new BizException("未登录");
+        }
+        SysUser operator = sysUserMapper.selectById(operatorId);
+        if (operator == null) {
+            throw new BizException("用户不存在");
+        }
+        if (!"admin".equals(operator.getRole()) && !"org_admin".equals(operator.getRole())) {
+            throw new BizException("无权限");
+        }
+        if ("org_admin".equals(operator.getRole())) {
+            rule.setOrgId(operator.getOrgId());
+        }
         return Result.ok(creditRuleService.create(rule));
     }
 

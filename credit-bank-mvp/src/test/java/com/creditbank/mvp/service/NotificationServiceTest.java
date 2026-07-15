@@ -77,8 +77,6 @@ class NotificationServiceTest {
 
     @Test
     void userCannotMarkAnotherUsersNotificationRead() {
-        when(recipientMapper.markRead(99L, 5L)).thenReturn(0);
-
         BizException error = assertThrows(BizException.class, () -> service.markRead(5L, 99L));
 
         assertEquals("通知不存在或不属于当前用户", error.getMessage());
@@ -118,5 +116,56 @@ class NotificationServiceTest {
         ArgumentCaptor<SystemNotification> message = ArgumentCaptor.forClass(SystemNotification.class);
         verify(notificationMapper).insert(message.capture());
         assertEquals("8", message.getValue().getScopeValue());
+    }
+
+    @Test
+    void importantNoticeRequiresExplicitConfirmation() {
+        NotificationRecipient recipient = new NotificationRecipient();
+        recipient.setId(12L);
+        recipient.setNotificationId(50L);
+        recipient.setUserId(7L);
+        SystemNotification notification = new SystemNotification();
+        notification.setId(50L);
+        notification.setLevel("WARNING");
+        notification.setStatus("PUBLISHED");
+        when(recipientMapper.selectOne(any())).thenReturn(recipient);
+        when(notificationMapper.selectById(50L)).thenReturn(notification);
+
+        service.confirmImportantNotice(7L, 50L);
+
+        assertNotNull(recipient.getReadAt());
+        assertNotNull(recipient.getConfirmedAt());
+        verify(recipientMapper).updateById(recipient);
+    }
+
+    @Test
+    void organizationAdminCannotRevokePlatformAdminsNotice() {
+        SysUser orgAdmin = new SysUser();
+        orgAdmin.setId(2L);
+        orgAdmin.setRole("org_admin");
+        orgAdmin.setOrgId(8L);
+        SystemNotification notification = new SystemNotification();
+        notification.setId(60L);
+        notification.setSourceType("MANUAL_NOTICE");
+        notification.setScopeType("ORG");
+        notification.setScopeValue("8");
+        notification.setActorId(1L);
+        notification.setStatus("PUBLISHED");
+        when(sysUserMapper.selectById(2L)).thenReturn(orgAdmin);
+        when(notificationMapper.selectById(60L)).thenReturn(notification);
+
+        BizException error = assertThrows(BizException.class,
+                () -> service.revokeManualNotice(2L, 60L));
+
+        assertEquals("只能撤回自己发布的本机构通知", error.getMessage());
+        verify(notificationMapper, never()).updateById(any());
+    }
+
+    @Test
+    void archiveTaskArchivesExpiredAndStaleInfoNotices() {
+        when(notificationMapper.update(isNull(), any())).thenReturn(2, 1);
+
+        assertEquals(3, service.archiveDueNotifications());
+        verify(notificationMapper, times(2)).update(isNull(), any());
     }
 }

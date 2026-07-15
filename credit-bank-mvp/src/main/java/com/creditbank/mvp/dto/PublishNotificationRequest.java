@@ -1,11 +1,14 @@
 package com.creditbank.mvp.dto;
 
+import java.time.LocalDateTime;
+
 public class PublishNotificationRequest {
     private String scopeType;
     private Long orgId;
     private String level;
     private String title;
     private String content;
+    private LocalDateTime expiresAt;
 
     public String getScopeType() { return scopeType; }
     public void setScopeType(String scopeType) { this.scopeType = scopeType; }
@@ -17,4 +20,6 @@ public class PublishNotificationRequest {
     public void setTitle(String title) { this.title = title; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+    public LocalDateTime getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
 }

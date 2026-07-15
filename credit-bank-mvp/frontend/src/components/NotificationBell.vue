@@ -36,7 +36,7 @@
           v-for="item in items"
           :key="item.id"
           class="notification-item"
-          :class="{ unread: !item.readAt }"
+          :class="{ unread: !item.readAt, important: item.level === 'WARNING' }"
           type="button"
           @click="openNotification(item)"
         >
@@ -46,6 +46,7 @@
           <span class="item-main">
             <span class="item-title-row">
               <span class="item-title">{{ item.title }}</span>
+              <span v-if="item.level === 'WARNING' && !item.confirmedAt" class="confirm-needed">需确认</span>
               <span v-if="!item.readAt" class="unread-dot" aria-label="未读"></span>
             </span>
             <span class="item-content">{{ item.content }}</span>
@@ -232,6 +233,7 @@ function relativeTime(value) {
 }
 .notification-item:hover { background: var(--cb-bg-hover); }
 .notification-item.unread { background: #f5f7ff; }
+.notification-item.important { border-left: 3px solid var(--cb-warning); }
 .category-icon {
   width: 34px;
   height: 34px;
@@ -248,6 +250,7 @@ function relativeTime(value) {
 .item-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .item-title-row { display: flex; align-items: center; gap: 8px; }
 .item-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--cb-charcoal); }
+.confirm-needed { color: #9a6100; background: var(--cb-warning-glow); padding: 1px 5px; border-radius: 3px; font-size: 10px; }
 .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cb-primary); flex: 0 0 7px; }
 .item-content {
   color: var(--cb-slate);

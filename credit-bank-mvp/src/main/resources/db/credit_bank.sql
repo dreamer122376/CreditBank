@@ -442,6 +442,7 @@ CREATE TABLE `notification_recipient` (
                                           `notification_id` bigint NOT NULL COMMENT '通知ID',
                                           `user_id` bigint NOT NULL COMMENT '接收用户ID',
                                           `read_at` datetime DEFAULT NULL COMMENT '阅读时间，NULL为未读',
+                                          `confirmed_at` datetime DEFAULT NULL COMMENT '重要通知确认时间',
                                           `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                           PRIMARY KEY (`id`),
                                           UNIQUE KEY `uk_notification_user` (`notification_id`,`user_id`),

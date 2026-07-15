@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>积分规则列表</span>
-          <el-button v-if="currentUser?.role === 'admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
+          <el-button v-if="currentUser?.role === 'admin' || currentUser?.role === 'org_admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
       <el-table :data="rules" border style="width: 100%;" size="small" :max-height="tableMaxHeight" :cell-class-name="'table-cell-wrap'">
@@ -152,7 +152,12 @@ async function loadData() {
 
 async function loadProjects() {
   try {
-    projects.value = await getProjects()
+    const allProjects = await getProjects()
+    if (currentUser.value?.role === 'org_admin' && currentUser.value.orgId) {
+      projects.value = allProjects.filter(p => p.orgId === null || p.orgId === currentUser.value.orgId)
+    } else {
+      projects.value = allProjects
+    }
   } catch (error) {
     projects.value = []
   }

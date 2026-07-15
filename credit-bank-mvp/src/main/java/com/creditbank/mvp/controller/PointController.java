@@ -98,7 +98,7 @@ public class PointController {
                 throw new BizException("只能给本机构学生加分");
             }
         }
-        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId, req.getCreditValue()));
+        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId, req.getCreditValue(), req.getRemark()));
     }
 
     @GetMapping("/user/{id}/transactions")
@@ -145,6 +145,7 @@ public class PointController {
         private Long userId;
         private String eventCode;
         private Integer creditValue;
+        private String remark;
 
         public Long getUserId() { return userId; }
         public void setUserId(Long userId) { this.userId = userId; }
@@ -152,6 +153,8 @@ public class PointController {
         public void setEventCode(String eventCode) { this.eventCode = eventCode; }
         public Integer getCreditValue() { return creditValue; }
         public void setCreditValue(Integer creditValue) { this.creditValue = creditValue; }
+        public String getRemark() { return remark; }
+        public void setRemark(String remark) { this.remark = remark; }
     }
 
     public static class RegisterRequest {

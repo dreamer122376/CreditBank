@@ -90,7 +90,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, InfoFilled, Plus, Right } from '@element-plus/icons-vue'
 import { getCertStandardById } from '@/api/certStandard'
 import { getAuditFlow, saveAuditFlow } from '@/api/auditFlow'
-import { getUsers } from '@/api/user'
+import { getAuditorCandidates } from '@/api/user'
 import { getCertifiedExperts } from '@/api/expertCert'
 
 const route = useRoute()
@@ -113,17 +113,17 @@ const loading = ref(false)
 const requireExpertCert = computed(() => standard.value.targetRole === 'student')
 
 const auditorOptions = computed(() => {
-  // 管理员/机构管理员始终可选；专家在学生认证类标准下只保留持证者，
-  // 已配置在流程里但失去资质的专家保留展示（置灰），由后端保存时兜底拦截
-  const referenced = new Set(flowNodes.value.map(n => n.auditorId).filter(Boolean))
+  // 管理员/机构管理员/专家均可选，不再按专家资质过滤
   return allUsers.value
     .filter(u => ['admin', 'org_admin', 'expert'].includes(u.role) && u.status === 1)
-    .filter(u => u.role !== 'expert' || !requireExpertCert.value
-      || certifiedExpertIds.value.has(u.id) || referenced.has(u.id))
-    .map(u => ({
-      ...u,
-      disabled: u.role === 'expert' && requireExpertCert.value && !certifiedExpertIds.value.has(u.id)
-    }))
+  // 原逻辑：学生认证类标准下，只保留持证专家和已选中专家
+  // const referenced = new Set(flowNodes.value.map(n => n.auditorId).filter(Boolean))
+  // .filter(u => u.role !== 'expert' || !requireExpertCert.value
+  //   || certifiedExpertIds.value.has(u.id) || referenced.has(u.id))
+  // .map(u => ({
+  //   ...u,
+  //   disabled: u.role === 'expert' && requireExpertCert.value && !certifiedExpertIds.value.has(u.id)
+  // }))
 })
 
 onMounted(async () => {
@@ -131,7 +131,7 @@ onMounted(async () => {
   try {
     const [std, users] = await Promise.all([
       getCertStandardById(route.params.id),
-      getUsers()
+      getAuditorCandidates()
     ])
     standard.value = std
     allUsers.value = users
@@ -149,9 +149,9 @@ onMounted(async () => {
 
 function auditorLabel(u) {
   const base = `${u.realName}（${ROLE_NAME[u.role]}）`
-  if (u.role === 'expert' && requireExpertCert.value && !certifiedExpertIds.value.has(u.id)) {
-    return `${base} - 已无本标准资质`
-  }
+  // if (u.role === 'expert' && requireExpertCert.value && !certifiedExpertIds.value.has(u.id)) {
+  //   return `${base} - 已无本标准资质`
+  // }
   return base
 }
 

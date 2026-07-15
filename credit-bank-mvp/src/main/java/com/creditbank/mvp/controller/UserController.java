@@ -37,6 +37,15 @@ public class UserController {
         return Result.ok(userService.listUsers());
     }
 
+    @GetMapping("/auditor-candidates")
+    @Operation(summary = "审批候选人", description = "获取审批流程中可选的审核人员；机构管理员仅返回自己与本机构专家")
+    public Result<List<SysUser>> auditorCandidates() {
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(userService.listAuditorCandidates(
+                operator.getOrgId(), operator.getId(), operator.getRole()));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "用户详情", description = "根据用户ID获取用户详细信息；机构管理员只能查看本机构用户")
     public Result<SysUser> get(@Parameter(description = "用户ID") @PathVariable Long id) {

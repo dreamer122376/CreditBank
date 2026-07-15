@@ -7,48 +7,48 @@
           <el-button v-if="currentUser?.role === 'admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
-      <el-table :data="rules" border style="width: 100%;" size="small" :max-height="tableMaxHeight" :cell-class-name="'table-cell-wrap'">
-        <el-table-column prop="id" label="ID" width="45" />
-        <el-table-column prop="eventName" label="事件名称" width="80">
+      <el-table :data="rules" border style="width: 100%;" size="small" :max-height="tableMaxHeight">
+        <el-table-column prop="id" label="ID" width="50" />
+        <el-table-column prop="eventName" label="事件名称" width="90">
           <template #default="scope">
             <span class="event-name">{{ scope.row.eventName }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="creditValue" label="奖励积分" width="70">
+        <el-table-column prop="creditValue" label="奖励积分" width="80">
           <template #default="scope">
             <span class="points">+{{ scope.row.creditValue }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="projectId" label="关联项目" width="130">
+        <el-table-column prop="projectId" label="关联项目" min-width="120">
           <template #default="scope">
             <el-tag v-if="scope.row.projectId" type="info" size="small">{{ getProjectName(scope.row.projectId) }}</el-tag>
             <el-tag v-else type="primary" size="small">通用</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="isEnabled" label="状态" width="65">
+        <el-table-column prop="isEnabled" label="状态" width="60">
           <template #default="scope">
             <el-tag :type="scope.row.isEnabled === 1 ? 'success' : 'danger'" size="small">
               {{ scope.row.isEnabled === 1 ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="startTime" label="开始" width="105">
+        <el-table-column prop="startTime" label="开始" width="100">
           <template #default="scope">
             {{ formatDateTime(scope.row.startTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="endTime" label="结束" width="105">
+        <el-table-column prop="endTime" label="结束" width="100">
           <template #default="scope">
             {{ formatDateTime(scope.row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="所属机构" width="110">
+        <el-table-column label="所属机构" min-width="100">
           <template #default="scope">
             <el-tag v-if="scope.row.orgId" type="info" size="small">{{ getOrgName(scope.row.orgId) }}</el-tag>
             <el-tag v-else type="primary" size="small">平台通用</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220">
+        <el-table-column label="操作" width="230">
           <template #default="scope">
             <template v-if="canOperate(scope.row)">
               <div class="action-buttons">
@@ -293,10 +293,6 @@ async function handleAdjust(row) {
   white-space: normal;
   word-break: break-all;
   line-height: 1.4;
-}
-
-:deep(.table-cell-wrap) {
-  white-space: normal;
 }
 
 .action-buttons {

@@ -23,6 +23,7 @@
       <el-header class="topbar">
         <div class="page-title">{{ currentTitle }}</div>
         <div class="user-area">
+          <NotificationBell />
           <div class="user-info">
             <div class="name">{{ currentUser?.realName }}</div>
             <div class="role">{{ ROLE_NAME[currentUser?.role] }}</div>
@@ -80,6 +81,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage } from 'element-plus'
 import { submitUnfreezeAppeal } from '@/api/user'
+import NotificationBell from '@/components/NotificationBell.vue'
 import {
   HomeFilled,
   UserFilled,

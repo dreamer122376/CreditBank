@@ -23,15 +23,18 @@ public class ExchangeRuleService {
     private final SysUserMapper sysUserMapper;
     private final TransactionLogMapper transactionLogMapper;
     private final UserOpLogMapper userOpLogMapper;
+    private final NotificationService notificationService;
 
     public ExchangeRuleService(ExchangeRuleMapper exchangeRuleMapper,
                                SysUserMapper sysUserMapper,
                                TransactionLogMapper transactionLogMapper,
-                               UserOpLogMapper userOpLogMapper) {
+                               UserOpLogMapper userOpLogMapper,
+                               NotificationService notificationService) {
         this.exchangeRuleMapper = exchangeRuleMapper;
         this.sysUserMapper = sysUserMapper;
         this.transactionLogMapper = transactionLogMapper;
         this.userOpLogMapper = userOpLogMapper;
+        this.notificationService = notificationService;
     }
 
     public List<ExchangeRule> list() {
@@ -39,6 +42,7 @@ public class ExchangeRuleService {
                 new LambdaQueryWrapper<ExchangeRule>().orderByDesc(ExchangeRule::getId));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public ExchangeRule create(ExchangeRule rule) {
         if (rule.getItemName() == null || rule.getItemName().trim().isEmpty()) {
             throw new BizException("兑换品名称不能为空");
@@ -59,6 +63,9 @@ public class ExchangeRuleService {
             rule.setIsEnabled(1);
         }
         exchangeRuleMapper.insert(rule);
+        if (rule.getIsEnabled() != null && rule.getIsEnabled() == 1) {
+            notifyRulePublished(rule, operator, "CREATE");
+        }
         return exchangeRuleMapper.selectById(rule.getId());
     }
 
@@ -83,14 +90,19 @@ public class ExchangeRuleService {
         return exchangeRuleMapper.selectById(rule.getId());
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public ExchangeRule toggle(Long id) {
         ExchangeRule exist = exchangeRuleMapper.selectById(id);
         if (exist == null) {
             throw new BizException("转换规则不存在：" + id);
         }
-        checkRuleOwnership(exist, requireCurrentUser());
+        SysUser operator = requireCurrentUser();
+        checkRuleOwnership(exist, operator);
         exist.setIsEnabled(exist.getIsEnabled() != null && exist.getIsEnabled() == 1 ? 0 : 1);
         exchangeRuleMapper.updateById(exist);
+        if (exist.getIsEnabled() == 1) {
+            notifyRulePublished(exist, operator, "ENABLE:" + System.currentTimeMillis());
+        }
         return exist;
     }
 
@@ -148,6 +160,14 @@ public class ExchangeRuleService {
                 UserOpLog.MODULE_POINT, "EXCHANGE",
                 "用户「" + user.getRealName() + "」兑换「" + rule.getItemName() + "」，消耗 " + rule.getRequiredCredit() + " 积分，当前余额：" + newBalance));
 
+        notificationService.sendToUser(
+                "EXCHANGE_SUCCEEDED", NotificationService.CATEGORY_MALL, "SUCCESS",
+                "商品兑换成功",
+                "你已成功兑换“" + rule.getItemName() + "”，扣除 " + rule.getRequiredCredit()
+                        + " 积分，当前余额 " + newBalance + "。",
+                "/transactions", "TRANSACTION", txn.getId(),
+                "EXCHANGE_SUCCEEDED:" + txn.getId(), userId, userId);
+
         return exchangeRuleMapper.selectById(ruleId);
     }
 
@@ -160,6 +180,23 @@ public class ExchangeRuleService {
             throw new BizException("当前登录用户无效");
         }
         return user;
+    }
+
+    private void notifyRulePublished(ExchangeRule rule, SysUser operator, String version) {
+        String content = "新商品“" + rule.getItemName() + "”已上架，兑换需要 "
+                + rule.getRequiredCredit() + " 积分。";
+        String dedupeKey = "EXCHANGE_RULE_PUBLISHED:" + rule.getId() + ":" + version;
+        if (rule.getOrgId() == null) {
+            notificationService.sendToRole(
+                    "EXCHANGE_RULE_PUBLISHED", NotificationService.CATEGORY_MALL, "INFO",
+                    "积分商城上新", content, "/point-mall", "EXCHANGE_RULE", rule.getId(),
+                    dedupeKey, "student", operator.getId());
+        } else {
+            notificationService.sendToOrgStudents(
+                    "EXCHANGE_RULE_PUBLISHED", NotificationService.CATEGORY_MALL, "INFO",
+                    "本机构商品上新", content, "/point-mall", "EXCHANGE_RULE", rule.getId(),
+                    dedupeKey, rule.getOrgId(), operator.getId());
+        }
     }
 
     /** admin 可管理全部规则；org_admin 只能管理本机构规则，平台通用规则(orgId=NULL)不可动 */

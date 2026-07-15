@@ -6,6 +6,7 @@ import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
+import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
 import com.creditbank.mvp.mapper.UserOpLogMapper;
@@ -50,12 +51,20 @@ class PointServiceTest {
     @Mock
     private RedisService redisService;
 
+    @Mock
+    private OrganizationMapper organizationMapper;
+
+    @Mock
+    private NotificationService notificationService;
+
     private PointService pointService;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockitoAnnotations.openMocks(this);
-        pointService = new PointService(sysUserMapper, creditRuleMapper, transactionLogMapper, userOpLogMapper, campaignService, passwordEncoder, redisService);
+        pointService = new PointService(sysUserMapper, creditRuleMapper, transactionLogMapper,
+                userOpLogMapper, campaignService, passwordEncoder, redisService,
+                organizationMapper, notificationService);
         System.out.println("========== 开始执行: " + testInfo.getDisplayName() + " ==========");
     }
 

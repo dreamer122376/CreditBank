@@ -42,6 +42,7 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/exchange-rule/create", List.of("POST")),
             Map.entry("/api/exchange-rule/update", List.of("POST")),
             Map.entry("/api/exchange-rule/{id}/toggle", List.of("POST")),
+            Map.entry("/api/notifications/publish", List.of("POST")),
             Map.entry("/api/credit-rule/update", List.of("POST")),
             Map.entry("/api/credit-rule/{id}/toggle", List.of("POST")),
             Map.entry("/api/credit-rule/{id}", List.of("DELETE")),
@@ -83,6 +84,7 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             "/api/cert-audit/**",
             "/api/application/**",
             "/api/exchange-rule/**",
+            "/api/notifications/**",
             "/api/sign-in/**"
     );
 

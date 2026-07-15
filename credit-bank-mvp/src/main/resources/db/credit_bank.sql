@@ -404,6 +404,50 @@ LOCK TABLES `sys_user` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `notification`
+--
+
+DROP TABLE IF EXISTS `notification`;
+CREATE TABLE `notification` (
+                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '通知ID',
+                                `event_code` varchar(50) NOT NULL COMMENT '业务事件编码',
+                                `scope_type` varchar(20) NOT NULL COMMENT '范围：USER/ORG/ROLE/ALL',
+                                `scope_value` varchar(50) DEFAULT NULL COMMENT '用户、机构或角色标识',
+                                `category` varchar(20) NOT NULL COMMENT '分类：SYSTEM/APPLICATION/POINT/MALL',
+                                `level` varchar(20) NOT NULL DEFAULT 'INFO' COMMENT '级别：INFO/SUCCESS/WARNING',
+                                `title` varchar(100) NOT NULL COMMENT '通知标题',
+                                `content` varchar(500) NOT NULL COMMENT '通知正文',
+                                `source_type` varchar(30) DEFAULT NULL COMMENT '关联业务类型',
+                                `source_id` bigint DEFAULT NULL COMMENT '关联业务ID',
+                                `action_path` varchar(200) DEFAULT NULL COMMENT '前端跳转路径',
+                                `actor_id` bigint DEFAULT NULL COMMENT '触发操作人ID',
+                                `dedupe_key` varchar(150) DEFAULT NULL COMMENT '业务幂等键',
+                                `status` varchar(20) NOT NULL DEFAULT 'PUBLISHED' COMMENT 'PUBLISHED/REVOKED',
+                                `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                `expires_at` datetime DEFAULT NULL,
+                                PRIMARY KEY (`id`),
+                                UNIQUE KEY `uk_notification_dedupe` (`dedupe_key`),
+                                KEY `idx_notification_created` (`created_at`),
+                                KEY `idx_notification_source` (`source_type`,`source_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='站内通知消息表';
+
+--
+-- Table structure for table `notification_recipient`
+--
+
+DROP TABLE IF EXISTS `notification_recipient`;
+CREATE TABLE `notification_recipient` (
+                                          `id` bigint NOT NULL AUTO_INCREMENT COMMENT '接收记录ID',
+                                          `notification_id` bigint NOT NULL COMMENT '通知ID',
+                                          `user_id` bigint NOT NULL COMMENT '接收用户ID',
+                                          `read_at` datetime DEFAULT NULL COMMENT '阅读时间，NULL为未读',
+                                          `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                          PRIMARY KEY (`id`),
+                                          UNIQUE KEY `uk_notification_user` (`notification_id`,`user_id`),
+                                          KEY `idx_recipient_unread` (`user_id`,`read_at`,`notification_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知接收与已读状态表';
+
+--
 -- Table structure for table `campaign_enrollment`
 --
 

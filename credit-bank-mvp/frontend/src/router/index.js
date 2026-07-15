@@ -174,6 +174,12 @@ const routes = [
         meta: { title: '项目管理' }
       },
       {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/Notifications.vue'),
+        meta: { title: '通知中心' }
+      },
+      {
         path: 'point-mall',
         name: 'PointMall',
         component: () => import('@/views/PointMall.vue'),

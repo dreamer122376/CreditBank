@@ -2,6 +2,7 @@ package com.creditbank.mvp.config;
 
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,12 +28,16 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final DataSource dataSource;
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     @Autowired
-    public DatabaseInitializer(DataSource dataSource, SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder) {
+    public DatabaseInitializer(DataSource dataSource, SysUserMapper sysUserMapper,
+                               PasswordEncoder passwordEncoder,
+                               NotificationService notificationService) {
         this.dataSource = dataSource;
         this.sysUserMapper = sysUserMapper;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -42,6 +47,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             executeSqlFile(connection, "/db/credit_bank.sql");
             executeSqlFile(connection, "/db/data.sql");
             ensureAdminUserExists();
+            notificationService.ensureWelcomeNotificationsForAllUsers();
             logger.info("数据库初始化完成");
         } catch (SQLException e) {
             logger.error("数据库初始化失败", e);

@@ -8,6 +8,7 @@ import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,16 @@ public class OrganizationService {
     private final OrganizationMapper organizationMapper;
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     public OrganizationService(OrganizationMapper organizationMapper,
                                SysUserMapper sysUserMapper,
-                               PasswordEncoder passwordEncoder) {
+                               PasswordEncoder passwordEncoder,
+                               NotificationService notificationService) {
         this.organizationMapper = organizationMapper;
         this.sysUserMapper = sysUserMapper;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
     }
 
     public List<Organization> list() {
@@ -103,6 +107,8 @@ public class OrganizationService {
                             .eq(SysUser::getRole, "org_admin")
                             .last("LIMIT 1"));
             if (existingAdmin != null) {
+                notificationService.ensureWelcomeNotification(existingAdmin.getId());
+                notifyOrganizationApproved(exist, existingAdmin);
                 return OrganizationAuditResult.of(exist, false, existingAdmin.getUsername(), null,
                         "该机构已存在管理员账号，未重复创建");
             }
@@ -119,6 +125,8 @@ public class OrganizationService {
             admin.setStatus(1);
             admin.setCreatedAt(LocalDateTime.now());
             sysUserMapper.insert(admin);
+            notificationService.ensureWelcomeNotification(admin.getId());
+            notifyOrganizationApproved(exist, admin);
 
             return OrganizationAuditResult.of(exist, true, username, DEFAULT_ADMIN_PASSWORD,
                     "机构管理员账号已生成，请妥善保管账号密码");
@@ -169,6 +177,22 @@ public class OrganizationService {
             }
         }
         throw new BizException("无法生成唯一的机构管理员账号，请检查机构名称");
+    }
+
+    private void notifyOrganizationApproved(Organization org, SysUser admin) {
+        Long actorId = CurrentUserUtil.getCurrentUserId();
+        notificationService.sendToUser(
+                "ORG_REGISTER_APPROVED", NotificationService.CATEGORY_APPLICATION, "SUCCESS",
+                "机构入驻已通过",
+                "“" + org.getName() + "”已成功入驻，机构管理员账号已开通。",
+                "/dashboard", "ORGANIZATION", org.getId(),
+                "ORG_REGISTER_APPROVED:ORG:" + org.getId(), admin.getId(), actorId);
+        notificationService.sendToAll(
+                "ORG_JOINED", NotificationService.CATEGORY_SYSTEM, "INFO",
+                "新机构正式入驻",
+                "“" + org.getName() + "”已正式入驻学分银行。",
+                null, "ORGANIZATION", org.getId(),
+                "ORG_JOINED:" + org.getId(), actorId);
     }
 
     private boolean isUsernameAvailable(String username) {

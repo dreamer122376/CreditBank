@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.*;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
+import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
 import com.creditbank.mvp.mapper.UserOpLogMapper;
@@ -26,6 +27,8 @@ public class PointService {
     private final CampaignService campaignService;
     private final PasswordEncoder passwordEncoder;
     private final RedisService redisService;
+    private final OrganizationMapper organizationMapper;
+    private final NotificationService notificationService;
 
     public PointService(SysUserMapper sysUserMapper,
                         CreditRuleMapper creditRuleMapper,
@@ -33,7 +36,9 @@ public class PointService {
                         UserOpLogMapper userOpLogMapper,
                         CampaignService campaignService,
                         PasswordEncoder passwordEncoder,
-                        RedisService redisService) {
+                        RedisService redisService,
+                        OrganizationMapper organizationMapper,
+                        NotificationService notificationService) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
@@ -41,6 +46,8 @@ public class PointService {
         this.campaignService = campaignService;
         this.passwordEncoder = passwordEncoder;
         this.redisService = redisService;
+        this.organizationMapper = organizationMapper;
+        this.notificationService = notificationService;
     }
 
     public SysUser login(String username, String password) {
@@ -155,6 +162,17 @@ public class PointService {
                 realOperatorId, operatorName, userId, user.getRealName(),
                 UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
                 "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + (isAdminRule ? "管理员手动加分" : (rule.getEventName() + campaignDesc)) + "，当前余额：" + newBalance));
+
+        if (isAdminRule && "org_admin".equals(user.getRole()) && user.getOrgId() != null) {
+            Organization org = organizationMapper.selectById(user.getOrgId());
+            String orgName = org != null ? org.getName() : "机构 " + user.getOrgId();
+            notificationService.sendToAll(
+                    "ORG_POINTS_GRANTED", NotificationService.CATEGORY_POINT, "INFO",
+                    "机构积分池已增加",
+                    "平台已向“" + orgName + "”积分池追加 " + finalCredit + " 积分。",
+                    null, "TRANSACTION", txn.getId(),
+                    "ORG_POINTS_GRANTED:" + txn.getId(), realOperatorId);
+        }
 
         if (!isAdminRule && rule.getOrgId() != null) {
             SysUser orgAdmin = sysUserMapper.selectOne(
@@ -290,6 +308,7 @@ public class PointService {
         user.setCreatedAt(java.time.LocalDateTime.now());
 
         sysUserMapper.insert(user);
+        notificationService.ensureWelcomeNotification(user.getId());
         return user;
     }
 }

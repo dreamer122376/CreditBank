@@ -20,6 +20,7 @@ import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.ProjectMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -77,6 +78,7 @@ public class ApplicationService {
     private final PasswordEncoder passwordEncoder;
     private final ExpertCertService expertCertService;
     private final ProjectMapper projectMapper;
+    private final NotificationService notificationService;
 
     public ApplicationService(ApplicationMapper applicationMapper,
                               ApplicationAuditLogMapper applicationAuditLogMapper,
@@ -88,7 +90,8 @@ public class ApplicationService {
                               StudentCertService studentCertService,
                               ExpertCertService expertCertService,
                               PasswordEncoder passwordEncoder,
-                              ProjectMapper projectMapper) {
+                              ProjectMapper projectMapper,
+                              NotificationService notificationService) {
         this.applicationMapper = applicationMapper;
         this.applicationAuditLogMapper = applicationAuditLogMapper;
         this.sysUserMapper = sysUserMapper;
@@ -100,6 +103,7 @@ public class ApplicationService {
         this.expertCertService = expertCertService;
         this.passwordEncoder = passwordEncoder;
         this.projectMapper = projectMapper;
+        this.notificationService = notificationService;
     }
 
     // ==================== 查询 ====================
@@ -187,6 +191,7 @@ public class ApplicationService {
         }
 
         applicationMapper.insert(app);
+        notifyCurrentAuditor(app);
         return applicationMapper.selectById(app.getId());
     }
 
@@ -241,6 +246,8 @@ public class ApplicationService {
         }
         if (app.getCurrentStatus() == STATUS_APPROVED) {
             onApproved(app);
+        } else {
+            notifyCurrentAuditor(app);
         }
         return applicationMapper.selectById(app.getId());
     }
@@ -331,6 +338,7 @@ public class ApplicationService {
         app.setCurrentStatus(STATUS_IN_REVIEW);
 
         applicationMapper.insert(app);
+        notifyCurrentAuditor(app);
         return applicationMapper.selectById(app.getId());
     }
 
@@ -437,6 +445,9 @@ public class ApplicationService {
         if (app.getCurrentStatus() == STATUS_REJECTED) {
             onRejected(app);
         }
+        if (app.getCurrentStatus() == STATUS_IN_REVIEW) {
+            notifyCurrentAuditor(app);
+        }
         return app;
     }
 
@@ -450,13 +461,37 @@ public class ApplicationService {
             studentCertService.issueForApplication(app);
         }
         if ("ORG_REGISTER".equals(app.getBizType())) {
-            onOrgRegisterApproved(app);
+            SysUser orgAdmin = onOrgRegisterApproved(app);
+            notificationService.ensureWelcomeNotification(orgAdmin.getId());
+            notificationService.sendToUser(
+                    "ORG_REGISTER_APPROVED", NotificationService.CATEGORY_APPLICATION, "SUCCESS",
+                    "机构入驻已通过",
+                    "“" + readText(app.getFormData(), "orgName") + "”已成功入驻，机构管理员账号已开通。",
+                    "/dashboard", "APPLICATION", app.getId(),
+                    "ORG_REGISTER_APPROVED:" + app.getId(), orgAdmin.getId(),
+                    CurrentUserUtil.getCurrentUserId());
+            notificationService.sendToAll(
+                    "ORG_JOINED", NotificationService.CATEGORY_SYSTEM, "INFO",
+                    "新机构正式入驻",
+                    "“" + readText(app.getFormData(), "orgName") + "”已正式入驻学分银行。",
+                    null, "ORGANIZATION", app.getOrgId(),
+                    "ORG_JOINED:" + app.getOrgId(), CurrentUserUtil.getCurrentUserId());
         }
         if ("UNFREEZE_APPEAL".equals(app.getBizType())) {
             unfreezeUser(app);
         }
         if ("PROJECT_UP".equals(app.getBizType())) {
             onProjectUpApproved(app);
+        }
+        if (!"ORG_REGISTER".equals(app.getBizType())
+                && app.getApplicantId() != null && app.getApplicantId() > 0) {
+            notificationService.sendToUser(
+                    "APPLICATION_APPROVED", NotificationService.CATEGORY_APPLICATION, "SUCCESS",
+                    "申请已通过",
+                    "你的“" + BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "业务") + "”已通过审核。",
+                    applicantActionPath(app), "APPLICATION", app.getId(),
+                    "APPLICATION_APPROVED:" + app.getId(), app.getApplicantId(),
+                    CurrentUserUtil.getCurrentUserId());
         }
     }
 
@@ -480,6 +515,18 @@ public class ApplicationService {
         if ("PROJECT_UP".equals(app.getBizType())) {
             onProjectUpRejected(app);
         }
+        if (!"ORG_REGISTER".equals(app.getBizType())
+                && app.getApplicantId() != null && app.getApplicantId() > 0) {
+            String reason = app.getRejectReason() == null ? "请查看申请详情" : app.getRejectReason();
+            notificationService.sendToUser(
+                    "APPLICATION_REJECTED", NotificationService.CATEGORY_APPLICATION, "WARNING",
+                    "申请未通过",
+                    "你的“" + BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "业务")
+                            + "”未通过审核，原因：" + reason,
+                    applicantActionPath(app), "APPLICATION", app.getId(),
+                    "APPLICATION_REJECTED:" + app.getId(), app.getApplicantId(),
+                    CurrentUserUtil.getCurrentUserId());
+        }
     }
 
     private void onProjectUpRejected(Application app) {
@@ -497,7 +544,7 @@ public class ApplicationService {
         }
     }
     @Transactional(rollbackFor = Exception.class)
-    public void onOrgRegisterApproved(Application app) {
+    public SysUser onOrgRegisterApproved(Application app) {
         String formData = app.getFormData() == null ? "" : app.getFormData();
         String orgName = readText(formData, "orgName");
         String applicantName = readText(formData, "applicantName");
@@ -531,6 +578,42 @@ public class ApplicationService {
 
         app.setOrgId(org.getId());
         applicationMapper.updateById(app);
+        return admin;
+    }
+
+    private void notifyCurrentAuditor(Application app) {
+        if (app.getCurrentStatus() == null || app.getCurrentStatus() != STATUS_IN_REVIEW) {
+            return;
+        }
+        Long auditorId = null;
+        if (app.getCurrentNodeId() != null) {
+            CertAuditFlow node = certAuditFlowMapper.selectById(app.getCurrentNodeId());
+            auditorId = node == null ? null : node.getAuditorId();
+        }
+        if (auditorId != null) {
+            notificationService.sendToUser(
+                    "APPLICATION_PENDING", NotificationService.CATEGORY_APPLICATION, "INFO",
+                    "有新的申请待审核",
+                    "“" + BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "业务申请") + "”已进入你的审核环节。",
+                    "/applications", "APPLICATION", app.getId(),
+                    "APPLICATION_PENDING:" + app.getId() + ":" + app.getCurrentNodeId(),
+                    auditorId, app.getApplicantId());
+        } else {
+            notificationService.sendToRole(
+                    "APPLICATION_PENDING", NotificationService.CATEGORY_APPLICATION, "INFO",
+                    "有新的申请待审核",
+                    "“" + BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "业务申请") + "”等待系统管理员审核。",
+                    "/applications", "APPLICATION", app.getId(),
+                    "APPLICATION_PENDING:" + app.getId() + ":ADMIN",
+                    "admin", app.getApplicantId());
+        }
+    }
+
+    private String applicantActionPath(Application app) {
+        if ("CERT_APPLY".equals(app.getBizType())) return "/student-certs";
+        if ("EXPERT_CERT".equals(app.getBizType())) return "/my-certs";
+        if ("UNFREEZE_APPEAL".equals(app.getBizType())) return "/profile";
+        return "/applications";
     }
 
     private void unfreezeUser(Application app) {

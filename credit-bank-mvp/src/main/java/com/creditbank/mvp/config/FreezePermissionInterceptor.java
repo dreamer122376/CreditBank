@@ -37,6 +37,11 @@ public class FreezePermissionInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 阅读通知只改变个人阅读状态，不属于业务写操作。
+        if ("PUT".equals(method) && path.startsWith("/api/notifications/")) {
+            return true;
+        }
+
         // POST 白名单放行（登录/注册/提交申诉）
         if ("POST".equals(method) && (POST_WHITELIST.contains(path) || path.matches(AuthConstants.FROZEN_POST_RESUBMIT_REGEX))) {
             return true;

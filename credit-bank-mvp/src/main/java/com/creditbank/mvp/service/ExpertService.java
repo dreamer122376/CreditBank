@@ -6,6 +6,7 @@ import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,10 +17,13 @@ public class ExpertService {
 
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
-    public ExpertService(SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder) {
+    public ExpertService(SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder,
+                         NotificationService notificationService) {
         this.sysUserMapper = sysUserMapper;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
     }
 
     public List<SysUser> list(Long orgId) {
@@ -32,6 +36,7 @@ public class ExpertService {
         return sysUserMapper.selectList(wrapper);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public SysUser create(SysUser user) {
         if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
             throw new BizException("登录账号不能为空");
@@ -54,6 +59,7 @@ public class ExpertService {
             user.setStatus(1);
         }
         sysUserMapper.insert(user);
+        notificationService.ensureWelcomeNotification(user.getId());
         return sysUserMapper.selectById(user.getId());
     }
 

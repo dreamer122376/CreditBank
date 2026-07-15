@@ -594,6 +594,67 @@ CREATE TABLE `student_cert` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `conversion_rule`
+--
+
+DROP TABLE IF EXISTS `conversion_rule`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `conversion_rule` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '规则ID',
+    `original_name` varchar(200) NOT NULL COMMENT '原成果名称',
+    `original_org_id` bigint DEFAULT NULL COMMENT '原成果机构ID',
+    `original_type` varchar(50) NOT NULL COMMENT '原成果类型',
+    `converted_name` varchar(200) NOT NULL COMMENT '转换后成果名称',
+    `converted_org_id` bigint DEFAULT NULL COMMENT '转换后成果机构ID',
+    `converted_type` varchar(50) NOT NULL COMMENT '转换后成果类型（关联积分规则event_code）',
+    `credit_rule_id` bigint DEFAULT NULL COMMENT '关联积分规则ID',
+    `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用：1启用，0停用',
+    `effective_start` datetime DEFAULT NULL COMMENT '生效开始时间',
+    `effective_end` datetime DEFAULT NULL COMMENT '生效结束时间',
+    `description` varchar(500) DEFAULT NULL COMMENT '规则描述/备注',
+    `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `created_by` bigint DEFAULT NULL COMMENT '创建人ID',
+    PRIMARY KEY (`id`),
+    KEY `idx_original_type` (`original_type`),
+    KEY `idx_converted_type` (`converted_type`),
+    KEY `idx_credit_rule_id` (`credit_rule_id`),
+    KEY `idx_original_org` (`original_org_id`),
+    KEY `idx_converted_org` (`converted_org_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='转换规则表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `conversion_application`
+--
+
+DROP TABLE IF EXISTS `conversion_application`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `conversion_application` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '申请ID',
+    `rule_id` bigint DEFAULT NULL COMMENT '关联转换规则ID（如果申请时已有规则）',
+    `student_id` bigint NOT NULL COMMENT '学生ID',
+    `original_name` varchar(200) NOT NULL COMMENT '原成果名称',
+    `original_org_id` bigint DEFAULT NULL COMMENT '原成果机构ID',
+    `original_type` varchar(50) NOT NULL COMMENT '原成果类型',
+    `converted_name` varchar(200) NOT NULL COMMENT '转换后成果名称',
+    `converted_org_id` bigint DEFAULT NULL COMMENT '转换后成果机构ID',
+    `converted_type` varchar(50) NOT NULL COMMENT '转换后成果类型',
+    `certificate_file` varchar(500) DEFAULT NULL COMMENT '证明材料文件路径',
+    `apply_type` varchar(20) NOT NULL COMMENT '申请类型：RULE_CONVERT（已有规则转换）/ RULE_ADD（新增规则申请）',
+    `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1审核通过，2已驳回',
+    `reject_reason` varchar(500) DEFAULT NULL COMMENT '驳回原因',
+    `approved_at` datetime DEFAULT NULL COMMENT '审核通过时间',
+    `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_student_id` (`student_id`),
+    KEY `idx_rule_id` (`rule_id`),
+    KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='转换申请表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Dumping events for database 'credit_bank'
 --
 

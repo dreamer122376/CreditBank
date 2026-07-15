@@ -99,7 +99,8 @@ import {
   Collection,
   Files,
   DataAnalysis,
-  ShoppingCart
+  ShoppingCart,
+  ArrowRight
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -152,6 +153,7 @@ const menuItems = computed(() => {
       { path: '/experts', title: '专家管理', icon: Avatar },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
+      { path: '/conversion-rules', title: '转换规则管理', icon: ArrowRight },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '审核管理', icon: Tickets },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
@@ -165,8 +167,9 @@ const menuItems = computed(() => {
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
-      { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
+      { path: '/conversion-rules', title: '转换规则管理', icon: ArrowRight },
+      { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled },
@@ -178,6 +181,7 @@ const menuItems = computed(() => {
       { path: '/my-projects', title: '我的项目', icon: FolderOpened },
       { path: '/student-certs', title: '学生证书认证', icon: Medal },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+      { path: '/conversion-apply', title: '转换申请', icon: ArrowRight },
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/point-mall', title: '积分商城', icon: ShoppingCart },
       { path: '/profile', title: '我的资料', icon: Postcard },

@@ -49,3 +49,5 @@ uploads/
 
 pnpm-lock.yaml
 yarn.lock
+
+**/.trae/

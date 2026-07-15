@@ -52,7 +52,9 @@
         <el-table-column label="操作" min-width="240">
           <template #default="scope">
             <el-button size="small" @click="viewAccount(scope.row.id)">详情</el-button>
-            <el-button v-if="showBalance" size="small" type="primary" @click="goEarn(scope.row.id)">加分</el-button>
+            <el-button v-if="showBalance" size="small" type="primary" @click="openEarnDialog(scope.row)">
+  {{ scope.row.role === 'org_admin' ? '积分池加分' : '加分' }}
+</el-button>
             <template v-if="isAdmin && scope.row.role !== 'admin'">
               <el-button size="small" :type="scope.row.status === 1 ? 'warning' : 'success'"
                 @click="toggleStatus(scope.row)">
@@ -106,6 +108,31 @@
         <el-button type="primary" @click="handleResetPw" :loading="resetting">确认重置</el-button>
       </template>
     </el-dialog>
+
+    <!-- 加分弹窗 -->
+    <el-dialog v-model="earnDialogVisible" :title="selectedEarnUser?.role === 'org_admin' ? '积分池加分' : '积分加分'" width="400px">
+      <el-form :model="earnForm">
+        <el-form-item label="用户">
+          <el-input :value="selectedEarnUser?.username + ' (' + selectedEarnUser?.realName + ')'" disabled />
+        </el-form-item>
+        <template v-if="selectedEarnUser?.role === 'org_admin'">
+          <el-form-item label="增加积分">
+            <el-input-number v-model="earnForm.creditValue" :min="1" :max="999999" placeholder="请输入增加的积分值" />
+          </el-form-item>
+        </template>
+        <template v-else>
+          <el-form-item label="选择规则">
+            <el-select v-model="earnForm.eventCode" placeholder="请选择积分规则">
+              <el-option v-for="rule in rules" :key="rule.eventCode" :label="rule.eventName + ' (' + rule.creditValue + '分)'" :value="rule.eventCode" />
+            </el-select>
+          </el-form-item>
+        </template>
+      </el-form>
+      <template #footer>
+        <el-button @click="earnDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleEarn" :loading="earning">确认加分</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -116,6 +143,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getUsers, updateUserStatus, batchUpdateStatus, resetPassword } from '@/api/user'
+import { getRules, earnPoints } from '@/api/point'
 
 const router = useRouter()
 const { currentUser } = useAuth()
@@ -127,6 +155,11 @@ const resetPwVisible = ref(false)
 const resetting = ref(false)
 const resetPwForm = ref({ id: null, username: '', realName: '', newPassword: '' })
 const filterRole = ref('student')
+const earnDialogVisible = ref(false)
+const earning = ref(false)
+const earnForm = ref({ eventCode: '', creditValue: 0 })
+const selectedEarnUser = ref(null)
+const rules = ref([])
 
 const searchKeyword = ref('')
 const filterStatus = ref(null)
@@ -297,10 +330,65 @@ async function handleResetPw() {
   }
 }
 
+// ==================== 加分 ====================
+
+function openEarnDialog(row) {
+  selectedEarnUser.value = row
+  earnForm.value = { eventCode: '', creditValue: 0 }
+  if (row.role !== 'org_admin' && rules.value.length === 0) {
+    loadRules()
+  }
+  earnDialogVisible.value = true
+}
+
+async function loadRules() {
+  try {
+    rules.value = await getRules()
+  } catch (error) {
+    ElMessage.error('加载积分规则失败')
+  }
+}
+
+async function handleEarn() {
+  if (!selectedEarnUser.value) return
+  if (selectedEarnUser.value.role === 'org_admin') {
+    if (!earnForm.value.creditValue || earnForm.value.creditValue <= 0) {
+      ElMessage.warning('请输入增加的积分值')
+      return
+    }
+    earning.value = true
+    try {
+      await earnPoints(selectedEarnUser.value.id, 'ADMIN', earnForm.value.creditValue)
+      ElMessage.success('积分池加分成功')
+      earnDialogVisible.value = false
+      await loadData()
+    } catch (error) {
+      ElMessage.error(error.message || '积分池加分失败')
+    } finally {
+      earning.value = false
+    }
+  } else {
+    if (!earnForm.value.eventCode) {
+      ElMessage.warning('请选择积分规则')
+      return
+    }
+    earning.value = true
+    try {
+      await earnPoints(selectedEarnUser.value.id, earnForm.value.eventCode)
+      ElMessage.success('加分成功')
+      earnDialogVisible.value = false
+      await loadData()
+    } catch (error) {
+      ElMessage.error(error.message || '加分失败')
+    } finally {
+      earning.value = false
+    }
+  }
+}
+
 // ==================== 跳转 ====================
 
 function viewAccount(id) { router.push(`/account/${id}`) }
-function goEarn(id) { router.push(`/account/${id}`) }
 </script>
 
 <style scoped>

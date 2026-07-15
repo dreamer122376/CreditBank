@@ -98,6 +98,7 @@ import {
   FolderOpened,
   Collection,
   Files,
+  DataAnalysis,
   ShoppingCart
 } from '@element-plus/icons-vue'
 
@@ -145,11 +146,12 @@ const menuItems = computed(() => {
   const menus = {
     admin: [
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
+      { path: '/dashboard-map', title: '数据大屏', icon: DataAnalysis },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
       { path: '/experts', title: '专家管理', icon: Avatar },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
-      { path: '/exchange-rules', title: '转换规则', icon: Refresh },
+      { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '审核管理', icon: Tickets },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
@@ -164,7 +166,7 @@ const menuItems = computed(() => {
       { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
-      { path: '/exchange-rules', title: '转换规则', icon: Refresh },
+      { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled },

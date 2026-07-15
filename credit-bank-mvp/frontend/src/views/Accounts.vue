@@ -117,13 +117,16 @@
         </el-form-item>
         <template v-if="selectedEarnUser?.role === 'org_admin'">
           <el-form-item label="增加积分">
-            <el-input-number v-model="earnForm.creditValue" :min="1" :max="999999" placeholder="请输入增加的积分值" />
+            <el-input-number v-model="earnForm.creditValue" :min="1" :max="5000" placeholder="0~5000" />
+          </el-form-item>
+          <el-form-item label="说明" required>
+            <el-input v-model="earnForm.remark" type="textarea" placeholder="请输入加分说明" rows="3" />
           </el-form-item>
         </template>
         <template v-else>
           <el-form-item label="选择规则">
-            <el-select v-model="earnForm.eventCode" placeholder="请选择积分规则">
-              <el-option v-for="rule in rules" :key="rule.eventCode" :label="rule.eventName + ' (' + rule.creditValue + '分)'" :value="rule.eventCode" />
+            <el-select v-model="earnForm.ruleId" placeholder="请选择积分规则">
+              <el-option v-for="rule in earnRules" :key="rule.id" :label="rule.eventName + ' (' + rule.creditValue + '分)'" :value="rule.id" />
             </el-select>
           </el-form-item>
         </template>
@@ -157,9 +160,13 @@ const resetPwForm = ref({ id: null, username: '', realName: '', newPassword: '' 
 const filterRole = ref('student')
 const earnDialogVisible = ref(false)
 const earning = ref(false)
-const earnForm = ref({ eventCode: '', creditValue: 0 })
+const earnForm = ref({ ruleId: null, eventCode: '', creditValue: 0, remark: '' })
 const selectedEarnUser = ref(null)
 const rules = ref([])
+
+const earnRules = computed(() => {
+  return rules.value.filter(rule => rule.eventCode !== 'ADMIN')
+})
 
 const searchKeyword = ref('')
 const filterStatus = ref(null)
@@ -334,7 +341,7 @@ async function handleResetPw() {
 
 function openEarnDialog(row) {
   selectedEarnUser.value = row
-  earnForm.value = { eventCode: '', creditValue: 0 }
+  earnForm.value = { ruleId: null, eventCode: '', creditValue: 0, remark: '' }
   if (row.role !== 'org_admin' && rules.value.length === 0) {
     loadRules()
   }
@@ -356,9 +363,13 @@ async function handleEarn() {
       ElMessage.warning('请输入增加的积分值')
       return
     }
+    if (!earnForm.value.remark || earnForm.value.remark.trim() === '') {
+      ElMessage.warning('请填写加分说明')
+      return
+    }
     earning.value = true
     try {
-      await earnPoints(selectedEarnUser.value.id, 'ADMIN', earnForm.value.creditValue)
+      await earnPoints({ userId: selectedEarnUser.value.id, eventCode: 'ADMIN', creditValue: earnForm.value.creditValue, remark: earnForm.value.remark.trim() })
       ElMessage.success('积分池加分成功')
       earnDialogVisible.value = false
       await loadData()
@@ -368,13 +379,13 @@ async function handleEarn() {
       earning.value = false
     }
   } else {
-    if (!earnForm.value.eventCode) {
+    if (!earnForm.value.ruleId) {
       ElMessage.warning('请选择积分规则')
       return
     }
     earning.value = true
     try {
-      await earnPoints(selectedEarnUser.value.id, earnForm.value.eventCode)
+      await earnPoints({ userId: selectedEarnUser.value.id, ruleId: earnForm.value.ruleId })
       ElMessage.success('加分成功')
       earnDialogVisible.value = false
       await loadData()

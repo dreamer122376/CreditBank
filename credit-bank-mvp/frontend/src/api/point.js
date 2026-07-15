@@ -1,9 +1,18 @@
 import request from './request'
 
-export function earnPoints(userId, eventCode, creditValue) {
-  const data = { userId, eventCode }
+export function earnPoints({ userId, eventCode, creditValue, remark, ruleId } = {}) {
+  const data = { userId }
+  if (eventCode) {
+    data.eventCode = eventCode
+  }
+  if (ruleId) {
+    data.ruleId = ruleId
+  }
   if (creditValue !== undefined) {
     data.creditValue = creditValue
+  }
+  if (remark !== undefined) {
+    data.remark = remark
   }
   return request.post('/points/earn', data)
 }

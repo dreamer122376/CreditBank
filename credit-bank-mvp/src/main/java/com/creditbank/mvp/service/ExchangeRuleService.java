@@ -72,7 +72,7 @@ public class ExchangeRuleService {
     public ExchangeRule update(ExchangeRule rule) {
         ExchangeRule exist = exchangeRuleMapper.selectById(rule.getId());
         if (exist == null) {
-            throw new BizException("转换规则不存在：" + rule.getId());
+            throw new BizException("兑换规则不存在：" + rule.getId());
         }
         SysUser operator = requireCurrentUser();
         checkRuleOwnership(exist, operator);
@@ -94,7 +94,7 @@ public class ExchangeRuleService {
     public ExchangeRule toggle(Long id) {
         ExchangeRule exist = exchangeRuleMapper.selectById(id);
         if (exist == null) {
-            throw new BizException("转换规则不存在：" + id);
+            throw new BizException("兑换规则不存在：" + id);
         }
         SysUser operator = requireCurrentUser();
         checkRuleOwnership(exist, operator);
@@ -110,7 +110,7 @@ public class ExchangeRuleService {
     public ExchangeRule exchange(Long userId, Long ruleId) {
         ExchangeRule rule = exchangeRuleMapper.selectById(ruleId);
         if (rule == null) {
-            throw new BizException("转换规则不存在：" + ruleId);
+            throw new BizException("兑换规则不存在：" + ruleId);
         }
         if (rule.getIsEnabled() == null || rule.getIsEnabled() != 1) {
             throw new BizException("该兑换品已停用");
@@ -205,7 +205,7 @@ public class ExchangeRuleService {
             return;
         }
         if (rule.getOrgId() == null || !rule.getOrgId().equals(operator.getOrgId())) {
-            throw new BizException("只能管理本机构的转换规则");
+            throw new BizException("只能管理本机构的兑换规则");
         }
     }
 }

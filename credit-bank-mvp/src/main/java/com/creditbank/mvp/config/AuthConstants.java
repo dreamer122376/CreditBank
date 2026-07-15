@@ -27,7 +27,8 @@ public final class AuthConstants {
 
     /** 前缀匹配的公开路径 */
     public static final List<String> PUBLIC_PATH_PREFIXES = List.of(
-            "/api/application/org-register-status"
+            "/api/application/org-register-status",
+            "/api/stats/dashboard"
     );
 
     /** GET 请求免认证的文件访问路径前缀 */

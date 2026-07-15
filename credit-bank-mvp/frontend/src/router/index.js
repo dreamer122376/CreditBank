@@ -13,6 +13,12 @@ const routes = [
     component: () => import('@/views/OrgRegister.vue')
   },
   {
+    path: '/dashboard-map',
+    name: 'DashboardMap',
+    component: () => import('@/views/DashboardMap.vue'),
+    meta: { public: true, title: '数据大屏' }
+  },
+  {
     path: '/certificate-verify',
     name: 'CertificateVerify',
     component: () => import('@/views/CertificateVerify.vue'),
@@ -76,7 +82,7 @@ const routes = [
         path: 'exchange-rules',
         name: 'ExchangeRules',
         component: () => import('@/views/ExchangeRules.vue'),
-        meta: { title: '转换规则' }
+        meta: { title: '兑换规则' }
       },
       {
         path: 'cert-standards',
@@ -196,7 +202,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { currentUser } = useAuth()
-  const publicPaths = ['/login', '/org-register']
+  const publicPaths = ['/login', '/org-register', '/dashboard-map', '/certificate-verify']
   if (publicPaths.includes(to.path)) {
     next()
   } else if (!currentUser.value) {

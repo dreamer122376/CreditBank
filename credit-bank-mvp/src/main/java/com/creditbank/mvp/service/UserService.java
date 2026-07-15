@@ -55,6 +55,24 @@ public class UserService {
                         .orderByDesc(SysUser::getId));
     }
 
+    /**
+     * 获取审批流程可选的审核人员。
+     * 管理员：返回所有管理员/机构管理员/专家（状态正常）。
+     * 机构管理员：返回自己与本机构的专家（状态正常）。
+     */
+    public List<SysUser> listAuditorCandidates(Long orgId, Long selfId, String selfRole) {
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getStatus, 1)
+                .in(SysUser::getRole, List.of("admin", "org_admin", "expert"))
+                .orderByDesc(SysUser::getId);
+        if ("org_admin".equals(selfRole)) {
+            wrapper.and(w -> w.eq(SysUser::getId, selfId)
+                    .or(w2 -> w2.eq(SysUser::getRole, "expert").eq(SysUser::getOrgId, orgId))
+                    .or(w3 -> w3.eq(SysUser::getRole, "admin")));
+        }
+        return sysUserMapper.selectList(wrapper);
+    }
+
     public SysUser getUser(Long id) {
         SysUser user = sysUserMapper.selectById(id);
         if (user == null) {

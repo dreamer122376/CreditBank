@@ -117,7 +117,10 @@
         </el-form-item>
         <template v-if="selectedEarnUser?.role === 'org_admin'">
           <el-form-item label="增加积分">
-            <el-input-number v-model="earnForm.creditValue" :min="1" :max="999999" placeholder="请输入增加的积分值" />
+            <el-input-number v-model="earnForm.creditValue" :min="1" :max="5000" placeholder="0~5000" />
+          </el-form-item>
+          <el-form-item label="说明" required>
+            <el-input v-model="earnForm.remark" type="textarea" placeholder="请输入加分说明" rows="3" />
           </el-form-item>
         </template>
         <template v-else>
@@ -157,7 +160,7 @@ const resetPwForm = ref({ id: null, username: '', realName: '', newPassword: '' 
 const filterRole = ref('student')
 const earnDialogVisible = ref(false)
 const earning = ref(false)
-const earnForm = ref({ eventCode: '', creditValue: 0 })
+const earnForm = ref({ eventCode: '', creditValue: 0, remark: '' })
 const selectedEarnUser = ref(null)
 const rules = ref([])
 
@@ -334,7 +337,7 @@ async function handleResetPw() {
 
 function openEarnDialog(row) {
   selectedEarnUser.value = row
-  earnForm.value = { eventCode: '', creditValue: 0 }
+  earnForm.value = { eventCode: '', creditValue: 0, remark: '' }
   if (row.role !== 'org_admin' && rules.value.length === 0) {
     loadRules()
   }
@@ -356,9 +359,13 @@ async function handleEarn() {
       ElMessage.warning('请输入增加的积分值')
       return
     }
+    if (!earnForm.value.remark || earnForm.value.remark.trim() === '') {
+      ElMessage.warning('请填写加分说明')
+      return
+    }
     earning.value = true
     try {
-      await earnPoints(selectedEarnUser.value.id, 'ADMIN', earnForm.value.creditValue)
+      await earnPoints(selectedEarnUser.value.id, 'ADMIN', earnForm.value.creditValue, earnForm.value.remark.trim())
       ElMessage.success('积分池加分成功')
       earnDialogVisible.value = false
       await loadData()

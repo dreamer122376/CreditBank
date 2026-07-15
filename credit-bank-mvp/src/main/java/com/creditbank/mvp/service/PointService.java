@@ -94,11 +94,16 @@ public class PointService {
 
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode, Long operatorId) {
-        return earn(userId, eventCode, operatorId, null);
+        return earn(userId, eventCode, operatorId, null, null);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode, Long operatorId, Integer customCreditValue) {
+        return earn(userId, eventCode, operatorId, customCreditValue, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser earn(Long userId, String eventCode, Long operatorId, Integer customCreditValue, String remark) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
@@ -119,6 +124,9 @@ public class PointService {
         if (isAdminRule) {
             if (customCreditValue == null || customCreditValue <= 0) {
                 throw new BizException("管理员手动加分必须指定积分值");
+            }
+            if (customCreditValue > 5000) {
+                throw new BizException("单次加分不能超过5000");
             }
             finalCredit = customCreditValue;
         } else {
@@ -151,10 +159,13 @@ public class PointService {
         Long realOperatorId = operatorId != null ? operatorId : userId;
         SysUser operator = sysUserMapper.selectById(realOperatorId);
         String operatorName = operator != null ? operator.getRealName() : String.valueOf(realOperatorId);
+        String detail = "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + (isAdminRule ? "管理员手动加分" : (rule.getEventName() + campaignDesc)) + "，当前余额：" + newBalance;
+        if (isAdminRule && remark != null && !remark.trim().isEmpty()) {
+            detail += "，说明：" + remark.trim();
+        }
         userOpLogMapper.insert(UserOpLog.createLog(
                 realOperatorId, operatorName, userId, user.getRealName(),
-                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
-                "为用户「" + user.getRealName() + "」增加 " + finalCredit + " 积分，规则：" + (isAdminRule ? "管理员手动加分" : (rule.getEventName() + campaignDesc)) + "，当前余额：" + newBalance));
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN, detail));
 
         if (!isAdminRule && rule.getOrgId() != null) {
             SysUser orgAdmin = sysUserMapper.selectOne(

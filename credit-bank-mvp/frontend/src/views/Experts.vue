@@ -1,5 +1,5 @@
 <template>
-  <div class="experts">
+  <div class="experts" v-loading="loading">
     <div class="toolbar">
       <div class="toolbar-left">
         <span class="page-title">专家列表</span>
@@ -145,6 +145,7 @@ import { getAllCerts, getCertsByExpert, revokeExpertCert } from '@/api/expertCer
 
 const { currentUser } = useAuth()
 
+const loading = ref(true)
 const experts = ref([])
 const certMap = ref({})
 const keyword = ref('')
@@ -169,6 +170,7 @@ const filteredExperts = computed(() => {
 onMounted(loadData)
 
 async function loadData() {
+  loading.value = true
   try {
     experts.value = await getExperts()
     const certs = await getAllCerts()
@@ -179,6 +181,8 @@ async function loadData() {
     certMap.value = map
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 

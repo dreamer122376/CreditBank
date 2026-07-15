@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard" v-loading="loading">
     <div class="main-grid" v-if="currentUser?.role === 'student'">
       <div class="left-column">
         <div class="signin-card">
@@ -174,6 +174,7 @@ const pointTrend = ref([])
 const chartRef = ref(null)
 let chartInstance = null
 
+const loading = ref(true)
 const signInStatus = ref({ hasSignedIn: false, streak: 0 })
 const signingIn = ref(false)
 const fortune = ref(null)
@@ -322,6 +323,7 @@ onUnmounted(() => {
 })
 
 async function loadAllData() {
+  loading.value = true
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
@@ -342,7 +344,9 @@ async function loadAllData() {
       await nextTick()
       initChart()
     }
-  } catch (e) { console.error('加载失败:', e) }
+  } catch (e) { console.error('加载失败:', e) } finally {
+    loading.value = false
+  }
 }
 
 async function loadPointTrend() {

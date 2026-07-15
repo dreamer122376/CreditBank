@@ -1,5 +1,5 @@
 <template>
-  <div class="cert-standards">
+  <div class="cert-standards" v-loading="loading">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -129,6 +129,7 @@ const ROLE_NAME = {
   student: '学生'
 }
 
+const loading = ref(true)
 const standards = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
@@ -136,10 +137,13 @@ const form = ref({})
 onMounted(loadData)
 
 async function loadData() {
+  loading.value = true
   try {
     standards.value = await getCertStandards()
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 

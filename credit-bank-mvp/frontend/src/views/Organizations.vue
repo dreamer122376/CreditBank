@@ -1,5 +1,5 @@
 <template>
-  <div class="organizations">
+  <div class="organizations" v-loading="loading">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -129,6 +129,7 @@ const rejectForm = ref({ id: null, orgName: '', reason: '' })
 const STATUS_NAME = { 0: '待审核', 1: '启用', 2: '禁用', 3: '已拒绝' }
 const STATUS_TAG = { 0: 'warning', 1: 'success', 2: 'danger', 3: 'info' }
 
+const loading = ref(true)
 const orgs = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
@@ -136,10 +137,13 @@ const form = ref({})
 onMounted(loadData)
 
 async function loadData() {
+  loading.value = true
   try {
     orgs.value = await getOrganizations()
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 

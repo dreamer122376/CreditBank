@@ -1,5 +1,5 @@
 <template>
-  <div class="point-rules">
+  <div class="point-rules" v-loading="loading">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -114,6 +114,7 @@ import { useAuth } from '@/composables/useAuth'
 
 const { currentUser } = useAuth()
 
+const loading = ref(true)
 const rules = ref([])
 const projects = ref([])
 const organizations = ref([])
@@ -121,9 +122,14 @@ const dialogVisible = ref(false)
 const form = ref({})
 
 onMounted(async () => {
-  await loadData()
-  await loadProjects()
-  await loadOrganizations()
+  loading.value = true
+  try {
+    await loadData()
+    await loadProjects()
+    await loadOrganizations()
+  } finally {
+    loading.value = false
+  }
 })
 
 async function loadData() {

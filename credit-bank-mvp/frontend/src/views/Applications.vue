@@ -1,5 +1,5 @@
 <template>
-  <div class="applications">
+  <div class="applications" v-loading="loading">
     <!-- 统计卡片 -->
     <div class="stat-row">
       <div v-for="item in statItems" :key="item.key"
@@ -152,6 +152,7 @@ const IN_REVIEW_STATUSES = [STATUS_IN_REVIEW]
 const router = useRouter()
 const { currentUser } = useAuth()
 
+const loading = ref(true)
 const apps = ref([])
 const standards = ref([])
 const activeTab = ref('biz')
@@ -215,6 +216,7 @@ function switchTab(tab) {
 onMounted(loadData)
 
 async function loadData() {
+  loading.value = true
   try {
     const [list, standardList] = await Promise.all([
       getApplications(currentUser.value?.role, currentUser.value?.id),
@@ -224,6 +226,8 @@ async function loadData() {
     apps.value = list
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+  } finally {
+    loading.value = false
   }
 }
 

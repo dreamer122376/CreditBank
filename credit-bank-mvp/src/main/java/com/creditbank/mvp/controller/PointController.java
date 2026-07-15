@@ -84,7 +84,7 @@ public class PointController {
     }
 
     @PostMapping("/points/earn")
-    @Operation(summary = "获取积分", description = "根据事件代码获取积分，支持活动倍率加成")
+    @Operation(summary = "获取积分", description = "根据事件代码或规则ID获取积分，支持活动倍率加成")
     public Result<SysUser> earn(@RequestBody EarnRequest req) {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = pointService.getUser(operatorId);
@@ -92,13 +92,21 @@ public class PointController {
             if (!"admin".equals(operator.getRole())) {
                 throw new BizException("无权限使用管理员加分规则");
             }
+        } else if (req.getRuleId() != null) {
+            // 通过 ruleId 查找规则，用于权限校验
+            SysUser target = pointService.getUser(req.getUserId());
+            if ("org_admin".equals(operator.getRole())) {
+                if (!operator.getOrgId().equals(target.getOrgId())) {
+                    throw new BizException("只能给本机构学生加分");
+                }
+            }
         } else if ("org_admin".equals(operator.getRole())) {
             SysUser target = pointService.getUser(req.getUserId());
             if (!operator.getOrgId().equals(target.getOrgId())) {
                 throw new BizException("只能给本机构学生加分");
             }
         }
-        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId, req.getCreditValue(), req.getRemark()));
+        return Result.ok(pointService.earn(req.getUserId(), req.getEventCode(), operatorId, req.getCreditValue(), req.getRemark(), req.getRuleId()));
     }
 
     @GetMapping("/user/{id}/transactions")
@@ -144,6 +152,7 @@ public class PointController {
     public static class EarnRequest {
         private Long userId;
         private String eventCode;
+        private Long ruleId;
         private Integer creditValue;
         private String remark;
 
@@ -151,6 +160,8 @@ public class PointController {
         public void setUserId(Long userId) { this.userId = userId; }
         public String getEventCode() { return eventCode; }
         public void setEventCode(String eventCode) { this.eventCode = eventCode; }
+        public Long getRuleId() { return ruleId; }
+        public void setRuleId(Long ruleId) { this.ruleId = ruleId; }
         public Integer getCreditValue() { return creditValue; }
         public void setCreditValue(Integer creditValue) { this.creditValue = creditValue; }
         public String getRemark() { return remark; }

@@ -75,8 +75,8 @@
         </template>
         <template v-else>
           <el-form-item label="选择规则">
-            <el-select v-model="earnForm.eventCode" placeholder="请选择积分规则">
-              <el-option v-for="rule in rules" :key="rule.eventCode" :label="rule.eventName + ' (' + rule.creditValue + '分)'" :value="rule.eventCode" />
+            <el-select v-model="earnForm.ruleId" placeholder="请选择积分规则">
+              <el-option v-for="rule in earnRules" :key="rule.id" :label="rule.eventName + ' (' + rule.creditValue + '分)'" :value="rule.id" />
             </el-select>
           </el-form-item>
         </template>
@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
@@ -106,9 +106,14 @@ const earnDialogVisible = ref(false)
 const earning = ref(false)
 
 const earnForm = ref({
+  ruleId: null,
   eventCode: '',
   creditValue: 0,
   remark: ''
+})
+
+const earnRules = computed(() => {
+  return rules.value.filter(rule => rule.eventCode !== 'ADMIN')
 })
 
 const ROLE_NAME = {
@@ -156,7 +161,7 @@ async function loadData() {
 }
 
 function openEarnDialog() {
-  earnForm.value = { eventCode: '', creditValue: 0, remark: '' }
+  earnForm.value = { ruleId: null, eventCode: '', creditValue: 0, remark: '' }
   earnDialogVisible.value = true
 }
 
@@ -172,7 +177,7 @@ async function handleEarn() {
     }
     earning.value = true
     try {
-      await earnPoints(user.value.id, 'ADMIN', earnForm.value.creditValue, earnForm.value.remark.trim())
+      await earnPoints({ userId: user.value.id, eventCode: 'ADMIN', creditValue: earnForm.value.creditValue, remark: earnForm.value.remark.trim() })
       ElMessage.success('积分池加分成功')
       earnDialogVisible.value = false
       await loadData()
@@ -182,13 +187,13 @@ async function handleEarn() {
       earning.value = false
     }
   } else {
-    if (!earnForm.value.eventCode) {
+    if (!earnForm.value.ruleId) {
       ElMessage.warning('请选择积分规则')
       return
     }
     earning.value = true
     try {
-      await earnPoints(user.value.id, earnForm.value.eventCode)
+      await earnPoints({ userId: user.value.id, ruleId: earnForm.value.ruleId })
       ElMessage.success('加分成功')
       earnDialogVisible.value = false
       await loadData()

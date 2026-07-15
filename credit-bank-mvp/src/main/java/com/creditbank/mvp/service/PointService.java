@@ -94,27 +94,41 @@ public class PointService {
 
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode, Long operatorId) {
-        return earn(userId, eventCode, operatorId, null, null);
+        return earn(userId, eventCode, operatorId, null, null, null);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode, Long operatorId, Integer customCreditValue) {
-        return earn(userId, eventCode, operatorId, customCreditValue, null);
+        return earn(userId, eventCode, operatorId, customCreditValue, null, null);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public SysUser earn(Long userId, String eventCode, Long operatorId, Integer customCreditValue, String remark) {
+        return earn(userId, eventCode, operatorId, customCreditValue, remark, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public SysUser earn(Long userId, String eventCode, Long operatorId, Integer customCreditValue, String remark, Long ruleId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在：" + userId);
         }
 
-        CreditRule rule = creditRuleMapper.selectOne(
-                new LambdaQueryWrapper<CreditRule>()
-                        .eq(CreditRule::getEventCode, eventCode)
-                        .eq(CreditRule::getIsEnabled, 1));
-        if (rule == null) {
-            throw new BizException("积分规则不存在或已停用：" + eventCode);
+        CreditRule rule;
+        if (ruleId != null) {
+            rule = creditRuleMapper.selectById(ruleId);
+            if (rule == null || rule.getIsEnabled() != 1) {
+                throw new BizException("积分规则不存在或已停用：ruleId=" + ruleId);
+            }
+        } else {
+            rule = creditRuleMapper.selectOne(
+                    new LambdaQueryWrapper<CreditRule>()
+                            .eq(CreditRule::getEventCode, eventCode)
+                            .eq(CreditRule::getIsEnabled, 1)
+                            .last("LIMIT 1"));
+            if (rule == null) {
+                throw new BizException("积分规则不存在或已停用：" + eventCode);
+            }
         }
 
         boolean isAdminRule = "ADMIN".equals(eventCode);

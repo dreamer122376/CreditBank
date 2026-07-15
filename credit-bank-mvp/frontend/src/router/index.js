@@ -196,7 +196,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { currentUser } = useAuth()
-  const publicPaths = ['/login', '/org-register']
+  const publicPaths = ['/login', '/org-register', '/dashboard-map', '/certificate-verify']
   if (publicPaths.includes(to.path)) {
     next()
   } else if (!currentUser.value) {

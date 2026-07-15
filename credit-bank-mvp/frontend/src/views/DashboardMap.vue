@@ -102,6 +102,7 @@ async function renderCharts() {
       tooltip: { trigger: 'item' },
       visualMap: { min: 0, max: Math.max(...(data.value.provinces || [{value:1}]).map(p => p.value)), left: 20, bottom: 10, text: ['高', '低'], inRange: { color: ['#e8f5e9', '#2e7d32'] } },
       series: [{
+        name: '机构数量',
         type: 'map', map: 'china', roam: false,
         label: { show: true, fontSize: 10 },
         data: data.value.provinces || []

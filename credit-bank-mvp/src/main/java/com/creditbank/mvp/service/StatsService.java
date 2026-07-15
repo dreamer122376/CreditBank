@@ -8,6 +8,7 @@ import com.creditbank.mvp.dto.TodoItemDTO;
 import com.creditbank.mvp.entity.Application;
 import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
+import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.ApplicationMapper;
@@ -381,14 +382,20 @@ public class StatsService {
         addYoY(yoy, "积分流水", lastYearTxn, thisYearTxn);
         vo.setYoy(yoy);
 
-        // 省份分布（模拟数据）
+        // 省份分布（从机构表 province 聚合计数）
         List<Map<String, Object>> provinces = new ArrayList<>();
-        String[] provinceNames = {"北京", "上海", "广东", "江苏", "浙江", "四川", "重庆", "湖北", "山东", "河南"};
-        long base = kpi.getTotalArchives();
-        for (String name : provinceNames) {
+        List<Organization> allOrgs = organizationMapper.selectList(
+                new LambdaQueryWrapper<Organization>().isNotNull(Organization::getProvince));
+        Map<String, Long> provinceCount = new HashMap<>();
+        for (Organization org : allOrgs) {
+            if (org.getProvince() != null && !org.getProvince().isEmpty()) {
+                provinceCount.merge(org.getProvince(), 1L, Long::sum);
+            }
+        }
+        for (Map.Entry<String, Long> entry : provinceCount.entrySet()) {
             Map<String, Object> p = new HashMap<>();
-            p.put("name", name);
-            p.put("value", base / 10 + (long)(Math.random() * base / 5));
+            p.put("name", entry.getKey());
+            p.put("value", entry.getValue());
             provinces.add(p);
         }
         vo.setProvinces(provinces);

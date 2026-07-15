@@ -190,6 +190,24 @@ const routes = [
         name: 'PointMall',
         component: () => import('@/views/PointMall.vue'),
         meta: { title: '积分商城' }
+      },
+      {
+        path: 'conversion-rules',
+        name: 'ConversionRules',
+        component: () => import('@/views/ConversionRules.vue'),
+        meta: { title: '转换规则管理' }
+      },
+      {
+        path: 'conversion-apply',
+        name: 'ConversionApply',
+        component: () => import('@/views/ConversionApply.vue'),
+        meta: { title: '转换申请' }
+      },
+      {
+        path: 'conversion-applications',
+        name: 'ConversionApplications',
+        component: () => import('@/views/ConversionApplications.vue'),
+        meta: { title: '转换申请审核' }
       }
     ]
   }

@@ -156,7 +156,6 @@ const menuItems = computed(() => {
       { path: '/conversion-rules', title: '转换规则管理', icon: ArrowRight },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '审核管理', icon: Tickets },
-      { path: '/conversion-applications', title: '转换申请审核', icon: Tickets },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
       { path: '/projects/manage', title: '项目管理', icon: Files },
       { path: '/profile', title: '我的资料', icon: Postcard },
@@ -172,7 +171,6 @@ const menuItems = computed(() => {
       { path: '/conversion-rules', title: '转换规则管理', icon: ArrowRight },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '业务审核', icon: Tickets },
-      { path: '/conversion-applications', title: '转换申请审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },
       { path: '/transactions', title: '积分流水', icon: WalletFilled },
       { path: '/op-logs', title: '操作日志', icon: Tickets }

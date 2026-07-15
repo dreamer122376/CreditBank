@@ -202,12 +202,6 @@ const routes = [
         name: 'ConversionApply',
         component: () => import('@/views/ConversionApply.vue'),
         meta: { title: '转换申请' }
-      },
-      {
-        path: 'conversion-applications',
-        name: 'ConversionApplications',
-        component: () => import('@/views/ConversionApplications.vue'),
-        meta: { title: '转换申请审核' }
       }
     ]
   }

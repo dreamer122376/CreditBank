@@ -5,9 +5,11 @@ import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +30,18 @@ public class SignInService {
     private final CreditRuleMapper creditRuleMapper;
     private final TransactionLogMapper transactionLogMapper;
     private final RedisService redisService;
+    private final UserOpLogMapper userOpLogMapper;
 
     public SignInService(SysUserMapper sysUserMapper,
                          CreditRuleMapper creditRuleMapper,
                          TransactionLogMapper transactionLogMapper,
-                         RedisService redisService) {
+                         RedisService redisService,
+                         UserOpLogMapper userOpLogMapper) {
         this.sysUserMapper = sysUserMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.transactionLogMapper = transactionLogMapper;
         this.redisService = redisService;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -95,6 +100,11 @@ public class SignInService {
 
         int streak = calculateStreak(userId);
         redisService.set("sign:streak:" + userId, streak, secondsUntilEndOfDay, TimeUnit.SECONDS);
+
+        userOpLogMapper.insert(UserOpLog.createLog(
+                userId, user.getRealName(), userId, user.getRealName(),
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EARN,
+                "签到打卡获得积分 " + creditValue + "，连续签到 " + streak + " 天"));
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

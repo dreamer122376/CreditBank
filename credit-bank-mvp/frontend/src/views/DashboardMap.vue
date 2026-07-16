@@ -2,8 +2,14 @@
   <div class="dashboard" v-loading="loading">
     <!-- 标题栏 -->
     <header class="dash-header">
-      <h1>学分银行数据看板</h1>
-      <p>Credit Bank &middot; National Overview</p>
+      <el-button class="back-btn" @click="goBack" size="small">
+        <el-icon><ArrowLeft /></el-icon>
+        <span>返回</span>
+      </el-button>
+      <div class="header-content">
+        <h1>学分银行数据看板</h1>
+        <p>Credit Bank &middot; National Overview</p>
+      </div>
     </header>
 
     <!-- KPI 卡片行 -->
@@ -82,8 +88,20 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '@/api/request'
+
+const router = useRouter()
+
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/')
+  }
+}
 
 const loading = ref(true)
 const data = ref(null)
@@ -316,8 +334,31 @@ async function renderCharts() {
 
 /* ====== 标题 ====== */
 .dash-header {
-  text-align: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 4px 0 24px;
+  gap: 20px;
+}
+.back-btn {
+  position: absolute;
+  left: 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #5a6884;
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+.back-btn:hover {
+  background: rgba(53, 104, 212, 0.08);
+  color: #3568d4;
+}
+.header-content {
+  text-align: center;
 }
 .dash-header h1 {
   font-size: 24px;
@@ -547,10 +588,13 @@ async function renderCharts() {
   .dual-row { grid-template-columns: 1fr; }
   .map-chart { height: 360px; }
   .dash-header h1 { font-size: 20px; }
+  .back-btn { left: 12px; padding: 4px 10px; font-size: 12px; }
 }
 @media (max-width: 600px) {
   .kpi-row { grid-template-columns: 1fr; }
   .kpi-num { font-size: 22px; }
   .side-stats { flex-direction: column; }
+  .dash-header { gap: 12px; }
+  .back-btn { position: static; }
 }
 </style>

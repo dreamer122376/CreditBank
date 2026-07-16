@@ -72,10 +72,6 @@
             </el-form-item>
             <el-button type="primary" size="large" class="btn-block" @click="handleLogin" :loading="loading">登 录</el-button>
             <p class="login-msg" v-if="loginMsg">{{ loginMsg }}</p>
-            <div class="login-extra-link">
-              <el-button link type="primary" size="small" @click="goOrgRegister">机构入驻申请</el-button>
-              <el-button link type="warning" size="small" @click="$router.push('/dashboard-map')">📊 数据大屏</el-button>
-            </div>
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="注册" name="register">

@@ -47,12 +47,18 @@ request.interceptors.request.use(
   }
 )
 
+const publicApiPaths = ['/exchange-rule/list', '/conversion-rule/list', '/stats/dashboard']
+
+function isPublicApi(url) {
+  return publicApiPaths.some(path => url.includes(path))
+}
+
 request.interceptors.response.use(
   response => {
     hideLoading()
     const res = response.data
     if (res.code !== 200) {
-      if (res.code === 401) {
+      if (res.code === 401 && !isPublicApi(response.config.url)) {
         localStorage.removeItem('cb_user')
         localStorage.removeItem('cb_token')
         ElMessageBox.confirm('登录已过期，请重新登录', '提示', {
@@ -79,15 +85,17 @@ request.interceptors.response.use(
       const { status, data } = error.response
       switch (status) {
         case 401:
-          localStorage.removeItem('cb_user')
-          localStorage.removeItem('cb_token')
-          ElMessageBox.confirm('登录已过期，请重新登录', '提示', {
-            confirmButtonText: '重新登录',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }).then(() => {
-            router.push('/login')
-          }).catch(() => {})
+          if (!isPublicApi(error.config.url)) {
+            localStorage.removeItem('cb_user')
+            localStorage.removeItem('cb_token')
+            ElMessageBox.confirm('登录已过期，请重新登录', '提示', {
+              confirmButtonText: '重新登录',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              router.push('/login')
+            }).catch(() => {})
+          }
           break
         case 403:
           ElMessage.warning(data?.message || '无权限访问')

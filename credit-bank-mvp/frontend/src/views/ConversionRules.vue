@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>转换规则列表</span>
-          <el-button v-if="currentUser?.role === 'admin' || currentUser?.role === 'org_admin'" type="primary" size="small" @click="openCreate">新增规则</el-button>
+          <el-button v-if="currentUser && (currentUser.role === 'admin' || currentUser.role === 'org_admin')" type="primary" size="small" @click="openCreate">新增规则</el-button>
         </div>
       </template>
       <el-table :data="rules" border style="width: 100%;" size="small" :max-height="tableMaxHeight">
@@ -51,7 +51,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="180" v-if="currentUser">
           <template #default="scope">
             <template v-if="canOperate(scope.row)">
               <div class="action-buttons">
@@ -162,8 +162,10 @@ onMounted(async () => {
   loading.value = true
   try {
     await loadData()
-    await loadOrganizations()
-    await loadCreditRules()
+    if (currentUser.value) {
+      await loadOrganizations()
+      await loadCreditRules()
+    }
   } finally {
     loading.value = false
   }

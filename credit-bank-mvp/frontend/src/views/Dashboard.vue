@@ -1,167 +1,159 @@
-<template>
+﻿<template>
   <div class="dashboard" v-loading="loading">
-    <div class="dashboard-header">
-      <div class="header-left">
-        <h1 class="page-title">工作台</h1>
-        <p class="page-subtitle">欢迎回来，{{ currentUser?.realName || '用户' }}</p>
-      </div>
-      <div class="header-right">
-        <span class="update-time">数据更新于 {{ updateTimeText }}</span>
-        <el-button :icon="Refresh" circle size="small" @click="refreshData" :loading="refreshing" />
-      </div>
-    </div>
-
-    <div class="dashboard-content">
-      <!-- 首屏重点卡片 -->
-      <HeroCard :role="currentUser?.role" :data="heroData" @click="handleHeroClick" />
-
-      <!-- 核心指标 -->
-      <div class="stats-grid">
-        <StatCard
-          v-for="stat in currentStats"
-          :key="stat.label"
-          :icon="stat.icon"
-          :label="stat.label"
-          :value="stat.value"
-          :color="stat.color"
-          :trend="stat.trend"
-        />
-      </div>
-
-      <!-- 图表区域 -->
-      <div class="charts-section">
-        <!-- Admin 大屏：月度趋势 + 角色分布 -->
-        <template v-if="currentUser?.role === 'admin' && dashboardData">
-          <div class="chart-panel wide">
-            <div class="panel-header">
-              <span class="panel-title">月度积分趋势</span>
-            </div>
-            <div ref="barChartRef" class="chart-area"></div>
-            <EmptyState v-if="!monthlyTrendData.length" text="暂无月度趋势数据" />
+    <div class="main-grid" v-if="currentUser?.role === 'student'">
+      <div class="left-column">
+        <div class="signin-card">
+          <div class="signin-top">
+            <span class="signin-greeting">欢迎回来</span>
+            <span class="username">{{ currentUser?.realName }}</span>
           </div>
-          <div class="chart-panel">
-            <div class="panel-header">
-              <span class="panel-title">用户角色分布</span>
+          <div class="date-section">
+            <div class="date-left">
+              <span class="date-month">{{ monthName }}月</span>
+              <span class="date-type">{{ monthType }}</span>
             </div>
-            <div ref="pieChartRef" class="chart-area"></div>
-            <EmptyState v-if="!categoryData.length" text="暂无角色分布数据" />
+            <div class="date-center">
+              <span class="date-day">{{ currentDay }}</span>
+            </div>
+            <div class="date-right">
+              <span>星期</span>
+              <span class="date-weekday">{{ weekdayChar }}</span>
+            </div>
           </div>
-        </template>
-
-        <!-- 非 Admin：折线图 + 辅助信息 -->
-        <template v-if="currentUser?.role === 'student'">
-          <div class="chart-panel wide">
-            <div class="panel-header">
-              <span class="panel-title">积分趋势</span>
-              <div class="panel-tabs">
-                <span :class="{ active: trendDays === 7 }" @click="switchTrend(7)">近7天</span>
-                <span :class="{ active: trendDays === 30 }" @click="switchTrend(30)">近30天</span>
+          <div class="content-area">
+            <div class="countdown-container" v-if="!signInStatus.hasSignedIn">
+              <div class="countdown-item" v-for="exam in examList" :key="exam.name">
+                <span class="countdown-label">{{ exam.name }}</span>
+                <span class="countdown-value">{{ exam.days }}天</span>
               </div>
             </div>
-            <div ref="chartRef" class="chart-area"></div>
-            <EmptyState v-if="!pointTrend.length" text="暂无积分趋势数据" />
-          </div>
-          <div class="side-stack">
-            <div class="signin-panel">
-              <div class="signin-status">
-                <div class="signin-icon" :class="{ signed: signInStatus.hasSignedIn }">
-                  <el-icon size="28"><Calendar v-if="!signInStatus.hasSignedIn" /><Check v-else /></el-icon>
+            <div class="fortune-container" v-else-if="fortune">
+              <div class="fortune-badge" :class="fortune.level">
+                <span>{{ fortune.levelText }}</span>
+              </div>
+              <div class="fortune-grid">
+                <div class="fortune-column yi">
+                  <span class="fortune-header">宜</span>
+                  <span v-for="(item, idx) in fortune.yi" :key="'yi-' + idx" class="fortune-item">{{ item }}</span>
                 </div>
-                <div class="signin-text">
-                  <div class="signin-title">{{ signInStatus.hasSignedIn ? '今日已签到' : '今日未签到' }}</div>
-                  <div class="signin-desc">连续签到 {{ signInStatus.streak }} 天</div>
+                <div class="fortune-column ji">
+                  <span class="fortune-header">忌</span>
+                  <span v-for="(item, idx) in fortune.ji" :key="'ji-' + idx" class="fortune-item">{{ item }}</span>
                 </div>
               </div>
-              <el-button
-                v-if="!signInStatus.hasSignedIn"
-                type="primary"
-                class="signin-btn"
-                :loading="signingIn"
-                @click="handleSignIn"
-              >
-                立即打卡
-              </el-button>
-            </div>
-            <div class="info-panel">
-              <div class="panel-header">
-                <span class="panel-title">最近交易</span>
-                <span class="panel-more" @click="router.push('/transactions')">全部</span>
-              </div>
-              <div class="list-content">
-                <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
-                  <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
-                  <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
-                    {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
-                  </span>
-                </div>
-                <EmptyState v-if="filteredTransactions.length === 0" text="暂无交易记录" />
-              </div>
             </div>
           </div>
-        </template>
-      </div>
-
-      <!-- 非学生端：底部列表 -->
-      <div v-if="currentUser?.role !== 'student'" class="bottom-section">
-        <div class="info-panel">
-          <div class="panel-header">
-            <span class="panel-title">待办事项</span>
-          </div>
-          <div class="list-content">
-            <div class="list-item clickable" v-for="item in todoList" :key="item.id"
-                 @click="handleTodoClick(item)">
-              <span class="item-name">{{ item.typeName }}</span>
-              <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
-            </div>
-            <EmptyState v-if="todoList.length === 0" text="暂无待办事项" />
+          <div class="signin-bottom">
+            <span v-if="signInStatus.streak > 0" class="streak-badge">🔥 {{ signInStatus.streak }}天</span>
+            <el-button v-if="!signInStatus.hasSignedIn" type="primary" class="signin-btn" :loading="signingIn" @click="handleSignIn">
+              点击打卡
+            </el-button>
+            <span v-else class="signed-text">今日已签到</span>
           </div>
         </div>
-        <div class="info-panel">
-          <div class="panel-header">
-            <span class="panel-title">最近交易</span>
-            <span class="panel-more" @click="router.push('/transactions')">全部</span>
-          </div>
-          <div class="list-content">
-            <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
-              <span class="item-name">{{ item.userName ? item.userName + ' · ' : '' }}{{ getBizTypeName(item.bizType) }}</span>
-              <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
-                {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
-              </span>
-            </div>
-            <EmptyState v-if="filteredTransactions.length === 0" text="暂无交易记录" />
+        <div class="stats-card">
+          <div class="stat-item" v-for="stat in statCards" :key="stat.label">
+            <span class="stat-number">{{ stat.value }}</span>
+            <span class="stat-name">{{ stat.label }}</span>
           </div>
         </div>
       </div>
-
-      <!-- Admin 大屏：同比表格 -->
-      <div v-if="currentUser?.role === 'admin' && dashboardData" class="yoy-panel">
-        <div class="panel-header">
-          <span class="panel-title">核心指标同比</span>
+      <div class="right-column">
+        <div class="chart-card">
+          <div class="card-header">
+            <span class="card-title">积分趋势</span>
+            <div class="card-tabs">
+              <span :class="{ active: trendDays === 7 }" @click="trendDays = 7; loadPointTrend()">7天</span>
+              <span :class="{ active: trendDays === 30 }" @click="trendDays = 30; loadPointTrend()">30天</span>
+            </div>
+          </div>
+          <div ref="chartRef" class="chart-area"></div>
         </div>
-        <div class="yoy-grid">
-          <div class="yoy-item" v-for="item in dashboardData.yoy" :key="item.name">
-            <div class="yoy-name">{{ item.name }}</div>
-            <div class="yoy-values">
-              <div class="yoy-box">
-                <span class="yoy-label">去年</span>
-                <span class="yoy-value">{{ formatNumber(item.lastYear) }}</span>
+        <div class="bottom-cards">
+          <div class="info-card">
+            <div class="card-header">
+              <span class="card-title">待办事项</span>
+            </div>
+            <div class="list-content">
+              <div class="list-item clickable" v-for="item in todoList" :key="item.id"
+                   @click="handleTodoClick(item)">
+                <span class="item-name">{{ item.typeName }}</span>
+                <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
               </div>
-              <div class="yoy-box">
-                <span class="yoy-label">今年</span>
-                <span class="yoy-value current">{{ formatNumber(item.thisYear) }}</span>
-              </div>
-              <div class="yoy-box">
-                <span class="yoy-label">增长</span>
-                <span class="yoy-value" :class="item.growth >= 0 ? 'up' : 'down'">
-                  {{ item.growthRate }}
+              <div v-if="todoList.length === 0" class="empty-tip">暂无待办事项</div>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="card-header">
+              <span class="card-title">最近交易</span>
+              <span class="card-more" @click="router.push('/transactions')">全部></span>
+            </div>
+            <div class="list-content">
+              <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
+                <span class="item-name">{{ getBizTypeName(item.bizType) }}</span>
+                <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
+                  {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
                 </span>
               </div>
+              <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
             </div>
           </div>
         </div>
-        <EmptyState v-if="!dashboardData.yoy?.length" text="暂无同比数据" />
       </div>
     </div>
+    <div class="non-student" v-else>
+        <!-- Hero: 待审核事项 -- 突出显示（仅管理员），点击跳转到转换申请待审核列表 -->
+        <div class="pending-hero clickable" v-if="currentUser?.role === 'admin'"
+             @click="router.push('/applications?tab=conversion&filter=pending')">
+          <div class="pending-hero-inner">
+            <div class="pending-hero-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            </div>
+            <div class="pending-hero-text">
+              <div class="pending-hero-label">待审核事项</div>
+              <div class="pending-hero-count">{{ summary?.pendingCount ?? 0 }}</div>
+              <div class="pending-hero-hint">需要您及时处理的审核申请</div>
+            </div>
+          </div>
+        </div>
+        <!-- 核心指标：管理员用 secondaryStats（不含待审核），其他角色用 statCards -->
+        <div class="stats-full">
+          <div class="stat-item" v-for="stat in (currentUser?.role === 'admin' ? secondaryStats : statCards)" :key="stat.label">
+            <span class="stat-number">{{ stat.value }}</span>
+            <span class="stat-name">{{ stat.label }}</span>
+          </div>
+        </div>
+        <div class="cards-full">
+          <div class="info-card">
+            <div class="card-header">
+              <span class="card-title">待办事项</span>
+            </div>
+            <div class="list-content">
+              <div class="list-item clickable" v-for="item in todoList" :key="item.id"
+                   @click="handleTodoClick(item)">
+                <span class="item-name">{{ item.typeName }}</span>
+                <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
+              </div>
+              <div v-if="todoList.length === 0" class="empty-tip">暂无待办事项</div>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="card-header">
+              <span class="card-title">最近交易</span>
+              <span class="card-more" @click="router.push('/transactions')">全部></span>
+            </div>
+            <div class="list-content">
+              <div class="list-item" v-for="item in filteredTransactions" :key="item.id">
+                <span class="item-name">{{ item.userName ? item.userName + ' · ' : '' }}{{ getBizTypeName(item.bizType) }}</span>
+                <span class="item-amount" :class="Number(item.amount) > 0 ? 'gain' : 'loss'">
+                  {{ Number(item.amount) > 0 ? '+' : '' }}{{ item.amount }}
+                </span>
+              </div>
+              <div v-if="filteredTransactions.length === 0" class="empty-tip">暂无交易记录</div>
+            </div>
+          </div>
+        </div>
+      </div>
   </div>
 </template>
 
@@ -169,20 +161,10 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import {
-  Refresh, Calendar, Check, User, OfficeBuilding, Coin,
-  Trophy, DocumentChecked, Collection, DataLine, School
-} from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
-import {
-  getStatsSummary, getTodoList, getRecentTransactions,
-  getPointTrend, getDashboardData
-} from '@/api/stats'
+import { getStatsSummary, getTodoList, getRecentTransactions, getPointTrend } from '@/api/stats'
 import { getProfile } from '@/api/profile'
 import { signIn, getSignInStatus } from '@/api/signin'
-import StatCard from '@/components/StatCard.vue'
-import HeroCard from '@/components/HeroCard.vue'
-import EmptyState from '@/components/EmptyState.vue'
 import * as echarts from 'echarts'
 
 const { currentUser } = useAuth()
@@ -192,13 +174,8 @@ const todoList = ref([])
 const recentTransactions = ref([])
 const trendDays = ref(7)
 const pointTrend = ref([])
-const dashboardData = ref(null)
 const chartRef = ref(null)
-const barChartRef = ref(null)
-const pieChartRef = ref(null)
 let chartInstance = null
-let barChartInstance = null
-let pieChartInstance = null
 
 // 工作台待办项点击跳转：按当前角色与待办类型分发到对应审核页/提交页
 function handleTodoClick(item) {
@@ -234,166 +211,160 @@ function handleTodoClick(item) {
 }
 
 const loading = ref(true)
-const refreshing = ref(false)
 const signInStatus = ref({ hasSignedIn: false, streak: 0 })
 const signingIn = ref(false)
-const updateTime = ref(new Date())
+const fortune = ref(null)
+const now = ref(new Date())
 
-const updateTimeText = computed(() => {
-  const d = updateTime.value
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+const currentMonth = computed(() => now.value.getMonth() + 1)
+const currentDay = computed(() => now.value.getDate())
+
+const monthName = computed(() => {
+  const names = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
+  return names[currentMonth.value]
 })
 
-const heroData = computed(() => {
-  const role = currentUser.value?.role
-  const s = summary.value || {}
-  const map = {
-    admin: {
-      icon: DocumentChecked,
-      label: '待审核事项',
-      value: s.pendingCount || 0,
-      desc: '需要您及时处理的审核申请',
-      action: '去处理',
-      color: 'red',
-      path: '/applications'
-    },
-    org_admin: {
-      icon: Coin,
-      label: '机构积分池余额',
-      value: currentUser.value?.balance || 0,
-      desc: currentUser.value?.orgName ? `所属机构：${currentUser.value.orgName}` : '机构积分用于给学生发放奖励',
-      action: '查看明细',
-      color: 'orange',
-      path: '/transactions'
-    },
-    student: {
-      icon: Trophy,
-      label: '我的积分余额',
-      value: currentUser.value?.balance || 0,
-      desc: '参与项目、完成任务可获得积分',
-      action: '去赚积分',
-      color: 'blue',
-      path: '/projects'
-    },
-    expert: {
-      icon: School,
-      label: '待评审项目',
-      value: s.pendingCount || 0,
-      desc: '需要您评审的项目申请',
-      action: '去评审',
-      color: 'purple',
-      path: '/projects/manage'
-    }
+const monthType = computed(() => {
+  const days = new Date(now.value.getFullYear(), currentMonth.value, 0).getDate()
+  return days === 31 ? '大' : days === 30 ? '小' : ''
+})
+
+const weekdayChar = computed(() => {
+  const days = ['日', '一', '二', '三', '四', '五', '六']
+  return days[now.value.getDay()]
+})
+
+const examList = computed(() => {
+  const y = now.value.getFullYear()
+  const m = currentMonth.value
+  let cet = new Date(y, 5, 15)
+  if (m > 6) cet = new Date(y + 1, 5, 15)
+  let csp = new Date(y, 9, 20)
+  if (m > 10) csp = new Date(y + 1, 9, 20)
+  const dcet = Math.ceil((cet - now.value) / (1000 * 60 * 60 * 24))
+  const dcsp = Math.ceil((csp - now.value) / (1000 * 60 * 60 * 24))
+  return [
+    { name: '四六级考试', days: dcet },
+    { name: 'CSP认证考试', days: dcsp }
+  ]
+})
+
+function generateFortune(userId = 0) {
+  const d = new Date()
+  const seed = (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) * 1000000 + (userId || 1)
+  
+  const levels = [
+    { level: 'great-lucky', text: '大吉', w: 5 },
+    { level: 'medium-lucky', text: '中吉', w: 15 },
+    { level: 'small-lucky', text: '小吉', w: 25 },
+    { level: 'peace', text: '中平', w: 30 },
+    { level: 'small-bad', text: '小凶', w: 15 },
+    { level: 'medium-bad', text: '中凶', w: 8 },
+    { level: 'great-bad', text: '大凶', w: 2 }
+  ]
+  
+  const yi = ['刷题', '学习', '写代码', '阅读', '复习', '考试', '参加比赛', '提交PR', '写博客', '锻炼身体', '早睡早起', '喝热水', '整理笔记', '背单词', '做实验', '讨论问题']
+  const ji = ['摸鱼', '熬夜', '刷视频', '打游戏', '拖延', '逃课', '迟到', '吃零食', '玩手机', '不写作业', '不复习', '抄代码', '忘记保存', '不注释', '不测试']
+  
+  const rand = seededRandom(seed)
+  const tw = levels.reduce((s, l) => s + l.w, 0)
+  let rv = Math.floor(rand() * tw)
+  let sel = levels[0]
+  for (const l of levels) { if (rv < l.w) { sel = l; break } rv -= l.w }
+  
+  return {
+    level: sel.level,
+    levelText: sel.text,
+    yi: shuffleArray([...yi], rand).slice(0, Math.floor(rand() * 2) + 1),
+    ji: shuffleArray([...ji], rand).slice(0, Math.floor(rand() * 2) + 1)
   }
-  return map[role] || map.student
-})
+}
 
-const currentStats = computed(() => {
+function seededRandom(seed) {
+  let s = seed
+  return () => { s = Math.sin(s) * 10000; return s - Math.floor(s) }
+}
+
+function shuffleArray(arr, rand) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+const statCards = computed(() => {
   if (!summary.value) return []
   const role = currentUser.value?.role
   const s = summary.value
-  const stats = {
+  const cards = {
     admin: [
-      { icon: User, label: '平台总用户数', value: s.totalUsers || 0, color: 'blue', trend: 12 },
-      { icon: OfficeBuilding, label: '入驻机构数', value: s.totalOrgs || 0, color: 'cyan', trend: 5 },
-      { icon: Coin, label: '全平台积分总量', value: s.totalCredit || 0, color: 'orange', trend: 8 },
-      { icon: Collection, label: '积分发放次数', value: s.rewardCount || 0, color: 'green', trend: 15 }
+      { label: '平台总用户数', value: formatNumber(s.totalUsers) },
+      { label: '入驻机构数', value: formatNumber(s.totalOrgs) },
+      { label: '全平台积分总量', value: formatNumber(s.totalCredit) }
     ],
     org_admin: [
-      { icon: User, label: '本机构学生数', value: s.orgStudentCount || 0, color: 'blue', trend: 3 },
-      { icon: Coin, label: '机构积分池余额', value: currentUser.value?.balance || 0, color: 'orange' },
-      { icon: Trophy, label: '本机构项目数', value: s.orgProjectCount || 0, color: 'purple', trend: 6 },
-      { icon: DocumentChecked, label: '待审核申请', value: s.pendingCount || 0, color: 'red' }
+      { label: '机构积分池余额', value: formatNumber(currentUser.value?.balance || 0) },
+      { label: '所属机构', value: currentUser.value?.orgName || '未绑定' },
+      { label: '平台总用户数', value: formatNumber(s.totalUsers) },
+      { label: '待审核申请', value: formatNumber(s.pendingCount) }
     ],
     student: [
-      { icon: Coin, label: '我的积分余额', value: currentUser.value?.balance || 0, color: 'orange' },
-      { icon: Trophy, label: '参与项目数', value: s.joinedProjectCount || 0, color: 'blue', trend: 10 },
-      { icon: DocumentChecked, label: '待处理申请', value: s.pendingCount || 0, color: 'purple' },
-      { icon: DataLine, label: '本月积分变动', value: s.monthPointChange || 0, color: 'green', trend: 5 }
+      { label: '我的积分余额', value: formatNumber(currentUser.value?.balance || 0) },
+      { label: '待处理申请', value: formatNumber(s.pendingCount) }
     ],
     expert: [
-      { icon: Coin, label: '评审积分', value: currentUser.value?.balance || 0, color: 'orange' },
-      { icon: School, label: '待评审项目', value: s.pendingCount || 0, color: 'red' },
-      { icon: Trophy, label: '已评审项目', value: s.reviewedCount || 0, color: 'blue', trend: 8 },
-      { icon: User, label: '平台总用户数', value: s.totalUsers || 0, color: 'cyan' }
+      { label: '评审积分', value: formatNumber(currentUser.value?.balance || 0) },
+      { label: '入驻机构数', value: formatNumber(s.totalOrgs) },
+      { label: '平台总用户数', value: formatNumber(s.totalUsers) },
+      { label: '待评审项目', value: formatNumber(s.pendingCount) }
     ]
   }
-  return stats[role] || stats.student
+  return cards[role] || []
 })
 
-const monthlyTrendData = computed(() => dashboardData.value?.monthlyTrend || [])
-const categoryData = computed(() => dashboardData.value?.categories || [])
-
-function getBizTypeName(bizType) {
-  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作', ATTACHMENT: '附加流水', DAILY: '每日打卡' }
-  return map[bizType] || bizType
-}
+// admin 的次要统计（不含待审核事项，因为它在 Hero 区域展示）
+const secondaryStats = computed(() => {
+  if (!summary.value) return []
+  const s = summary.value
+  return [
+    { label: '平台总用户数', value: formatNumber(s.totalUsers) },
+    { label: '入驻机构数', value: formatNumber(s.totalOrgs) },
+    { label: '全平台积分总量', value: formatNumber(s.totalCredit) }
+  ]
+})
 
 function formatNumber(num) {
   if (num === null || num === undefined) return '0'
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
+function getBizTypeName(bizType) {
+  const map = { REWARD: '奖励', EXCHANGE: '兑换', REFUND: '撤销', ADMIN: '管理员操作', ATTACHMENT: '附加流水', DAILY: '每日打卡' }
+  return map[bizType] || bizType
+}
+
 const filteredTransactions = computed(() => {
   return recentTransactions.value.filter(item => item.bizType !== 'DAILY' && item.bizType !== 'ATTACHMENT')
 })
 
-function handleHeroClick(path) {
-  if (path) router.push(path)
-}
-
-async function refreshData() {
-  refreshing.value = true
-  await loadAllData()
-  updateTime.value = new Date()
-  refreshing.value = false
-}
-
-async function switchTrend(days) {
-  trendDays.value = days
-  await loadPointTrend()
-}
-
 onMounted(async () => {
   await loadAllData()
-  window.addEventListener('resize', handleResize)
+  window.addEventListener('resize', () => chartInstance?.resize())
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  disposeCharts()
+  window.removeEventListener('resize', () => chartInstance?.resize())
+  if (chartInstance) { chartInstance.dispose(); chartInstance = null }
 })
-
-function handleResize() {
-  chartInstance?.resize()
-  barChartInstance?.resize()
-  pieChartInstance?.resize()
-}
-
-function disposeCharts() {
-  chartInstance?.dispose(); chartInstance = null
-  barChartInstance?.dispose(); barChartInstance = null
-  pieChartInstance?.dispose(); pieChartInstance = null
-}
 
 async function loadAllData() {
   loading.value = true
   const role = currentUser.value?.role
   const userId = currentUser.value?.id
   try {
-    const promises = [
-      getStatsSummary(role, userId),
-      getTodoList(role, userId, 5),
-      getRecentTransactions(userId, role, role === 'admin' ? 10 : 5),
-      userId ? getProfile(userId) : Promise.resolve(null)
-    ]
-    if (role === 'student' && userId) {
-      promises.push(getPointTrend(userId, trendDays.value))
-      promises.push(getSignInStatus())
-    }
-    if (role === 'admin') {
-      promises.push(getDashboardData())
-    }
+    const promises = [getStatsSummary(role, userId), getTodoList(role, userId, 5), getRecentTransactions(userId, role, role === 'admin' ? 10 : 5), userId ? getProfile(userId) : Promise.resolve(null)]
+    if (role === 'student' && userId) promises.push(getPointTrend(userId, trendDays.value), getSignInStatus())
     const results = await Promise.all(promises)
     summary.value = results[0]
     todoList.value = results[1]
@@ -402,22 +373,14 @@ async function loadAllData() {
       currentUser.value = { ...currentUser.value, orgName: results[3].orgName }
       localStorage.setItem('cb_user', JSON.stringify(currentUser.value))
     }
-
-    let idx = 4
     if (role === 'student') {
-      pointTrend.value = results[idx]
-      signInStatus.value = results[idx + 1] || { hasSignedIn: false, streak: 0 }
-      idx += 2
+      pointTrend.value = results[4]
+      signInStatus.value = results[5] || { hasSignedIn: false, streak: 0 }
+      if (signInStatus.value.hasSignedIn) fortune.value = generateFortune(currentUser.value?.id || 0)
+      await nextTick()
+      initChart()
     }
-    if (role === 'admin') {
-      dashboardData.value = results[idx]
-    }
-
-    await nextTick()
-    initCharts()
-  } catch (e) {
-    console.error('加载失败:', e)
-  } finally {
+  } catch (e) { console.error('加载失败:', e) } finally {
     loading.value = false
   }
 }
@@ -429,9 +392,7 @@ async function loadPointTrend() {
     pointTrend.value = await getPointTrend(userId, trendDays.value)
     await nextTick()
     updateChart()
-  } catch (e) {
-    console.error('加载趋势失败:', e)
-  }
+  } catch (e) { console.error('加载趋势失败:', e) }
 }
 
 async function handleSignIn() {
@@ -442,6 +403,7 @@ async function handleSignIn() {
     signInStatus.value = { hasSignedIn: true, streak: result.streak || signInStatus.value.streak + 1 }
     currentUser.value = { ...currentUser.value, balance: result.newBalance }
     localStorage.setItem('cb_user', JSON.stringify(currentUser.value))
+    fortune.value = generateFortune(currentUser.value?.id || 0)
   } catch (e) {
     ElMessage.error(e.message || '签到失败')
   } finally {
@@ -449,332 +411,351 @@ async function handleSignIn() {
   }
 }
 
-function initCharts() {
-  if (currentUser.value?.role === 'student') initChart()
-  if (currentUser.value?.role === 'admin') {
-    initBarChart()
-    initPieChart()
-  }
-}
-
 function initChart() {
   if (!chartRef.value) return
-  chartInstance = echarts.init(chartRef.value, 'dark')
+  chartInstance = echarts.init(chartRef.value)
   updateChart()
 }
 
 function updateChart() {
   if (!chartInstance || !pointTrend.value.length) return
+  chartInstance.clear()
   chartInstance.setOption({
-    backgroundColor: 'transparent',
-    animationDurationUpdate: 400,
-    animationEasingUpdate: 'cubicInOut',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: 'rgba(59, 130, 246, 0.3)',
-      textStyle: { color: '#e2e8f0' }
-    },
-    grid: { left: '3%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: pointTrend.value.map(i => i.date),
-      axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
-      axisLabel: { color: '#94a3b8', fontSize: 11, rotate: trendDays.value === 30 ? 30 : 0 }
-    },
-    yAxis: {
-      type: 'value',
-      min: 0,
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.1)' } },
-      axisLabel: { color: '#94a3b8', fontSize: 11 }
-    },
-    series: [{
-      type: 'line',
-      smooth: true,
-      data: pointTrend.value.map(i => i.balance),
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(59, 130, 246, 0.35)' },
-          { offset: 1, color: 'rgba(59, 130, 246, 0.02)' }
-        ])
-      },
-      lineStyle: { color: '#60a5fa', width: 3 },
-      itemStyle: { color: '#60a5fa', borderWidth: 2, borderColor: '#0f172a' },
-      symbol: 'circle',
-      symbolSize: 6
-    }]
-  }, true)
-}
-
-function initBarChart() {
-  if (!barChartRef.value) return
-  barChartInstance = echarts.init(barChartRef.value, 'dark')
-  if (!monthlyTrendData.value.length) return
-  barChartInstance.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: 'rgba(59, 130, 246, 0.3)',
-      textStyle: { color: '#e2e8f0' }
-    },
-    legend: { textStyle: { color: '#94a3b8' }, top: 0 },
-    grid: { left: '3%', right: '4%', bottom: '6%', top: '12%', containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: monthlyTrendData.value.map(i => i.month?.slice(5) || ''),
-      axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
-      axisLabel: { color: '#94a3b8', fontSize: 11 }
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.1)' } },
-      axisLabel: { color: '#94a3b8', fontSize: 11 }
-    },
-    series: [
-      {
-        name: '积分发放',
-        type: 'bar',
-        data: monthlyTrendData.value.map(i => i.earn || 0),
-        itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] }
-      },
-      {
-        name: '积分兑换',
-        type: 'bar',
-        data: monthlyTrendData.value.map(i => i.exchange || 0),
-        itemStyle: { color: '#10b981', borderRadius: [4, 4, 0, 0] }
-      }
-    ]
-  }, true)
-}
-
-function initPieChart() {
-  if (!pieChartRef.value) return
-  pieChartInstance = echarts.init(pieChartRef.value, 'dark')
-  if (!categoryData.value.length) return
-  const colors = ['#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
-  pieChartInstance.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderColor: 'rgba(59, 130, 246, 0.3)',
-      textStyle: { color: '#e2e8f0' }
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      textStyle: { color: '#94a3b8' }
-    },
-    series: [{
-      type: 'pie',
-      radius: ['45%', '70%'],
-      center: ['35%', '50%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 6, borderColor: '#0f172a', borderWidth: 2 },
-      label: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#f1f5f9' } },
-      data: categoryData.value.map((item, idx) => ({
-        name: item.name,
-        value: item.value,
-        itemStyle: { color: colors[idx % colors.length] }
-      }))
-    }]
-  }, true)
+      animationDurationUpdate: 400,
+      animationEasingUpdate: 'cubicInOut',
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(59, 130, 246, 0.95)', borderColor: '#3b82f6', textStyle: { color: '#fff' } },
+      grid: { left: '4%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: pointTrend.value.map(i => i.date), axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280', fontSize: 11, rotate: trendDays.value === 30 ? 30 : 0 } },
+      yAxis: { type: 'value', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280', fontSize: 11 } },
+      series: [{
+        type: 'line', smooth: true, data: pointTrend.value.map(i => i.balance),
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59, 130, 246, 0.15)' }, { offset: 1, color: 'rgba(59, 130, 246, 0)' }]) },
+        lineStyle: { color: '#3b82f6', width: 2 },
+        itemStyle: { color: '#3b82f6' },
+        symbol: 'circle', symbolSize: 5
+      }]
+    })
 }
 </script>
 
 <style scoped>
 .dashboard {
   min-height: 100%;
-  background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 50%, #020617 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 24px;
-  color: #e2e8f0;
 }
 
-.dashboard-header {
-  max-width: 1600px;
-  margin: 0 auto 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.page-title {
-  font-size: 26px;
-  font-weight: 700;
-  margin: 0 0 6px;
-  color: #f8fafc;
-}
-
-.page-subtitle {
-  font-size: 13px;
-  color: #94a3b8;
-  margin: 0;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.update-time {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.dashboard-content {
-  max-width: 1600px;
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1400px;
   margin: 0 auto;
+}
+
+.left-column,
+.right-column {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.signin-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(30, 58, 95, 0.08);
+  border: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.signin-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1e3a5f 0%, #3d5a8f 100%);
+}
+
+.signin-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.signin-greeting {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.username {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e3a5f;
+}
+
+.date-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 16px;
+  margin-bottom: 24px;
 }
 
-.charts-section {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
-}
-
-.charts-section:has(> .wide:only-child) {
-  grid-template-columns: 1fr;
-}
-
-.side-stack {
+.date-left,
+.date-right {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.4;
 }
 
-.chart-panel,
-.info-panel,
-.signin-panel,
-.yoy-panel {
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+.date-type {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.date-center {
+  font-size: 86px;
+  font-weight: 800;
+  color: #1e3a5f;
+  line-height: 1;
+  letter-spacing: -6px;
+}
+
+.date-weekday {
+  font-weight: 600;
+  color: #3d5a8f;
+}
+
+.content-area {
+  margin-bottom: 20px;
+}
+
+.countdown-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.countdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px;
+  background: #f8fafc;
+  border-radius: 20px;
+}
+
+.countdown-label {
+  font-size: 13px;
+  color: #475569;
+}
+
+.countdown-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.1);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.fortune-container {
+  text-align: center;
+}
+
+.fortune-badge {
+  display: inline-block;
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.fortune-badge.great-lucky { background: rgba(234, 88, 12, 0.1); color: #ea580c; }
+.fortune-badge.medium-lucky { background: rgba(202, 138, 4, 0.1); color: #ca8a04; }
+.fortune-badge.small-lucky { background: rgba(5, 150, 105, 0.1); color: #059669; }
+.fortune-badge.peace { background: rgba(30, 58, 95, 0.1); color: #1e3a5f; }
+.fortune-badge.small-bad { background: rgba(124, 58, 237, 0.1); color: #7c3aed; }
+.fortune-badge.medium-bad { background: rgba(219, 39, 119, 0.1); color: #db2777; }
+.fortune-badge.great-bad { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+
+.fortune-grid {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+}
+
+.fortune-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.fortune-header {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.yi .fortune-header { color: #059669; }
+.ji .fortune-header { color: #dc2626; }
+
+.fortune-item {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.yi .fortune-item { background: rgba(5, 150, 105, 0.08); color: #047857; }
+.ji .fortune-item { background: rgba(220, 38, 38, 0.08); color: #991b1b; }
+
+.signin-bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.streak-badge {
+  font-size: 13px;
+  color: #f97316;
+  font-weight: 500;
+}
+
+.signin-btn {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: none;
+  border-radius: 24px;
+  padding: 12px 36px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+  transition: all 0.3s ease;
+}
+
+.signin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.45);
+}
+
+.signed-text {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 500;
+}
+
+.stats-card {
+  background: #fff;
   border-radius: 16px;
   padding: 20px;
-  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(30, 58, 95, 0.05);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  gap: 24px;
 }
 
-.panel-header {
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 4px;
+}
+
+.stat-name {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(30, 58, 95, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
 
-.panel-title {
+.card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: #1e3a5f;
 }
 
-.panel-tabs {
+.card-more {
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.card-tabs {
   display: flex;
   gap: 4px;
-  background: rgba(15, 23, 42, 0.5);
+  background: #f1f5f9;
   padding: 4px;
   border-radius: 8px;
 }
 
-.panel-tabs span {
+.card-tabs span {
   font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.panel-tabs span.active {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+.card-tabs span.active {
+  background: #fff;
+  color: #1e3a5f;
   font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .chart-area {
   width: 100%;
-  height: 280px;
+  height: 220px;
 }
 
-.signin-panel {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.signin-status {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.signin-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
-  flex-shrink: 0;
-}
-
-.signin-icon.signed {
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
-}
-
-.signin-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f1f5f9;
-  margin-bottom: 4px;
-}
-
-.signin-desc {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.signin-btn {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border: none;
-  border-radius: 10px;
-  padding: 10px 24px;
-  font-weight: 600;
-}
-
-.bottom-section {
+.bottom-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-.panel-more {
-  font-size: 12px;
-  color: #60a5fa;
-  cursor: pointer;
-  transition: color 0.2s;
+.info-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(30, 58, 95, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
-.panel-more:hover {
-  color: #93c5fd;
+.info-card .card-header {
+  margin-bottom: 14px;
 }
 
 .list-content {
@@ -787,109 +768,157 @@ function initPieChart() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 11px 12px;
-  background: rgba(15, 23, 42, 0.4);
-  border-radius: 10px;
-  transition: background 0.2s;
-}
-
-.list-item:hover {
-  background: rgba(15, 23, 42, 0.6);
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
 }
 
 .item-name {
   font-size: 13px;
-  color: #cbd5e1;
+  color: #475569;
 }
 
 .item-tag {
   font-size: 11px;
   font-weight: 500;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: 4px;
 }
 
-.item-tag.success { background: rgba(16, 185, 129, 0.12); color: #34d399; }
-.item-tag.warning { background: rgba(245, 158, 11, 0.12); color: #fbbf24; }
-.item-tag.danger { background: rgba(239, 68, 68, 0.12); color: #f87171; }
-.item-tag.info { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+.item-tag.success { background: rgba(5, 150, 105, 0.1); color: #059669; }
+.item-tag.warning { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+.item-tag.danger { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+.item-tag.info { background: rgba(30, 58, 95, 0.1); color: #1e3a5f; }
 
 .item-amount {
   font-size: 13px;
   font-weight: 600;
 }
 
-.item-amount.gain { color: #34d399; }
-.item-amount.loss { color: #f87171; }
+.item-amount.gain { color: #059669; }
+.item-amount.loss { color: #dc2626; }
 
-.yoy-panel {
-  padding: 20px;
+.empty-tip {
+  text-align: center;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
-.yoy-grid {
+.non-student {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 待审核事项 Hero 卡片 */
+.pending-hero {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(30, 58, 95, 0.08);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.pending-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #e11d48 0%, #fb7185 100%);
+}
+
+.pending-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 32px 36px;
+}
+
+.pending-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e11d48;
+  flex-shrink: 0;
+}
+
+.pending-hero-text {
+  flex: 1;
+}
+
+.pending-hero-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.pending-hero-count {
+  font-size: 56px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.1;
+  letter-spacing: -3px;
+}
+
+.pending-hero-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
+.stats-full {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
 }
 
-.yoy-item {
-  background: rgba(15, 23, 42, 0.4);
-  border-radius: 12px;
-  padding: 16px;
+.stats-full .stat-item {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(30, 58, 95, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
-.yoy-name {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-bottom: 12px;
+.cards-full {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-.yoy-values {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.yoy-box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.yoy-label {
-  font-size: 11px;
-  color: #64748b;
-}
-
-.yoy-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #e2e8f0;
-}
-
-.yoy-value.current {
-  color: #60a5fa;
-}
-
-.yoy-value.up {
-  color: #34d399;
-}
-
-.yoy-value.down {
-  color: #f87171;
-}
-
-@media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .charts-section,
-  .bottom-section,
-  .yoy-grid {
+@media (max-width: 1024px) {
+  .main-grid {
     grid-template-columns: 1fr;
   }
-  .yoy-values {
-    flex-direction: row;
+  .bottom-cards,
+  .cards-full {
+    grid-template-columns: 1fr;
+  }
+  .date-center {
+    font-size: 64px;
+  }
+  .stats-card {
+    flex-direction: column;
+  }
+  .pending-hero-inner {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+  }
+  .pending-hero-count {
+    font-size: 42px;
   }
 }
 
@@ -907,26 +936,5 @@ function initPieChart() {
 .list-item.clickable:hover {
   background: #eef2ff;
   border-color: #c7d2fe;
-}
-
-@media (max-width: 768px) {
-  .dashboard {
-    padding: 16px;
-  }
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .signin-panel {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .yoy-values {
-    flex-direction: column;
-  }
 }
 </style>

@@ -6,17 +6,23 @@ import com.creditbank.mvp.dto.PointOverviewDTO;
 import com.creditbank.mvp.dto.StatsSummaryDTO;
 import com.creditbank.mvp.dto.TodoItemDTO;
 import com.creditbank.mvp.entity.Application;
+import com.creditbank.mvp.entity.ApplicationAuditLog;
 import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.ConversionApplication;
 import com.creditbank.mvp.entity.Organization;
+import com.creditbank.mvp.entity.Project;
+import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
+import com.creditbank.mvp.mapper.ApplicationAuditLogMapper;
 import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.ConversionApplicationMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
+import com.creditbank.mvp.mapper.ProjectMapper;
+import com.creditbank.mvp.mapper.StudentProjectMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
 import org.springframework.stereotype.Service;
@@ -41,6 +47,9 @@ public class StatsService {
     private final CertStandardMapper certStandardMapper;
     private final CertAuditFlowMapper certAuditFlowMapper;
     private final ConversionApplicationMapper conversionApplicationMapper;
+    private final ProjectMapper projectMapper;
+    private final StudentProjectMapper studentProjectMapper;
+    private final ApplicationAuditLogMapper applicationAuditLogMapper;
 
     public StatsService(SysUserMapper sysUserMapper,
                         OrganizationMapper organizationMapper,
@@ -48,7 +57,10 @@ public class StatsService {
                         TransactionLogMapper transactionLogMapper,
                         CertStandardMapper certStandardMapper,
                         CertAuditFlowMapper certAuditFlowMapper,
-                        ConversionApplicationMapper conversionApplicationMapper) {
+                        ConversionApplicationMapper conversionApplicationMapper,
+                        ProjectMapper projectMapper,
+                        StudentProjectMapper studentProjectMapper,
+                        ApplicationAuditLogMapper applicationAuditLogMapper) {
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.applicationMapper = applicationMapper;
@@ -56,6 +68,9 @@ public class StatsService {
         this.certStandardMapper = certStandardMapper;
         this.certAuditFlowMapper = certAuditFlowMapper;
         this.conversionApplicationMapper = conversionApplicationMapper;
+        this.projectMapper = projectMapper;
+        this.studentProjectMapper = studentProjectMapper;
+        this.applicationAuditLogMapper = applicationAuditLogMapper;
     }
 
     public StatsSummaryDTO getSummary(String role, Long userId) {
@@ -125,6 +140,64 @@ public class StatsService {
                 .mapToLong(u -> u.getBalance() != null ? u.getBalance() : 0)
                 .sum();
         dto.setTotalCredit(totalCredit);
+
+        // 扩展统计字段
+        dto.setRewardCount(transactionLogMapper.selectCount(
+                new LambdaQueryWrapper<TransactionLog>().eq(TransactionLog::getBizType, "REWARD")));
+
+        SysUser currentUser = sysUserMapper.selectById(userId);
+        Long orgId = currentUser != null ? currentUser.getOrgId() : null;
+
+        if ("org_admin".equals(role) && orgId != null) {
+            dto.setOrgStudentCount(sysUserMapper.selectCount(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, orgId)
+                            .eq(SysUser::getRole, "student")));
+            dto.setOrgProjectCount(projectMapper.selectCount(
+                    new LambdaQueryWrapper<Project>().eq(Project::getOrgId, orgId)));
+        }
+
+        if ("student".equals(role) && userId != null) {
+            dto.setJoinedProjectCount(studentProjectMapper.selectCount(
+                    new LambdaQueryWrapper<StudentProject>()
+                            .eq(StudentProject::getStudentId, userId)
+                            .ne(StudentProject::getStatus, StudentProject.STATUS_CANCELLED)));
+        }
+
+        if ("expert".equals(role) && userId != null) {
+            List<Long> myNodeIds = certAuditFlowMapper.selectList(
+                            new LambdaQueryWrapper<CertAuditFlow>().eq(CertAuditFlow::getAuditorId, userId))
+                    .stream().map(CertAuditFlow::getId).collect(Collectors.toList());
+            if (!myNodeIds.isEmpty()) {
+                dto.setReviewedCount(applicationAuditLogMapper.selectCount(
+                        new LambdaQueryWrapper<ApplicationAuditLog>()
+                                .in(ApplicationAuditLog::getNodeId, myNodeIds)));
+            } else {
+                dto.setReviewedCount(0L);
+            }
+        }
+
+        // 本月积分变动
+        LocalDate monthStart = LocalDate.now().withDayOfMonth(1);
+        LambdaQueryWrapper<TransactionLog> monthQuery = new LambdaQueryWrapper<TransactionLog>()
+                .ge(TransactionLog::getCreatedAt, monthStart.atStartOfDay());
+        if ("student".equals(role) && userId != null) {
+            monthQuery.eq(TransactionLog::getUserId, userId);
+        } else if ("org_admin".equals(role) && orgId != null) {
+            List<Long> orgUserIds = sysUserMapper.selectList(
+                            new LambdaQueryWrapper<SysUser>().eq(SysUser::getOrgId, orgId))
+                    .stream().map(SysUser::getId).collect(Collectors.toList());
+            if (!orgUserIds.isEmpty()) {
+                monthQuery.in(TransactionLog::getUserId, orgUserIds);
+            } else {
+                monthQuery.eq(TransactionLog::getUserId, -1L);
+            }
+        }
+        List<TransactionLog> monthLogs = transactionLogMapper.selectList(monthQuery);
+        int monthPointChange = monthLogs.stream()
+                .mapToInt(log -> log.getAmount() != null ? log.getAmount() : 0)
+                .sum();
+        dto.setMonthPointChange(monthPointChange);
 
         return dto;
     }

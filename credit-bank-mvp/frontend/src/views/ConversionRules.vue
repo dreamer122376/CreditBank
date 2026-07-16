@@ -150,7 +150,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" fixed="right" align="center" class-name="col-action">
+        <el-table-column label="操作" width="180" fixed="right" align="center" class-name="col-action" v-if="currentUser">
           <template #default="{ row }">
             <template v-if="canOperate(row)">
               <div class="op-col">
@@ -384,7 +384,12 @@ function truncateType(type) {
 onMounted(async () => {
   loading.value = true
   try {
-    await Promise.all([loadData(), loadOrganizations(), loadCreditRules()])
+    // 未登录时只加载规则基础数据；已登录时并行加载所有数据，性能更优
+    if (currentUser.value) {
+      await Promise.all([loadData(), loadOrganizations(), loadCreditRules()])
+    } else {
+      await loadData()
+    }
   } finally {
     loading.value = false
   }

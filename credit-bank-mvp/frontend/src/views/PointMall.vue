@@ -5,7 +5,7 @@
         <div class="mall-title">积分商城</div>
         <div class="mall-subtitle">用学习积分兑换商品与权益</div>
       </div>
-      <div class="balance-box">
+      <div class="balance-box" v-if="currentUser">
         <div class="balance-label">我的积分</div>
         <div class="balance-value">{{ balance }}</div>
       </div>
@@ -34,10 +34,10 @@
         <el-button
           class="exchange-btn"
           type="primary"
-          :disabled="!!disabledReason(rule)"
+          :disabled="!currentUser || !!disabledReason(rule)"
           @click="confirmExchange(rule)"
         >
-          {{ disabledReason(rule) || '立即兑换' }}
+          {{ !currentUser ? '登录后兑换' : (disabledReason(rule) || '立即兑换') }}
         </el-button>
       </el-card>
     </div>

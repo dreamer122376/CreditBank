@@ -26,9 +26,14 @@ public class ConversionRuleController {
     @GetMapping("/list")
     public Result<List<ConversionRule>> list(@RequestParam(required = false) Boolean enabled) {
         Long userId = CurrentUserUtil.getCurrentUserId();
+
         if (userId == null) {
-            throw new BizException("未登录");
+            if (enabled != null && enabled) {
+                return Result.ok(conversionRuleService.listByEnabled(true));
+            }
+            return Result.ok(conversionRuleService.list());
         }
+
         SysUser currentUser = sysUserMapper.selectById(userId);
         if (currentUser == null) {
             throw new BizException("用户不存在");

@@ -2,7 +2,9 @@
   <el-popover
     v-model:visible="visible"
     placement="bottom-end"
-    trigger="click"
+    trigger="hover"
+    :open-delay="200"
+    :close-delay="150"
     :width="380"
     :show-arrow="false"
     popper-class="notification-popper"
@@ -10,7 +12,7 @@
   >
     <template #reference>
       <el-badge :value="unreadCount" :max="99" :hidden="unreadCount === 0">
-        <button class="bell-button" type="button" aria-label="查看通知" title="通知">
+        <button class="bell-button" type="button" aria-label="查看通知" title="" @click="goToCenter">
           <el-icon :size="20"><Bell /></el-icon>
         </button>
       </el-badge>

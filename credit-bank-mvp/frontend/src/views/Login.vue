@@ -1,5 +1,27 @@
 <template>
   <div class="login-wrap">
+    <header class="public-nav">
+      <div class="nav-container">
+        <div class="nav-left">
+          <div class="nav-brand">
+            <img src="/logo.jpg" alt="学分银行" class="nav-logo" />
+            <span class="nav-title">终身学习学分银行</span>
+          </div>
+        </div>
+        <div class="nav-center">
+          <div class="nav-tabs">
+            <button class="nav-tab" @click="goHome('point-mall')">积分商城</button>
+            <button class="nav-tab" @click="goHome('conversion-rules')">转换规则</button>
+            <button class="nav-tab" @click="goHome('dashboard')">数据大屏</button>
+          </div>
+        </div>
+        <div class="nav-right">
+          <el-button type="primary" class="nav-btn-hidden">登录</el-button>
+          <el-button @click="goOrgRegister">机构申请</el-button>
+        </div>
+      </div>
+    </header>
+
     <!-- 背景装饰 -->
     <div class="bg-glyph" aria-hidden="true">学</div>
 
@@ -50,10 +72,6 @@
             </el-form-item>
             <el-button type="primary" size="large" class="btn-block" @click="handleLogin" :loading="loading">登 录</el-button>
             <p class="login-msg" v-if="loginMsg">{{ loginMsg }}</p>
-            <div class="login-extra-link">
-              <el-button link type="primary" size="small" @click="goOrgRegister">机构入驻申请</el-button>
-              <el-button link type="warning" size="small" @click="$router.push('/dashboard-map')">📊 数据大屏</el-button>
-            </div>
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="注册" name="register">
@@ -270,6 +288,10 @@ async function handleRegister() {
 function goOrgRegister() {
   router.push('/org-register')
 }
+
+function goHome(tab) {
+  router.push({ path: '/', query: { tab } })
+}
 </script>
 
 <style scoped>
@@ -295,6 +317,125 @@ function goOrgRegister() {
   background: var(--ink);
   position: relative;
   overflow: hidden;
+  padding-top: 60px;
+}
+
+.public-nav {
+  background: linear-gradient(135deg, #0F1B2D 0%, #1A2332 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.nav-container {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-left {
+  flex-shrink: 0;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.nav-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.nav-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.nav-tab {
+  padding: 8px 24px;
+  font-size: 14px;
+  color: #adb5bd;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.nav-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-right {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-right .el-button {
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 6px;
+}
+
+.nav-btn-hidden {
+  opacity: 0;
+  pointer-events: none;
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .login-wrap {
+    padding-top: 56px;
+  }
+
+  .nav-container {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .nav-title {
+    display: none;
+  }
+
+  .nav-tab {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+
+  .nav-right .el-button {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
 }
 
 /* ===== 背景书法水印 ===== */

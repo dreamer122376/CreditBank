@@ -36,19 +36,22 @@ public class ConversionApplicationService {
     private final OrganizationMapper organizationMapper;
     private final SysUserMapper sysUserMapper;
     private final PointService pointService;
+    private final NotificationService notificationService;
 
     public ConversionApplicationService(ConversionApplicationMapper applicationMapper,
                                         ConversionRuleMapper conversionRuleMapper,
                                         CreditRuleMapper creditRuleMapper,
                                         OrganizationMapper organizationMapper,
                                         SysUserMapper sysUserMapper,
-                                        PointService pointService) {
+                                        PointService pointService,
+                                        NotificationService notificationService) {
         this.applicationMapper = applicationMapper;
         this.conversionRuleMapper = conversionRuleMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.organizationMapper = organizationMapper;
         this.sysUserMapper = sysUserMapper;
         this.pointService = pointService;
+        this.notificationService = notificationService;
     }
 
     public List<ConversionApplication> list() {
@@ -68,6 +71,18 @@ public class ConversionApplicationService {
                 new LambdaQueryWrapper<ConversionApplication>()
                         .eq(ConversionApplication::getStatus, status)
                         .orderByDesc(ConversionApplication::getId)));
+    }
+
+    // org_admin 按所属机构过滤转换申请（converted_org_id 匹配本机构，或申请本身无机构限定）
+    public List<ConversionApplication> listByOrgId(Long orgId, Integer status) {
+        LambdaQueryWrapper<ConversionApplication> wrapper = new LambdaQueryWrapper<ConversionApplication>()
+                .and(w -> w.eq(ConversionApplication::getConvertedOrgId, orgId)
+                        .or().isNull(ConversionApplication::getConvertedOrgId))
+                .orderByDesc(ConversionApplication::getId);
+        if (status != null) {
+            wrapper.eq(ConversionApplication::getStatus, status);
+        }
+        return enrichWithRelatedData(applicationMapper.selectList(wrapper));
     }
 
     public ConversionApplication getById(Long id) {
@@ -129,6 +144,10 @@ public class ConversionApplicationService {
         application.setApprovedAt(null);
         application.setCreatedAt(LocalDateTime.now());
         applicationMapper.insert(application);
+
+        // 通知管理员/机构管理员有新的待审核转换申请
+        notifyAdminsOfPendingApplication(application);
+
         return getById(application.getId());
     }
 
@@ -151,15 +170,17 @@ public class ConversionApplicationService {
             application.setStatus(STATUS_APPROVED);
             application.setApprovedAt(LocalDateTime.now());
             if (application.getApplyType().equals(APPLY_TYPE_RULE_CONVERT)) {
-                grantCredit(application);
+                grantCredit(application, operatorId);
             }
         }
 
         applicationMapper.updateById(application);
+        // 通知学生审核结果
+        notifyStudentOfAuditResult(application, approve, reason);
         return getById(id);
     }
 
-    private void grantCredit(ConversionApplication application) {
+    private void grantCredit(ConversionApplication application, Long operatorId) {
         Long creditRuleId = null;
         String eventCode = null;
 
@@ -181,7 +202,8 @@ public class ConversionApplicationService {
             eventCode = application.getConvertedType();
         }
 
-        pointService.earn(application.getStudentId(), eventCode, null);
+        // 传入真实审核人 operatorId，避免操作日志误记为学生本人
+        pointService.earn(application.getStudentId(), eventCode, operatorId);
     }
 
     private List<ConversionApplication> enrichWithRelatedData(List<ConversionApplication> applications) {
@@ -211,5 +233,90 @@ public class ConversionApplicationService {
         }
 
         return applications;
+    }
+
+    // 提交申请后，通知相关管理员有待审核的转换申请（跳转到管理员的审核管理页面）
+    private void notifyAdminsOfPendingApplication(ConversionApplication application) {
+        String title = "新的成果转换申请待审核";
+        String studentName = sysUserMapper.selectById(application.getStudentId()).getRealName();
+        String content = "学生「" + (studentName != null ? studentName : "ID:" + application.getStudentId())
+                + "」提交了成果转换申请：" + application.getOriginalName() + " → " + application.getConvertedName()
+                + "，请及时审核。";
+        String dedupeKey = "CONVERSION_APPLY_PENDING:" + application.getId();
+        // 管理员端统一跳转 /applications 的转换申请 tab 并筛选待审核
+        String adminActionPath = "/applications?tab=conversion&filter=pending";
+
+        // 按机构定向通知，或全平台通知管理员
+        if (application.getConvertedOrgId() != null) {
+            Long orgAdminId = findOrgAdminId(application.getConvertedOrgId());
+            if (orgAdminId != null) {
+                notificationService.sendToUser(
+                        "CONVERSION_APPLY_PENDING", NotificationService.CATEGORY_CONVERSION, "INFO",
+                        title, content, adminActionPath,
+                        "CONVERSION_APPLICATION", application.getId(), dedupeKey,
+                        orgAdminId, application.getStudentId());
+            }
+            // 同时通知平台 admin
+            notificationService.sendToRole(
+                    "CONVERSION_APPLY_PENDING", NotificationService.CATEGORY_CONVERSION, "INFO",
+                    title, content, adminActionPath,
+                    "CONVERSION_APPLICATION", application.getId(), dedupeKey + ":ADMIN",
+                    "admin", application.getStudentId());
+        } else {
+            // 通用申请：通知平台 admin + 所有 org_admin
+            notificationService.sendToRole(
+                    "CONVERSION_APPLY_PENDING", NotificationService.CATEGORY_CONVERSION, "INFO",
+                    title, content, adminActionPath,
+                    "CONVERSION_APPLICATION", application.getId(), dedupeKey,
+                    "admin", application.getStudentId());
+            notificationService.sendToRole(
+                    "CONVERSION_APPLY_PENDING", NotificationService.CATEGORY_CONVERSION, "INFO",
+                    title, content, adminActionPath,
+                    "CONVERSION_APPLICATION", application.getId(), dedupeKey + ":ORG_ADMIN",
+                    "org_admin", application.getStudentId());
+        }
+    }
+
+    // 审核完成后通知学生审核结果（携带申请 id 与结果状态便于跳转锚定）
+    private void notifyStudentOfAuditResult(ConversionApplication application, boolean approve, String reason) {
+        String eventCode = approve ? "CONVERSION_APPLY_APPROVED" : "CONVERSION_APPLY_REJECTED";
+        String level = approve ? "SUCCESS" : "WARNING";
+        String title = approve ? "成果转换申请已通过" : "成果转换申请已驳回";
+        StringBuilder content = new StringBuilder();
+        content.append("您的成果转换申请：").append(application.getOriginalName())
+                .append(" → ").append(application.getConvertedName());
+        if (approve) {
+            content.append(" 已审核通过。");
+            if (APPLY_TYPE_RULE_CONVERT.equals(application.getApplyType())) {
+                content.append(" 对应积分已自动发放至您的账户。");
+            }
+        } else {
+            content.append(" 已被驳回。");
+            if (reason != null && !reason.trim().isEmpty()) {
+                content.append(" 驳回原因：").append(reason);
+            }
+        }
+        String dedupeKey = eventCode + ":" + application.getId();
+        // 携带本次申请 id 和审核结果，学生端跳转后可快速定位
+        String studentActionPath = "/conversion-apply?id=" + application.getId()
+                + "&status=" + (approve ? "APPROVED" : "REJECTED");
+        notificationService.sendToUser(
+                eventCode, NotificationService.CATEGORY_CONVERSION, level,
+                title, content.toString(), studentActionPath,
+                "CONVERSION_APPLICATION", application.getId(), dedupeKey,
+                application.getStudentId(), application.getStudentId());
+    }
+
+    // 根据机构ID查找机构管理员用户ID
+    private Long findOrgAdminId(Long orgId) {
+        if (orgId == null) {
+            return null;
+        }
+        SysUser orgAdmin = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getOrgId, orgId)
+                        .eq(SysUser::getRole, "org_admin")
+                        .last("LIMIT 1"));
+        return orgAdmin == null ? null : orgAdmin.getId();
     }
 }

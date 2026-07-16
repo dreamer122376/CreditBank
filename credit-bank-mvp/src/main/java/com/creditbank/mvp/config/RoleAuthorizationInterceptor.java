@@ -45,6 +45,13 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/credit-rule/update", List.of("POST")),
             Map.entry("/api/credit-rule/{id}/toggle", List.of("POST")),
             Map.entry("/api/credit-rule/{id}", List.of("DELETE")),
+            // 转换规则管理（admin / org_admin）
+            Map.entry("/api/conversion-rule/create", List.of("POST")),
+            Map.entry("/api/conversion-rule/update", List.of("POST")),
+            Map.entry("/api/conversion-rule/{id}", List.of("DELETE")),
+            Map.entry("/api/conversion-rule/{id}/toggle", List.of("POST")),
+            // 转换申请审核（admin / org_admin）
+            Map.entry("/api/conversion-application/{id}/audit", List.of("POST")),
             Map.entry("/api/cert-standard/create", List.of("POST")),
             Map.entry("/api/cert-standard/update", List.of("POST")),
             Map.entry("/api/cert-standard/{id}/toggle", List.of("POST")),
@@ -89,7 +96,10 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             "/api/application/**",
             "/api/exchange-rule/**",
             "/api/notifications/**",
-            "/api/sign-in/**"
+            "/api/sign-in/**",
+            // 成果转换模块 - 仅登录后可访问
+            "/api/conversion-rule/**",
+            "/api/conversion-application/**"
     );
 
     @Override

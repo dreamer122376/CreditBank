@@ -8,12 +8,14 @@ import com.creditbank.mvp.dto.TodoItemDTO;
 import com.creditbank.mvp.entity.Application;
 import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
+import com.creditbank.mvp.entity.ConversionApplication;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.TransactionLog;
 import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
+import com.creditbank.mvp.mapper.ConversionApplicationMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.TransactionLogMapper;
@@ -23,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,19 +40,22 @@ public class StatsService {
     private final TransactionLogMapper transactionLogMapper;
     private final CertStandardMapper certStandardMapper;
     private final CertAuditFlowMapper certAuditFlowMapper;
+    private final ConversionApplicationMapper conversionApplicationMapper;
 
     public StatsService(SysUserMapper sysUserMapper,
                         OrganizationMapper organizationMapper,
                         ApplicationMapper applicationMapper,
                         TransactionLogMapper transactionLogMapper,
                         CertStandardMapper certStandardMapper,
-                        CertAuditFlowMapper certAuditFlowMapper) {
+                        CertAuditFlowMapper certAuditFlowMapper,
+                        ConversionApplicationMapper conversionApplicationMapper) {
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.applicationMapper = applicationMapper;
         this.transactionLogMapper = transactionLogMapper;
         this.certStandardMapper = certStandardMapper;
         this.certAuditFlowMapper = certAuditFlowMapper;
+        this.conversionApplicationMapper = conversionApplicationMapper;
     }
 
     public StatsSummaryDTO getSummary(String role, Long userId) {
@@ -68,6 +74,10 @@ public class StatsService {
             pendingCount = applicationMapper.selectCount(
                     new LambdaQueryWrapper<Application>()
                             .eq(Application::getCurrentStatus, 1));
+            // 加上转换申请中待审核(status=0)的数量
+            pendingCount += conversionApplicationMapper.selectCount(
+                    new LambdaQueryWrapper<ConversionApplication>()
+                            .eq(ConversionApplication::getStatus, 0));
         } else if ("org_admin".equals(role)) {
             SysUser user = sysUserMapper.selectById(userId);
             if (user == null || user.getOrgId() == null) {
@@ -77,6 +87,12 @@ public class StatsService {
                         new LambdaQueryWrapper<Application>()
                                 .eq(Application::getOrgId, user.getOrgId())
                                 .eq(Application::getCurrentStatus, 1));
+                // 机构管理员待审核：本机构申请(convertedOrgId=orgId) + 通用申请(convertedOrgId=null)
+                pendingCount += conversionApplicationMapper.selectCount(
+                        new LambdaQueryWrapper<ConversionApplication>()
+                                .eq(ConversionApplication::getStatus, 0)
+                                .and(w -> w.eq(ConversionApplication::getConvertedOrgId, user.getOrgId())
+                                        .or().isNull(ConversionApplication::getConvertedOrgId)));
             }
         } else if ("expert".equals(role)) {
             List<Long> myNodeIds = certAuditFlowMapper.selectList(
@@ -90,11 +106,17 @@ public class StatsService {
                                 .in(Application::getCurrentNodeId, myNodeIds)
                                 .eq(Application::getCurrentStatus, 1));
             }
+            // 专家不参与转换申请审核，不额外累加
         } else {
             pendingCount = applicationMapper.selectCount(
                     new LambdaQueryWrapper<Application>()
                             .eq(Application::getApplicantId, userId)
                             .eq(Application::getCurrentStatus, 1));
+            // 学生自己的转换申请待审核也计入 pending
+            pendingCount += conversionApplicationMapper.selectCount(
+                    new LambdaQueryWrapper<ConversionApplication>()
+                            .eq(ConversionApplication::getStudentId, userId)
+                            .eq(ConversionApplication::getStatus, 0));
         }
         dto.setPendingCount(pendingCount);
 
@@ -227,6 +249,67 @@ public class StatsService {
             dto.setStatus(statusInfo[0]);
             dto.setStatusType(statusInfo[1]);
             result.add(dto);
+        }
+
+        // 合并转换申请 status=0(PENDING) 的待办，保持工作台与审核管理数据一致
+        List<ConversionApplication> convApps = new ArrayList<>();
+        if ("admin".equals(role)) {
+            convApps = conversionApplicationMapper.selectList(
+                    new LambdaQueryWrapper<ConversionApplication>()
+                            .eq(ConversionApplication::getStatus, 0)
+                            .orderByDesc(ConversionApplication::getCreatedAt)
+                            .last("LIMIT " + limit));
+        } else if ("org_admin".equals(role)) {
+            SysUser user = sysUserMapper.selectById(userId);
+            if (user != null && user.getOrgId() != null) {
+                convApps = conversionApplicationMapper.selectList(
+                        new LambdaQueryWrapper<ConversionApplication>()
+                                .eq(ConversionApplication::getStatus, 0)
+                                .and(w -> w.eq(ConversionApplication::getConvertedOrgId, user.getOrgId())
+                                        .or().isNull(ConversionApplication::getConvertedOrgId))
+                                .orderByDesc(ConversionApplication::getCreatedAt)
+                                .last("LIMIT " + limit));
+            }
+        } else if ("expert".equals(role)) {
+            // 专家不参与转换申请审核
+        } else if (userId != null) {
+            convApps = conversionApplicationMapper.selectList(
+                    new LambdaQueryWrapper<ConversionApplication>()
+                            .eq(ConversionApplication::getStudentId, userId)
+                            .eq(ConversionApplication::getStatus, 0)
+                            .orderByDesc(ConversionApplication::getCreatedAt)
+                            .last("LIMIT " + limit));
+        }
+
+        if (!convApps.isEmpty()) {
+            // 收集转换申请相关学生姓名，展示发起人（管理员端显示"发起人=学生姓名；学生端显示"发起人=自己"保持一致）
+            List<Long> convStudentIds = convApps.stream()
+                    .map(ConversionApplication::getStudentId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!convStudentIds.isEmpty() && !"student".equals(role)) {
+                List<SysUser> convApplicants = sysUserMapper.selectBatchIds(convStudentIds);
+                for (SysUser u : convApplicants) {
+                    userNameMap.put(u.getId(), u.getRealName());
+                }
+            }
+            for (ConversionApplication ca : convApps) {
+                TodoItemDTO dto = new TodoItemDTO();
+                dto.setId(ca.getId());
+                dto.setType("CONVERSION_APPLICATION");
+                dto.setTypeName("成果转换申请");
+                dto.setInitiator(userNameMap.getOrDefault(ca.getStudentId(), "未知"));
+                dto.setTime(ca.getCreatedAt());
+                dto.setStatus("待审核");
+                dto.setStatusType("warning");
+                result.add(dto);
+            }
+        }
+
+        // 合并后按时间倒序，截取 limit 条返回
+        result.sort(Comparator.comparing(TodoItemDTO::getTime, Comparator.nullsLast(Comparator.reverseOrder())));
+        if (result.size() > limit) {
+            result = result.subList(0, limit);
         }
 
         return result;

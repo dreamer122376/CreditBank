@@ -14,7 +14,7 @@
       <template #header>
         <div class="card-header">
           <div class="header-tabs">
-            <span class="tab" :class="{ active: activeTab === 'biz' }" @click="switchTab('biz')">业务流程审批</span>
+            <span class="tab" :class="{ active: activeTab === 'biz' }" @click="switchTab('biz')">业务流程</span>
             <span class="tab" :class="{ active: activeTab === 'cert' }" @click="switchTab('cert')">证书申请</span>
             <span class="tab" :class="{ active: activeTab === 'conversion' }" @click="switchTab('conversion')">转换申请</span>
           </div>

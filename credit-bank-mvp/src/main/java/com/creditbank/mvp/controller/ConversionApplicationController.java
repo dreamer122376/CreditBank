@@ -37,7 +37,15 @@ public class ConversionApplicationController {
         List<ConversionApplication> applications;
         if ("student".equals(currentUser.getRole())) {
             applications = applicationService.listByStudentId(userId);
+        } else if ("org_admin".equals(currentUser.getRole())) {
+            // org_admin 仅能查看本机构或通用转换申请
+            Long orgId = currentUser.getOrgId();
+            if (orgId == null) {
+                throw new BizException("当前机构管理员未绑定机构");
+            }
+            applications = applicationService.listByOrgId(orgId, status);
         } else {
+            // admin 查看全平台数据
             if (status != null) {
                 applications = applicationService.listByStatus(status);
             } else {

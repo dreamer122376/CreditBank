@@ -75,7 +75,8 @@
               <span class="card-title">待办事项</span>
             </div>
             <div class="list-content">
-              <div class="list-item" v-for="item in todoList" :key="item.id">
+              <div class="list-item clickable" v-for="item in todoList" :key="item.id"
+                   @click="handleTodoClick(item)">
                 <span class="item-name">{{ item.typeName }}</span>
                 <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
               </div>
@@ -101,8 +102,9 @@
       </div>
     </div>
     <div class="non-student" v-else>
-        <!-- Hero: 待审核事项 -- 突出显示（仅管理员） -->
-        <div class="pending-hero" v-if="currentUser?.role === 'admin'">
+        <!-- Hero: 待审核事项 -- 突出显示（仅管理员），点击跳转到转换申请待审核列表 -->
+        <div class="pending-hero clickable" v-if="currentUser?.role === 'admin'"
+             @click="router.push('/applications?tab=conversion&filter=pending')">
           <div class="pending-hero-inner">
             <div class="pending-hero-icon">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
@@ -127,7 +129,8 @@
               <span class="card-title">待办事项</span>
             </div>
             <div class="list-content">
-              <div class="list-item" v-for="item in todoList" :key="item.id">
+              <div class="list-item clickable" v-for="item in todoList" :key="item.id"
+                   @click="handleTodoClick(item)">
                 <span class="item-name">{{ item.typeName }}</span>
                 <span class="item-tag" :class="item.statusType">{{ item.status }}</span>
               </div>
@@ -173,6 +176,39 @@ const trendDays = ref(7)
 const pointTrend = ref([])
 const chartRef = ref(null)
 let chartInstance = null
+
+// 工作台待办项点击跳转：按当前角色与待办类型分发到对应审核页/提交页
+function handleTodoClick(item) {
+  if (!item) return
+  const role = currentUser.value?.role
+  const type = item.type
+  // 转换申请类型统一按角色分发：管理员进审核管理的转换tab，学生进自己的转换申请页
+  if (type === 'CONVERSION_APPLICATION') {
+    if (role === 'admin' || role === 'org_admin') {
+      router.push('/applications?tab=conversion&filter=pending')
+    } else if (role === 'student') {
+      router.push(`/conversion-apply?id=${item.id}`)
+    } else {
+      router.push('/applications?tab=conversion')
+    }
+    return
+  }
+  // 证书相关类型：管理员/专家跳审核管理的证书 tab；学生跳自己的证书认证页
+  if (type === 'CERT_APPLY' || type === 'EXPERT_CERT') {
+    if (role === 'admin' || role === 'org_admin' || role === 'expert') {
+      router.push('/applications?tab=cert&filter=mine')
+    } else {
+      router.push('/student-certs')
+    }
+    return
+  }
+  // 其他业务流程类型：管理员跳业务 tab；项目类/上架类学生跳我的项目
+  if (role === 'admin' || role === 'org_admin' || role === 'expert') {
+    router.push('/applications?tab=biz&filter=mine')
+  } else {
+    router.push('/my-projects')
+  }
+}
 
 const loading = ref(true)
 const signInStatus = ref({ hasSignedIn: false, streak: 0 })
@@ -884,5 +920,21 @@ function updateChart() {
   .pending-hero-count {
     font-size: 42px;
   }
+}
+
+/* 可点击元素统一的视觉反馈 */
+.clickable {
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pending-hero.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(59, 130, 246, 0.18);
+}
+
+.list-item.clickable:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
 }
 </style>

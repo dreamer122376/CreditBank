@@ -35,6 +35,7 @@
         <el-select v-model="filters.category" placeholder="全部类型" clearable style="width: 150px" @change="reload">
           <el-option label="系统消息" value="SYSTEM" />
           <el-option label="申请审批" value="APPLICATION" />
+          <el-option label="成果转换" value="CONVERSION" />
           <el-option label="积分变动" value="POINT" />
           <el-option label="积分商城" value="MALL" />
         </el-select>
@@ -236,7 +237,8 @@ import {
   DocumentChecked,
   OfficeBuilding,
   Promotion,
-  ShoppingCart
+  ShoppingCart,
+  Switch
 } from '@element-plus/icons-vue'
 import {
   confirmNotification,
@@ -439,6 +441,7 @@ function disablePastDate(date) {
 function categoryIcon(category) {
   return {
     APPLICATION: DocumentChecked,
+    CONVERSION: Switch,
     POINT: Coin,
     MALL: ShoppingCart,
     SYSTEM: CircleCheck
@@ -452,6 +455,7 @@ function categoryClass(category) {
 function categoryLabel(category) {
   return {
     APPLICATION: '申请审批',
+    CONVERSION: '成果转换',
     POINT: '积分变动',
     MALL: '积分商城',
     SYSTEM: '系统消息'

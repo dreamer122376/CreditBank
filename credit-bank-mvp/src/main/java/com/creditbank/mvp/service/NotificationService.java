@@ -35,6 +35,8 @@ public class NotificationService {
     public static final String CATEGORY_APPLICATION = "APPLICATION";
     public static final String CATEGORY_POINT = "POINT";
     public static final String CATEGORY_MALL = "MALL";
+    // 成果转换业务通知分类
+    public static final String CATEGORY_CONVERSION = "CONVERSION";
 
     private final SystemNotificationMapper notificationMapper;
     private final NotificationRecipientMapper recipientMapper;

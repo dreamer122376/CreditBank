@@ -106,7 +106,7 @@ const routes = [
         path: 'applications',
         name: 'Applications',
         component: () => import('@/views/Applications.vue'),
-        meta: { title: '业务流程' }
+        meta: { title: '审核管理' }
       },
       {
         path: 'cert-applications',
@@ -195,7 +195,7 @@ const routes = [
         path: 'conversion-rules',
         name: 'ConversionRules',
         component: () => import('@/views/ConversionRules.vue'),
-        meta: { title: '转换规则管理' }
+        meta: { title: '转换规则' }
       },
       {
         path: 'conversion-apply',

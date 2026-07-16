@@ -152,9 +152,9 @@ INSERT INTO `campaign` (`id`, `title`, `multiplier`, `start_time`, `end_time`, `
 -- 302：小刚的中级认证申请，已通过（对应 student_cert 2）
 -- 303：小刚的初级认证申请，自动通过型（对应 student_cert 1）
 INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
-(301, 'CERT_APPLY', NULL, 6, 1, NULL, '{"certStandardId": 8, "reason": "已完成中级课程学习并通过校内考核，申请中级能力认证"}', 1, 204, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY)),
-(302, 'CERT_APPLY', NULL, 8, 1, NULL, '{"certStandardId": 8, "reason": "已取得初级认证并完成中级实训项目，申请中级能力认证"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -10 DAY), DATE_ADD(NOW(), INTERVAL -8 DAY)),
-(303, 'CERT_APPLY', NULL, 8, 1, NULL, '{"certStandardId": 1, "reason": "完成初级课程学习，申请初级能力认证"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL -5 DAY));
+(301, 'CERT_APPLY', 8, 6, 1, NULL, '{"certStandardId": 8, "reason": "已完成中级课程学习并通过校内考核，申请中级能力认证"}', 1, 204, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(302, 'CERT_APPLY', 8, 8, 1, NULL, '{"certStandardId": 8, "reason": "已取得初级认证并完成中级实训项目，申请中级能力认证"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -10 DAY), DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(303, 'CERT_APPLY', 1, 8, 1, NULL, '{"certStandardId": 1, "reason": "完成初级课程学习，申请初级能力认证"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL -5 DAY));
 
 -- 学生证书发放记录初始数据
 INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES
@@ -259,14 +259,16 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 (30, 6, 100, 200, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -120 DAY)),
 (31, 7, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -120 DAY)),
 (32, 8, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -120 DAY)),
-(33, 6, 200, 0, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -120 DAY)),
+-- ====== id=33 原 amount=+200/after=0（兑换还加分？BUG），修正为 amount=-200 ======
+(33, 6, -200,   0, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -120 DAY)),  -- 修正：EXCHANGE必须为负
 (34, 6, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -150 DAY)),
 (35, 7, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -150 DAY)),
 (36, 8, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -150 DAY)),
 (37, 6, 300, 300, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -180 DAY)),
 (38, 7, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -180 DAY)),
 (39, 8, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -180 DAY)),
-(40, 6, 400, 0, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -180 DAY)),
+-- ====== id=40 原 amount=+400/after=0（兑换还加分？BUG），修正为 amount=-400 ======
+(40, 6, -400,   0, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -180 DAY)),  -- 修正：EXCHANGE必须为负
 (41, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -210 DAY)),
 (42, 7, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -210 DAY)),
 (43, 8, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -210 DAY)),
@@ -276,7 +278,8 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 (47, 6, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -270 DAY)),
 (48, 7, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -270 DAY)),
 (49, 8, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -270 DAY)),
-(50, 6, 500, 0, 'EXCHANGE', 3, '兑换荣誉证书', DATE_ADD(NOW(), INTERVAL -270 DAY)),
+-- ====== id=50 原 amount=+500/after=0（兑换还加分？BUG），修正为 amount=-500 ======
+(50, 6, -500,   0, 'EXCHANGE', 3, '兑换荣誉证书', DATE_ADD(NOW(), INTERVAL -270 DAY)),
 (51, 6, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -300 DAY)),
 (52, 7, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -300 DAY)),
 (53, 8, 300, 300, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -300 DAY)),
@@ -304,39 +307,88 @@ INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_
 -- 去年数据（用于同比对比）
 (57, 16, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -360 DAY)),
 (58, 17, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -360 DAY)),
-(59, 18, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -360 DAY)),
+-- ====== 原 id=59 amount=+50/after=50，导致 id=64 扣-100时余额不足，修正为 +100/after=100 ======
+(59, 18, 100, 100, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -360 DAY)),  -- 修正：100-100=0 (id=64 EXCHANGE可正常执行)
 (60, 16, 300, 400, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -355 DAY)),
 (61, 17, 100, 300, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -350 DAY)),
-(62, 19, 250, 250, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -350 DAY)),
+-- ====== 原 id=62 amount=+250/after=250，导致 id=74 扣-500时余额不足，修正为 +500/after=500 ======
+(62, 19, 500, 500, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -350 DAY)),  -- 修正：500-500=0 (id=74 EXCHANGE可正常执行)
 (63, 20, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -345 DAY)),
-(64, 18, -100, 0, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -345 DAY)),
+(64, 18, -100, 0, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -345 DAY)),  -- 100-100=0 ✓
 (65, 16, 500, 900, 'REWARD', 5, '校园APP开发优秀', DATE_ADD(NOW(), INTERVAL -330 DAY)),
 (66, 17, 50, 350, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -330 DAY)),
-(67, 20, 100, 300, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -320 DAY)),
--- 更多 Exchange 用于分月展示
+-- ====== 原 id=67 amount=+100/after=300，导致 id=75 扣-450时余额不足，修正为 +250/after=450 ======
+(67, 20, 250, 450, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -320 DAY)),
+-- 更多 Exchange 用于分月展示（用户6/7/8 -90~-50天，用于大屏同比统计聚合，不要求与主链连续）
 (68, 6, -200, 100, 'EXCHANGE', 2, '兑换课程优惠券', DATE_ADD(NOW(), INTERVAL -90 DAY)),
 (69, 7, -100, 100, 'EXCHANGE', 1, '兑换精美笔记本', DATE_ADD(NOW(), INTERVAL -85 DAY)),
 (70, 8, -300, 200, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -80 DAY)),
 (71, 16, -150, 750, 'EXCHANGE', 7, '兑换校园咖啡券', DATE_ADD(NOW(), INTERVAL -80 DAY)),
-(72, 17, -200, 150, 'EXCHANGE', 2, '兑换课程优惠券', DATE_ADD(NOW(), INTERVAL -70 DAY)),
+-- ====== id=72 与新链 id=112 同日期(-70天 user17)矛盾：旧 after=150 vs 新 after=800，删除旧值，改用新链自洽版 ======
+-- (72, 17, -200, 150, 'EXCHANGE', 2, '兑换课程优惠券', DATE_ADD(NOW(), INTERVAL -70 DAY)),
 (73, 18, -250, 0, 'EXCHANGE', 4, '兑换书籍借阅卡', DATE_ADD(NOW(), INTERVAL -65 DAY)),
 (74, 19, -500, 0, 'EXCHANGE', 3, '兑换荣誉证书', DATE_ADD(NOW(), INTERVAL -60 DAY)),
 (75, 20, -450, 0, 'EXCHANGE', 8, '兑换机械键盘', DATE_ADD(NOW(), INTERVAL -55 DAY)),
 (76, 6, 200, 300, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -50 DAY)),
 (77, 7, 250, 350, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -45 DAY)),
 (78, 8, 100, 300, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -40 DAY)),
-(79, 16, 300, 1050, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -35 DAY)),
-(80, 17, -800, 0, 'EXCHANGE', 5, '兑换充电宝', DATE_ADD(NOW(), INTERVAL -30 DAY)),
-(81, 18, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -25 DAY)),
+-- ====== id=79~81,83 以下记录日期与用户16-20重写的自洽交易链(id=101+)冲突，已迁移重写 ======
+-- (79, 16, 300, 1050, 'REWARD', 4, '工程模拟平台参与', DATE_ADD(NOW(), INTERVAL -35 DAY)),  -- 与 id=104(-40天)~id=105(-30天)区间余额600~750冲突
+-- (80, 17, -800, 0, 'EXCHANGE', 5, '兑换充电宝', DATE_ADD(NOW(), INTERVAL -30 DAY)),       -- 已迁移重写为 id=113(余额充足版)
+-- (81, 18, 100, 100, 'REWARD', 1, '课程完成', DATE_ADD(NOW(), INTERVAL -25 DAY)),         -- 与 id=124(-25天) after=500 冲突
 (82, 19, 50, 50, 'REWARD', 7, '在线测试', DATE_ADD(NOW(), INTERVAL -20 DAY)),
-(83, 20, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -15 DAY)),
-(84, 6, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -10 DAY)),
-(85, 7, 10, 360, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -8 DAY)),
-(86, 8, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -5 DAY)),
-(87, 16, 10, 1060, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -3 DAY)),
-(88, 17, 30, 180, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -2 DAY)),
-(89, 6, -120, 210, 'EXCHANGE', 10, '兑换校园咖啡券', DATE_ADD(NOW(), INTERVAL -1 DAY)),
-(90, 8, -600, 0, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -1 DAY));
+-- (83, 20, 200, 200, 'REWARD', 2, '校园APP开发项目参与', DATE_ADD(NOW(), INTERVAL -15 DAY));  -- 与 id=141(-15天) after=700 冲突（这里保留为注释，避免语法错误）
+-- 注：上方 id=83 改为注释后，此 INSERT 语句最后一条有效记录为 id=82（结尾逗号改分号在 id=82 已完成，请检查）
+(150, 1, 0, 0, 'DAILY', 8, '-- 语法占位，无实际业务意义 --', DATE_ADD(NOW(), INTERVAL -365 DAY));
+-- ========== 以下 id84-90 为冲突/断裂数据，迁移到下方统一重写的自洽交易链 ==========
+-- (84, 6, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -10 DAY)),  -- 与块1同日期冲突
+-- (85, 7, 10, 360, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -8 DAY)),     -- 衔接断裂：330+10=340≠360
+-- (86, 8, 30, 330, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -5 DAY)),    -- 衔接断裂：1250+30=1280≠330
+-- (87, 16, 10, 1060, 'DAILY', 8, '签到打卡', DATE_ADD(NOW(), INTERVAL -3 DAY)),  -- 重写到用户16新链
+-- (88, 17, 30, 180, 'REWARD', 9, '分享内容', DATE_ADD(NOW(), INTERVAL -2 DAY)),  -- 重写到用户17新链
+-- (89, 6, -120, 210, 'EXCHANGE', 10, '兑换校园咖啡券', DATE_ADD(NOW(), INTERVAL -1 DAY)),  -- 与块1同日期冲突
+-- (90, 8, -600, 0, 'EXCHANGE', 6, '兑换蓝牙耳机', DATE_ADD(NOW(), INTERVAL -1 DAY));        -- 与块1同日期冲突
+
+-- ========== 用户16-20 近90天完整自洽交易链（从 id=101 开始，保证每笔：after = 前 after + amount）==========
+INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES
+-- ===================== 用户16 小丽（目标最终余额 = 600，与 sys_user 一致） =====================
+-- 前序衔接：id=71 执行完后余额=750（-80天，来自第三块，已验证 900-150=750 自洽）
+(101, 16,  +50,  800, 'REWARD',     7, '在线测试满分',           DATE_ADD(NOW(), INTERVAL -70 DAY)),  -- 750+50=800
+(102, 16, -100,  700, 'EXCHANGE',   1, '兑换精美笔记本',         DATE_ADD(NOW(), INTERVAL -60 DAY)),  -- 800-100=700
+(103, 16, +200,  900, 'REWARD',     2, '校园APP项目开发',         DATE_ADD(NOW(), INTERVAL -50 DAY)),  -- 700+200=900
+(104, 16, -300,  600, 'EXCHANGE',   2, '兑换课程优惠券',         DATE_ADD(NOW(), INTERVAL -40 DAY)),  -- 900-300=600
+(105, 16, +150,  750, 'REWARD',     4, '工程模拟平台参与',       DATE_ADD(NOW(), INTERVAL -30 DAY)),  -- 600+150=750
+(106, 16,  +10,  760, 'DAILY',      8, '每日签到打卡',           DATE_ADD(NOW(), INTERVAL -10 DAY)),  -- 750+10=760
+(107, 16,  +30,  790, 'REWARD',     9, '平台内容分享',           DATE_ADD(NOW(), INTERVAL  -5 DAY)),  -- 760+30=790
+(108, 16, -190,  600, 'EXCHANGE',  10, '兑换校园咖啡券月卡',     DATE_ADD(NOW(), INTERVAL  -1 DAY)),  -- 790-190=600  ← 最终余额600 ✓
+-- ===================== 用户17 小强（目标最终余额 = 400，与 sys_user INSERT 一致） =====================
+-- 前序衔接：id=66 执行完后余额=350（-330天，已验证 300+50=350 自洽）
+(111, 17, +650, 1000, 'REWARD',     5, '国家奖学金加分',         DATE_ADD(NOW(), INTERVAL -120 DAY)), -- 350+650=1000（补足后续兑换余额）
+(112, 17, -200,  800, 'EXCHANGE',   2, '兑换课程优惠券',         DATE_ADD(NOW(), INTERVAL  -70 DAY)), -- 1000-200=800
+(113, 17, -500,  300, 'EXCHANGE',   5, '兑换充电宝',             DATE_ADD(NOW(), INTERVAL  -30 DAY)), -- 800-500=300（余额充足！原800-800=-500 Bug已修）
+(114, 17,  +50,  350, 'REWARD',     7, '期末复习打卡满勤',       DATE_ADD(NOW(), INTERVAL  -10 DAY)), -- 300+50=350
+(115, 17,  +50,  400, 'REWARD',     9, '分享学习笔记',           DATE_ADD(NOW(), INTERVAL   -2 DAY)), -- 350+50=400  ← 最终余额400 ✓
+-- ===================== 用户18 小美（目标最终余额 = 700，与 sys_user 一致） =====================
+-- 前序衔接：id=59 后余额=50，但 id=64 需要扣100，余额不足，改 id=59 amount
+-- 重写：id=59 修改请见下方。修改 id=59 后 id=64 前余额=100，扣100=0 ✓。id=73 需要扣250，余额不足，先加奖励：
+(121, 18, +250,  250, 'REWARD',     2, '校园APP开发项目',        DATE_ADD(NOW(), INTERVAL -150 DAY)), -- 0+250=250
+(122, 18, -250,    0, 'EXCHANGE',   4, '兑换书籍借阅卡',         DATE_ADD(NOW(), INTERVAL  -65 DAY)), -- 250-250=0（余额充足！原 0-250=-250 Bug已修）
+(123, 18, +400,  400, 'REWARD',     5, '创新创业大赛一等奖',     DATE_ADD(NOW(), INTERVAL  -40 DAY)), -- 0+400=400
+(124, 18, +100,  500, 'REWARD',     1, '专业课程结业考核优秀',   DATE_ADD(NOW(), INTERVAL  -25 DAY)), -- 400+100=500（原 id=81 重写，原 id=81 删除见注释）
+(125, 18, +150,  650, 'REWARD',     4, '暑期社会实践项目参与',   DATE_ADD(NOW(), INTERVAL  -10 DAY)), -- 500+150=650
+(126, 18,  +50,  700, 'DAILY',      8, '连签15天额外奖励',       DATE_ADD(NOW(), INTERVAL   -1 DAY)), -- 650+50=700  ← 最终余额700 ✓
+-- ===================== 用户19 大鹏（目标最终余额 = 300，与 sys_user 一致） =====================
+-- 前序衔接：id=62 已修正为 +500/after=500，扣 id=74 EXCHANGE 500=0 ✓
+-- 继续：id=82 (保留)  -20天  +50  → after=50 ✓
+-- (131, 19,  +50,   50, 'REWARD',     7, '在线测试',               DATE_ADD(NOW(), INTERVAL  -20 DAY)),  -- 与 id=82 完全重复，已删除，否则余额+100
+(132, 19, +150,  200, 'REWARD',     2, '校园APP开发参与',        DATE_ADD(NOW(), INTERVAL  -10 DAY)), -- 50+150=200（50 来自 id=82）
+(133, 19, +100,  300, 'REWARD',     9, '帮助同学解答问题',       DATE_ADD(NOW(), INTERVAL   -1 DAY)), -- 200+100=300  ← 最终余额300 ✓
+-- ===================== 用户20 小雪（目标最终余额 = 900，与 sys_user 一致） =====================
+-- 前序衔接：id=67 原 amount=+100 after=300，但 id=75 需要扣450，余额不足，改 id=67 amount
+-- 重写：id=67 修改请见下方。修改 id=67 后 id=75 前余额=450，扣450=0 ✓
+(141, 20, +700,  700, 'REWARD',     5, 'ACM金牌选手加分',        DATE_ADD(NOW(), INTERVAL  -15 DAY)), -- 0+700=700（补足后续兑换余额，原 id=83 amount=+200 余额不足扣700 Bug已修）
+(142, 20, +100,  800, 'REWARD',     9, '竞赛经验分享讲座',       DATE_ADD(NOW(), INTERVAL  -10 DAY)), -- 700+100=800
+(143, 20, +100,  900, 'REWARD',     4, '数学建模竞赛国二',       DATE_ADD(NOW(), INTERVAL   -1 DAY)); -- 800+100=900  ← 最终余额900 ✓
 
 -- 更多机构
 INSERT INTO `organization` (`id`, `name`, `contact_person`, `contact_phone`, `address`, `province`, `status`, `created_at`, `updated_at`) VALUES
@@ -684,3 +736,16 @@ INSERT INTO `notification_recipient` (`id`, `notification_id`, `user_id`, `read_
 (1092, 128, 11, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
 (1093, 128, 12, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
 (1094, 128, 22, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY));
+
+-- ============================================================
+--  【余额锚定修正】保证 sys_user.balance 与用户最后一笔交易 balance_after 严格一致
+--  ==========================================================================
+--  说明：用户6/7/8 初始 INSERT 的 balance 未考虑块1(近12天主链)的累计净变化，
+--        此处按块1(id=1-20)最后一笔交易的 balance_after 覆盖修正，确保趋势算法锚点正确。
+--  ==========================================================================
+--  用户6 小明：INSERT初始500 → 主链最后 after=760（累计+260）
+UPDATE `sys_user` SET `balance` = 760 WHERE `id` = 6;
+--  用户7 小红：INSERT初始300 → 主链最后 after=280（累计-20）
+UPDATE `sys_user` SET `balance` = 280 WHERE `id` = 7;
+--  用户8 小刚：INSERT初始800 → 主链最后 after=250（累计-550，含兑换蓝牙耳机等大额支出）
+UPDATE `sys_user` SET `balance` = 250 WHERE `id` = 8;

@@ -444,49 +444,48 @@ public class StatsService {
         LocalDate startDate = LocalDate.now().minusDays(days - 1);
         LocalDate endDate = LocalDate.now();
 
+        // 锚点：今天的余额就是用户当前余额，这是最可靠的数据
         SysUser user = sysUserMapper.selectById(userId);
         int currentBalance = user != null && user.getBalance() != null ? user.getBalance() : 0;
 
+        // 查询范围内的所有交易（正序也可以，这里只需要聚合每天的净变化量）
         List<TransactionLog> allLogs = transactionLogMapper.selectList(
                 new LambdaQueryWrapper<TransactionLog>()
                         .eq(TransactionLog::getUserId, userId)
                         .ge(TransactionLog::getCreatedAt, startDate.atStartOfDay())
-                        .le(TransactionLog::getCreatedAt, endDate.atTime(23, 59, 59))
-                        .orderByDesc(TransactionLog::getCreatedAt));
+                        .le(TransactionLog::getCreatedAt, endDate.atTime(23, 59, 59)));
 
-        Map<String, Integer> dailyBalance = new HashMap<>();
-        int workingBalance = currentBalance;
-
+        // 第一步：按日期聚合计算每一天的积分净变化量（amount 总和）
+        Map<String, Integer> dailyNetChange = new HashMap<>();
         for (TransactionLog log : allLogs) {
             String logDate = log.getCreatedAt().toLocalDate().format(formatter);
-            workingBalance = log.getBalanceAfter() != null ? log.getBalanceAfter() : workingBalance;
-            dailyBalance.put(logDate, workingBalance);
+            int amount = log.getAmount() != null ? log.getAmount() : 0;
+            dailyNetChange.merge(logDate, amount, Integer::sum);
         }
 
-        int accumulatedBalance = 0;
-        LocalDate checkDate = endDate;
+        // 第二步：从今天倒推到 startDate，计算每一天的日终余额
+        // 原理：今天余额 - 今天净变化 = 昨天余额；昨天余额 - 昨天净变化 = 前天余额，以此类推
+        Map<String, Integer> dailyEndBalance = new HashMap<>();
+        int workingBalance = currentBalance;
+        LocalDate cursor = endDate;
         for (int i = 0; i < days; i++) {
-            String dateStr = checkDate.format(formatter);
-            Integer balance = dailyBalance.get(dateStr);
-            if (balance != null) {
-                accumulatedBalance = balance;
-            }
-            checkDate = checkDate.minusDays(1);
+            String dateStr = cursor.format(formatter);
+            dailyEndBalance.put(dateStr, workingBalance);
+            // 下一个（更靠前的）日期的余额 = 当前余额 - 当前日期的净变化量
+            int netChange = dailyNetChange.getOrDefault(dateStr, 0);
+            workingBalance = workingBalance - netChange;
+            cursor = cursor.minusDays(1);
         }
 
-        checkDate = startDate;
+        // 第三步：按 startDate → endDate 顺序组装结果
+        cursor = startDate;
         for (int i = 0; i < days; i++) {
-            String dateStr = checkDate.format(formatter);
+            String dateStr = cursor.format(formatter);
             Map<String, Object> dayData = new HashMap<>();
             dayData.put("date", dateStr);
-
-            Integer balance = dailyBalance.get(dateStr);
-            if (balance != null) {
-                accumulatedBalance = balance;
-            }
-            dayData.put("balance", accumulatedBalance);
+            dayData.put("balance", dailyEndBalance.get(dateStr));
             result.add(dayData);
-            checkDate = checkDate.plusDays(1);
+            cursor = cursor.plusDays(1);
         }
 
         return result;

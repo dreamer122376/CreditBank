@@ -179,6 +179,8 @@ public class ApplicationService {
         boolean autoApproved = false;
         if (isCertBiz(app.getBizType())) {
             CertStandard standard = loadStandardForSubmit(app, applicant);
+            // 写入 biz_key，保证审批链修改时能按 standardId 命中在途申请
+            app.setBizKey(standard.getId());
             if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
                 // 自动通过型标准：提交即通过
                 app.setCurrentStatus(STATUS_APPROVED);
@@ -243,6 +245,8 @@ public class ApplicationService {
         boolean autoApproved = false;
         if (isCertBiz(app.getBizType())) {
             CertStandard standard = loadStandardForSubmit(app, applicant);
+            // 重新提交也同步 biz_key，保证审批链节点映射能命中
+            app.setBizKey(standard.getId());
             if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
                 app.setCurrentStatus(STATUS_APPROVED);
                 autoApproved = true;

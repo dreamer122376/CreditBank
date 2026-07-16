@@ -303,7 +303,7 @@ async function submitForm() {
 
 async function handleDelete(item) {
   try {
-    await ElMessageBox.confirm('确定要删除活动「' + item.title + '」吗？此操作不可恢复。', '确认删除', { type: 'warning' })
+    await ElMessageBox.confirm('确定要删除活动「' + item.title + '」吗？此操作不可恢复。', '确认删除', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     await deleteCampaign(item.id)
     ElMessage.success('已删除')
     loadData()

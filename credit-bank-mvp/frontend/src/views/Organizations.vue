@@ -178,7 +178,7 @@ async function changeStatus(row, status) {
     ? '启用后将解冻本机构所有用户，是否继续？'
     : '禁用后将联动冻结本机构所有用户，是否继续？'
   try {
-    await ElMessageBox.confirm(tip, `确认${action}`, { type: 'warning' })
+    await ElMessageBox.confirm(tip, `确认${action}`, { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     const res = await changeOrganizationStatus(row.id, status)
     const result = res.data || res
     if (status === 1 && row.status === 0) {

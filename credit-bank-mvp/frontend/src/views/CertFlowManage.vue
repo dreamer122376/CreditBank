@@ -189,7 +189,9 @@ async function saveFlow() {
     const uniqueIds = [...new Set(auditorIds)]
     if (uniqueIds.length < auditorIds.length) {
       await ElMessageBox.confirm('存在重复的审核人，同一审核人可能需要多次审批，确认继续？', '提示', {
-        type: 'warning'
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
       })
     }
     await saveAuditFlow(route.params.id, flowNodes.value)

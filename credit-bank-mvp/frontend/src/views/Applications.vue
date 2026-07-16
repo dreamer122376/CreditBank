@@ -489,7 +489,7 @@ function getConvStatusText(status) {
 async function auditConversion(row, approve, reason = '') {
   try {
     if (approve) {
-      await ElMessageBox.confirm('确定要通过该转换申请吗？通过后将自动发放积分。', '确认通过', { type: 'warning' })
+      await ElMessageBox.confirm('确定要通过该转换申请吗？通过后将自动发放积分。', '确认通过', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     }
     await auditConversionApplication(row.id, approve, reason)
     ElMessage.success(approve ? '审核通过' : '已驳回')

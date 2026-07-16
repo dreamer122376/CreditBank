@@ -246,7 +246,7 @@ async function toggle(row) {
 
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm('确定要删除规则「' + row.eventName + '」吗？此操作不可恢复。', '确认删除', { type: 'warning' })
+    await ElMessageBox.confirm('确定要删除规则「' + row.eventName + '」吗？此操作不可恢复。', '确认删除', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     await deleteRule(row.id)
     ElMessage.success('已删除')
     await loadData()
@@ -265,7 +265,7 @@ async function handleAdjust(row) {
       '若金额与当前规则值不一致，将自动生成补差流水。<br><br>' +
       '<span style="color:#d93026;">此操作不可撤销，请确认规则积分值已设置正确。</span>',
       '确认补差',
-      { type: 'warning', confirmButtonText: '执行补差', dangerouslyUseHTMLString: true }
+      { type: 'warning', confirmButtonText: '执行补差', cancelButtonText: '取消', dangerouslyUseHTMLString: true }
     )
     const res = await adjustRule(row.id)
     const count = res.adjustedCount

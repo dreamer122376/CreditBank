@@ -541,43 +541,35 @@ UPDATE `sys_user` SET `balance` = 650 WHERE `id` = 25;
 -- 分类：SYSTEM(系统)/APPLICATION(申请审批)/POINT(积分)/MALL(商城)/CONVERSION(成果转换)
 -- 级别：INFO/SUCCESS/WARNING
 INSERT INTO `notification` (`id`, `event_code`, `scope_type`, `scope_value`, `category`, `level`, `title`, `content`, `source_type`, `source_id`, `action_path`, `actor_id`, `dedupe_key`, `status`, `created_at`, `expires_at`) VALUES
--- === 欢迎通知（按用户） ===
-(1, 'WELCOME', 'USER', '1', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以管理用户、机构、积分规则和审批任务；右上角铃铛用于查看全平台业务通知。', NULL, NULL, '/dashboard', NULL, 'WELCOME:1:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(2, 'WELCOME', 'USER', '2', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以管理本机构用户、项目、积分规则和兑换商品，并在工作台查看机构积分池。', NULL, NULL, '/dashboard', NULL, 'WELCOME:2:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(3, 'WELCOME', 'USER', '3', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以管理本机构用户、项目、积分规则和兑换商品，并在工作台查看机构积分池。', NULL, NULL, '/dashboard', NULL, 'WELCOME:3:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(4, 'WELCOME', 'USER', '4', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以在业务审核中处理评审任务，并在"我的资质"查看认证信息。', NULL, NULL, '/dashboard', NULL, 'WELCOME:4:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(5, 'WELCOME', 'USER', '5', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以在业务审核中处理评审任务，并在"我的资质"查看认证信息。', NULL, NULL, '/dashboard', NULL, 'WELCOME:5:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(6, 'WELCOME', 'USER', '6', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以报名项目、参加活动获取积分，在积分商城兑换商品，并申请学生证书认证。', NULL, NULL, '/dashboard', NULL, 'WELCOME:6:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(7, 'WELCOME', 'USER', '7', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以报名项目、参加活动获取积分，在积分商城兑换商品，并申请学生证书认证。', NULL, NULL, '/dashboard', NULL, 'WELCOME:7:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
-(8, 'WELCOME', 'USER', '8', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以报名项目、参加活动获取积分，在积分商城兑换商品，并申请学生证书认证。', NULL, NULL, '/dashboard', NULL, 'WELCOME:8:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+-- === 欢迎通知：不预置！由启动时 ensureWelcomeNotificationsForAllUsers 动态生成，保证每个用户角色正确、一对一无错配 ===
 -- === 申请审批通知（学生 - 证书申请结果） ===
-(9, 'CERT_APPLY_APPROVED', 'USER', '20', 'APPLICATION', 'SUCCESS', '学生中级认证已通过', '您申请的"信息技术学院-学生中级能力认证（专家评审）"已审核通过，证书已发放至"我的证书"。', 'CERT_APPLY', 1, '/student-certificate/5', 9, 'CERT_APPLY_APPROVED:1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
-(10, 'CERT_APPLY_REJECTED', 'USER', '22', 'APPLICATION', 'WARNING', '证书认证申请被驳回', '您申请的"工程学院-学生中级能力认证"被驳回。驳回原因：累计积分不足1000分，请继续积累积分后再申请。', 'CERT_APPLY', 4, '/applications', 11, 'CERT_APPLY_REJECTED:4', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -3 DAY), NULL),
+(109, 'CERT_APPLY_APPROVED', 'USER', '20', 'APPLICATION', 'SUCCESS', '学生中级认证已通过', '您申请的"信息技术学院-学生中级能力认证（专家评审）"已审核通过，证书已发放至"我的证书"。', 'CERT_APPLY', 1, '/student-certificate/5', 9, 'CERT_APPLY_APPROVED:1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(110, 'CERT_APPLY_REJECTED', 'USER', '22', 'APPLICATION', 'WARNING', '证书认证申请被驳回', '您申请的"工程学院-学生中级能力认证"被驳回。驳回原因：累计积分不足1000分，请继续积累积分后再申请。', 'CERT_APPLY', 4, '/applications', 11, 'CERT_APPLY_REJECTED:4', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -3 DAY), NULL),
 -- === 申请审批通知（管理员 - 待办提醒） ===
-(11, 'EXPERT_CERT_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '专家资质认证待审核', '有1份专家资质认证申请（王五 - 人工智能领域）等待您的终审。', 'EXPERT_CERT', 5, '/applications?tab=expert', NULL, 'EXPERT_CERT_PENDING:5:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
-(12, 'UNFREEZE_APPEAL_PENDING', 'ROLE', 'admin', 'APPLICATION', 'WARNING', '账户解冻申诉待审核', '学生「小强」(student_5) 提交了解冻申诉，说明账号被盗后异常操作，已提交身份核验材料，请及时审核。', 'UNFREEZE_APPEAL', 7, '/applications?tab=unfreeze', 17, 'UNFREEZE_APPEAL_PENDING:7:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
+(111, 'EXPERT_CERT_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '专家资质认证待审核', '有1份专家资质认证申请（王五 - 人工智能领域）等待您的终审。', 'EXPERT_CERT', 5, '/applications?tab=expert', NULL, 'EXPERT_CERT_PENDING:5:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
+(112, 'UNFREEZE_APPEAL_PENDING', 'ROLE', 'admin', 'APPLICATION', 'WARNING', '账户解冻申诉待审核', '学生「小强」(student_5) 提交了解冻申诉，说明账号被盗后异常操作，已提交身份核验材料，请及时审核。', 'UNFREEZE_APPEAL', 7, '/applications?tab=unfreeze', 17, 'UNFREEZE_APPEAL_PENDING:7:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
 -- === 成果转换通知 ===
-(13, 'CONVERSION_APPLY_PENDING', 'ROLE', 'admin', 'CONVERSION', 'INFO', '新的成果转换申请待审核', '学生「小明」提交了成果转换申请：全国导游基础知识(李巧玲-智慧职教) → (0402114)导游基础知识，请及时审核。', 'CONVERSION_APPLICATION', 1, '/applications?tab=conversion&filter=pending', 6, 'CONVERSION_APPLY_PENDING:1:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL),
-(14, 'CONVERSION_APPLY_PENDING', 'ROLE', 'org_admin', 'CONVERSION', 'INFO', '新的成果转换申请待审核', '学生「小红」提交了成果转换申请：汽车构造(曹义等-中国大学MOOC) → (242714)汽车结构认知，请及时审核。', 'CONVERSION_APPLICATION', 2, '/applications?tab=conversion&filter=pending', 7, 'CONVERSION_APPLY_PENDING:2:ORG_ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
-(15, 'CONVERSION_APPLY_REJECTED', 'USER', '8', 'CONVERSION', 'WARNING', '成果转换申请已驳回', '您的成果转换申请：人工智能导论(Coursera) → 人工智能基础 已被驳回。驳回原因：课程名称与现有规则重复，请选择已有规则申请。', 'CONVERSION_APPLICATION', 3, '/conversion-apply?id=3&status=REJECTED', 1, 'CONVERSION_APPLY_REJECTED:3', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -4 DAY), NULL),
+(113, 'CONVERSION_APPLY_PENDING', 'ROLE', 'admin', 'CONVERSION', 'INFO', '新的成果转换申请待审核', '学生「小明」提交了成果转换申请：全国导游基础知识(李巧玲-智慧职教) → (0402114)导游基础知识，请及时审核。', 'CONVERSION_APPLICATION', 1, '/applications?tab=conversion&filter=pending', 6, 'CONVERSION_APPLY_PENDING:1:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL),
+(114, 'CONVERSION_APPLY_PENDING', 'ROLE', 'org_admin', 'CONVERSION', 'INFO', '新的成果转换申请待审核', '学生「小红」提交了成果转换申请：汽车构造(曹义等-中国大学MOOC) → (242714)汽车结构认知，请及时审核。', 'CONVERSION_APPLICATION', 2, '/applications?tab=conversion&filter=pending', 7, 'CONVERSION_APPLY_PENDING:2:ORG_ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(115, 'CONVERSION_APPLY_REJECTED', 'USER', '8', 'CONVERSION', 'WARNING', '成果转换申请已驳回', '您的成果转换申请：人工智能导论(Coursera) → 人工智能基础 已被驳回。驳回原因：课程名称与现有规则重复，请选择已有规则申请。', 'CONVERSION_APPLICATION', 3, '/conversion-apply?id=3&status=REJECTED', 1, 'CONVERSION_APPLY_REJECTED:3', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -4 DAY), NULL),
 -- === 积分变动通知 ===
-(16, 'POINT_EARNED', 'USER', '6', 'POINT', 'SUCCESS', '获得积分：校园APP开发优秀', '您因项目「校园APP开发项目」获评优秀，获得积分 +500 分，当前账户余额 1360 分。', 'REWARD', 14, '/transactions', 2, 'POINT_EARNED:14', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
-(17, 'POINT_EARNED', 'USER', '7', 'POINT', 'SUCCESS', '获得积分：工程模拟平台参与', '您参与完成了项目「工程模拟平台」，获得积分 +250 分，当前账户余额 580 分。', 'REWARD', 10, '/transactions', 3, 'POINT_EARNED:10', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL),
-(18, 'DAILY_SIGNIN_REMIND', 'ALL', NULL, 'POINT', 'INFO', '每日签到提醒', '今日还未签到哦！签到可获得10积分，连续签到还有额外奖励。', NULL, NULL, '/dashboard', NULL, 'DAILY_SIGNIN_REMIND:' . DATE_FORMAT(NOW(), '%Y%m%d'), 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL 1 DAY)),
+(116, 'POINT_EARNED', 'USER', '6', 'POINT', 'SUCCESS', '获得积分：校园APP开发优秀', '您因项目「校园APP开发项目」获评优秀，获得积分 +500 分，当前账户余额 1360 分。', 'REWARD', 14, '/transactions', 2, 'POINT_EARNED:14', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(117, 'POINT_EARNED', 'USER', '7', 'POINT', 'SUCCESS', '获得积分：工程模拟平台参与', '您参与完成了项目「工程模拟平台」，获得积分 +250 分，当前账户余额 580 分。', 'REWARD', 10, '/transactions', 3, 'POINT_EARNED:10', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL),
+(118, 'DAILY_SIGNIN_REMIND', 'ALL', NULL, 'POINT', 'INFO', '每日签到提醒', '今日还未签到哦！签到可获得10积分，连续签到还有额外奖励。', NULL, NULL, '/dashboard', NULL, 'DAILY_SIGNIN_REMIND:' . DATE_FORMAT(NOW(), '%Y%m%d'), 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL 1 DAY)),
 -- === 积分商城通知 ===
-(19, 'EXCHANGE_SUCCESS', 'USER', '6', 'MALL', 'SUCCESS', '兑换成功：荣誉证书', '您使用 500 积分成功兑换了"荣誉证书"，请在"我的订单"查看兑换详情。', 'EXCHANGE', 19, '/transactions', 6, 'EXCHANGE_SUCCESS:19', 'PUBLISHED', NOW(), NULL),
-(20, 'EXCHANGE_SUCCESS', 'USER', '8', 'MALL', 'SUCCESS', '兑换成功：充电宝', '您使用 800 积分成功兑换了"充电宝"，请于3个工作日内到信息技术学院办公室领取。', 'EXCHANGE', 20, '/transactions', 8, 'EXCHANGE_SUCCESS:20', 'PUBLISHED', NOW(), NULL),
-(21, 'NEW_EXCHANGE_ITEM', 'ALL', NULL, 'MALL', 'INFO', '商城上新：智能手环限时兑', '积分商城上新啦！智能手环只需900积分即可兑换，数量有限先到先得。', NULL, NULL, '/point-mall', NULL, 'NEW_EXCHANGE_ITEM:202607', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY)),
+(119, 'EXCHANGE_SUCCESS', 'USER', '6', 'MALL', 'SUCCESS', '兑换成功：荣誉证书', '您使用 500 积分成功兑换了"荣誉证书"，请在"我的订单"查看兑换详情。', 'EXCHANGE', 19, '/transactions', 6, 'EXCHANGE_SUCCESS:19', 'PUBLISHED', NOW(), NULL),
+(120, 'EXCHANGE_SUCCESS', 'USER', '8', 'MALL', 'SUCCESS', '兑换成功：充电宝', '您使用 800 积分成功兑换了"充电宝"，请于3个工作日内到信息技术学院办公室领取。', 'EXCHANGE', 20, '/transactions', 8, 'EXCHANGE_SUCCESS:20', 'PUBLISHED', NOW(), NULL),
+(121, 'NEW_EXCHANGE_ITEM', 'ALL', NULL, 'MALL', 'INFO', '商城上新：智能手环限时兑', '积分商城上新啦！智能手环只需900积分即可兑换，数量有限先到先得。', NULL, NULL, '/point-mall', NULL, 'NEW_EXCHANGE_ITEM:202607', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY)),
 -- === 管理员手动发布通知 ===
-(22, 'MANUAL_NOTICE', 'ALL', NULL, 'SYSTEM', 'WARNING', '【重要】系统维护通知', '平台将于本周六（7月18日）凌晨02:00-04:00进行系统维护升级，期间所有服务将暂停使用，请提前安排好您的操作。', 'MANUAL_NOTICE', NULL, NULL, 1, 'MANUAL_NOTICE:MAINTENANCE_20260718', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY)),
-(23, 'MANUAL_NOTICE', 'ORG', '1', 'SYSTEM', 'INFO', '信息技术学院：暑期项目申报通知', '信息技术学院2026年暑期实践项目申报已开启，请各教研室于7月25日前完成项目材料提交。', 'MANUAL_NOTICE', NULL, NULL, 2, 'MANUAL_NOTICE:ORG1_SUMMER_2026', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 10 DAY)),
-(24, 'MANUAL_NOTICE', 'ORG', '2', 'SYSTEM', 'INFO', '工程学院：专家评审会通知', '工程学院定于7月20日下午14:00在工程楼B201召开学生中级能力认证专家评审会，请相关专家准时参加。', 'MANUAL_NOTICE', NULL, NULL, 3, 'MANUAL_NOTICE:ORG2_EXPERT_MEET', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 4 DAY)),
+(122, 'MANUAL_NOTICE', 'ALL', NULL, 'SYSTEM', 'WARNING', '【重要】系统维护通知', '平台将于本周六（7月18日）凌晨02:00-04:00进行系统维护升级，期间所有服务将暂停使用，请提前安排好您的操作。', 'MANUAL_NOTICE', NULL, NULL, 1, 'MANUAL_NOTICE:MAINTENANCE_20260718', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY)),
+(123, 'MANUAL_NOTICE', 'ORG', '1', 'SYSTEM', 'INFO', '信息技术学院：暑期项目申报通知', '信息技术学院2026年暑期实践项目申报已开启，请各教研室于7月25日前完成项目材料提交。', 'MANUAL_NOTICE', NULL, NULL, 2, 'MANUAL_NOTICE:ORG1_SUMMER_2026', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 10 DAY)),
+(124, 'MANUAL_NOTICE', 'ORG', '2', 'SYSTEM', 'INFO', '工程学院：专家评审会通知', '工程学院定于7月20日下午14:00在工程楼B201召开学生中级能力认证专家评审会，请相关专家准时参加。', 'MANUAL_NOTICE', NULL, NULL, 3, 'MANUAL_NOTICE:ORG2_EXPERT_MEET', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 4 DAY)),
 -- === 机构入驻通知 ===
-(25, 'ORG_REGISTER_APPROVED', 'USER', '15', 'APPLICATION', 'SUCCESS', '机构入驻申请已通过', '您申请的"管理学院"入驻已审核通过，机构管理员账户已激活，请登录后完善机构信息。', 'ORG_REGISTER', 11, '/organizations', 1, 'ORG_REGISTER_APPROVED:11', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -38 DAY), NULL),
-(26, 'ORG_REGISTER_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '新机构入驻申请待审核', '机构「音乐学院」提交了入驻申请，联系人：韩老师，联系电话：13800138040，请及时审核。', 'ORG_REGISTER', 10, '/applications?tab=org', -1, 'ORG_REGISTER_PENDING:10:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
+(125, 'ORG_REGISTER_APPROVED', 'USER', '15', 'APPLICATION', 'SUCCESS', '机构入驻申请已通过', '您申请的"管理学院"入驻已审核通过，机构管理员账户已激活，请登录后完善机构信息。', 'ORG_REGISTER', 11, '/organizations', 1, 'ORG_REGISTER_APPROVED:11', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -38 DAY), NULL),
+(126, 'ORG_REGISTER_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '新机构入驻申请待审核', '机构「音乐学院」提交了入驻申请，联系人：韩老师，联系电话：13800138040，请及时审核。', 'ORG_REGISTER', 10, '/applications?tab=org', -1, 'ORG_REGISTER_PENDING:10:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
 -- === 项目管理通知 ===
-(27, 'PROJECT_UP_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '项目上架申请待终审', '项目「机器学习实战项目」(信息技术学院) 已通过机构初审，等待平台管理员终审上架。', 'PROJECT_UP', 8, '/projects/manage?filter=pending', 2, 'PROJECT_UP_PENDING:8:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
-(28, 'PROJECT_OFFLINE_NOTICE', 'ORG', '2', 'SYSTEM', 'WARNING', '项目已下架：桥梁结构设计大赛', '您机构的项目「桥梁结构设计大赛」因活动周期结束，已于昨日自动下架。如有需要可重新申请上架。', 'PROJECT', 7, '/projects/manage', 1, 'PROJECT_OFFLINE_NOTICE:7', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL);
+(127, 'PROJECT_UP_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '项目上架申请待终审', '项目「机器学习实战项目」(信息技术学院) 已通过机构初审，等待平台管理员终审上架。', 'PROJECT_UP', 8, '/projects/manage?filter=pending', 2, 'PROJECT_UP_PENDING:8:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(128, 'PROJECT_OFFLINE_NOTICE', 'ORG', '2', 'SYSTEM', 'WARNING', '项目已下架：桥梁结构设计大赛', '您机构的项目「桥梁结构设计大赛」因活动周期结束，已于昨日自动下架。如有需要可重新申请上架。', 'PROJECT', 7, '/projects/manage', 1, 'PROJECT_OFFLINE_NOTICE:7', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL);
 
 -- ========== 补充：通知接收人表（notification_recipient - 原空表） ==========
 -- 注意：按用户分发，部分通知已读，部分未读

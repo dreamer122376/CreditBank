@@ -104,7 +104,7 @@ function fmt(t) {
 
 async function handleSubmit(item) {
   try {
-    await ElMessageBox.confirm('确定要提交项目完成申请吗？', '提交完成', { type: 'info' })
+    await ElMessageBox.confirm('确定要提交项目完成申请吗？', '提交完成', { type: 'info', confirmButtonText: '确定', cancelButtonText: '取消' })
     await submitProjectForReview(item.enrollmentId)
     ElMessage.success('已提交，等待机构管理员审核')
     loadData()

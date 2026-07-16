@@ -98,6 +98,13 @@ body {
   padding: 8px 16px;
   transition: all var(--cb-transition-fast);
   border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  line-height: 1.2;
+  --el-button-text-color: inherit;
+  --el-button-hover-text-color: inherit;
 }
 
 .el-button:hover {
@@ -113,6 +120,10 @@ body {
   background: linear-gradient(135deg, var(--cb-primary) 0%, var(--cb-primary-light) 100%);
   border-color: transparent;
   color: #fff;
+  --el-button-text-color: #fff;
+  --el-button-hover-text-color: #fff;
+  --el-button-bg-color: var(--cb-primary);
+  --el-button-border-color: transparent;
 }
 
 .el-button--primary:hover {
@@ -278,8 +289,13 @@ body {
 }
 
 .el-button--small {
-  padding: 5px 12px;
+  padding: 5px 12px !important;
   font-size: var(--cb-text-xs);
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .el-card {
@@ -609,6 +625,56 @@ body {
 .status-tag.info {
   background-color: rgba(59, 91, 219, 0.1);
   color: var(--cb-primary);
+}
+
+/* ============ 按钮相邻间距统一（全局预防性规则，避免重复问题） ============ */
+
+/* Element Plus 默认：.el-button + .el-button { margin-left: 12px }
+   这会在 flex 容器中（包括 flex-wrap 换行后）与 gap 叠加，导致：
+   - 纵向按钮组：整体缩进不一致
+   - 横向按钮组换行：每行第一个按钮与上一行不对齐
+   - 任何显式 flex 容器：同时有 gap 和 margin-left 造成间距异常变大
+
+   预防性兜底：所有常用按钮容器类（flex 布局）+ style 中写了 display:flex
+   的容器，均清除相邻按钮默认 margin，间距统一用 flex gap 控制
+*/
+.op-row > .el-button + .el-button,
+.op-col > .el-button + .el-button,
+.btn-group > .el-button + .el-button,
+.action-group > .el-button + .el-button,
+.test-users-list > .el-button + .el-button,
+.flex > .el-button + .el-button,
+.flex-center > .el-button + .el-button,
+.flex-between > .el-button + .el-button,
+[class*="flex-"] > .el-button + .el-button,
+[style*="display: flex"] > .el-button + .el-button {
+  margin-left: 0 !important;
+}
+
+/* 标准操作按钮组 —— 横向排列（推荐新页面使用） */
+.op-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.op-row .el-button {
+  margin: 0 !important;
+  flex-shrink: 0;
+}
+
+/* 标准操作按钮组 —— 纵向排列（推荐新页面使用） */
+.op-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.op-col .el-button {
+  width: 100%;
+  margin: 0 !important;
 }
 
 .text-primary {

@@ -153,7 +153,7 @@
         <el-table-column label="操作" width="180" fixed="right" align="center" class-name="col-action">
           <template #default="{ row }">
             <template v-if="canOperate(row)">
-              <div class="action-group">
+              <div class="op-col">
                 <el-button type="primary" size="small" @click="openEdit(row)">编辑</el-button>
                 <el-button :type="row.isEnabled === 1 ? 'warning' : 'success'" size="small" @click="toggle(row)">
                   {{ row.isEnabled === 1 ? '停用' : '启用' }}
@@ -852,17 +852,7 @@ async function handleDelete(row) {
   50% { opacity: 0.6; transform: scale(1.2); }
 }
 
-/* ============ 操作列 ============ */
-.action-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: stretch;
-}
-
-.action-group .el-button {
-  width: 100%;
-}
+/* ============ 操作列（.op-col 使用全局标准类，避免缩进问题） ============ */
 
 .scope-tag {
   font-size: 11px;

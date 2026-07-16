@@ -12,6 +12,7 @@ import com.creditbank.mvp.entity.ExpertCert;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.ApplicationAuditLogMapper;
 import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.ExpertCertMapper;
@@ -20,6 +21,7 @@ import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.ProjectMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import com.creditbank.mvp.util.CurrentUserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -79,6 +81,7 @@ public class ApplicationService {
     private final ExpertCertService expertCertService;
     private final ProjectMapper projectMapper;
     private final NotificationService notificationService;
+    private final UserOpLogMapper userOpLogMapper;
 
     public ApplicationService(ApplicationMapper applicationMapper,
                               ApplicationAuditLogMapper applicationAuditLogMapper,
@@ -91,7 +94,8 @@ public class ApplicationService {
                               ExpertCertService expertCertService,
                               PasswordEncoder passwordEncoder,
                               ProjectMapper projectMapper,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              UserOpLogMapper userOpLogMapper) {
         this.applicationMapper = applicationMapper;
         this.applicationAuditLogMapper = applicationAuditLogMapper;
         this.sysUserMapper = sysUserMapper;
@@ -104,6 +108,7 @@ public class ApplicationService {
         this.passwordEncoder = passwordEncoder;
         this.projectMapper = projectMapper;
         this.notificationService = notificationService;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     // ==================== 查询 ====================
@@ -171,28 +176,41 @@ public class ApplicationService {
         app.setRejectReason(null);
         app.setCurrentNodeId(null);
 
+        boolean autoApproved = false;
         if (isCertBiz(app.getBizType())) {
             CertStandard standard = loadStandardForSubmit(app, applicant);
             if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
                 // 自动通过型标准：提交即通过
                 app.setCurrentStatus(STATUS_APPROVED);
-                applicationMapper.insert(app);
-                onApproved(app);
-                return applicationMapper.selectById(app.getId());
+                autoApproved = true;
+            } else {
+                if (standard.getFirstNodeId() == null) {
+                    throw new BizException("该认证标准尚未配置审批流程，请联系管理员在流程管理中配置");
+                }
+                app.setCurrentNodeId(standard.getFirstNodeId());
+                app.setCurrentStatus(STATUS_IN_REVIEW);
             }
-            if (standard.getFirstNodeId() == null) {
-                throw new BizException("该认证标准尚未配置审批流程，请联系管理员在流程管理中配置");
-            }
-            app.setCurrentNodeId(standard.getFirstNodeId());
-            app.setCurrentStatus(STATUS_IN_REVIEW);
         } else {
             // 非认证业务：系统管理员单级审核
             app.setCurrentStatus(STATUS_IN_REVIEW);
         }
 
         applicationMapper.insert(app);
-        notifyCurrentAuditor(app);
-        return applicationMapper.selectById(app.getId());
+        Application saved = applicationMapper.selectById(app.getId());
+
+        // 提交操作日志（申请人本人）
+        userOpLogMapper.insert(UserOpLog.createLog(
+                applicant.getId(), applicant.getRealName(),
+                applicant.getId(), applicant.getRealName(),
+                resolveModule(app.getBizType()), UserOpLog.ACTION_SUBMIT,
+                "提交申请（" + BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "未知") + "）：" + buildApplySummary(saved)));
+
+        if (autoApproved) {
+            onApproved(saved);
+        } else {
+            notifyCurrentAuditor(saved);
+        }
+        return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -222,10 +240,12 @@ public class ApplicationService {
         app.setRejectReason(null);
         app.setCurrentNodeId(null);
 
+        boolean autoApproved = false;
         if (isCertBiz(app.getBizType())) {
             CertStandard standard = loadStandardForSubmit(app, applicant);
             if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
                 app.setCurrentStatus(STATUS_APPROVED);
+                autoApproved = true;
             } else {
                 if (standard.getFirstNodeId() == null) {
                     throw new BizException("该认证标准尚未配置审批流程，请联系管理员在流程管理中配置");
@@ -244,12 +264,21 @@ public class ApplicationService {
         if (rows == 0) {
             throw new BizException("申请重新提交失败");
         }
-        if (app.getCurrentStatus() == STATUS_APPROVED) {
-            onApproved(app);
+        Application saved = applicationMapper.selectById(app.getId());
+
+        // 重新提交也记一次 SUBMIT 操作日志
+        userOpLogMapper.insert(UserOpLog.createLog(
+                applicant.getId(), applicant.getRealName(),
+                applicant.getId(), applicant.getRealName(),
+                resolveModule(app.getBizType()), UserOpLog.ACTION_SUBMIT,
+                "重新提交申请（" + BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "未知") + "）：" + buildApplySummary(saved)));
+
+        if (autoApproved) {
+            onApproved(saved);
         } else {
-            notifyCurrentAuditor(app);
+            notifyCurrentAuditor(saved);
         }
-        return applicationMapper.selectById(app.getId());
+        return saved;
     }
 
     /** 认证业务提交校验，返回对应的认证标准 */
@@ -338,8 +367,19 @@ public class ApplicationService {
         app.setCurrentStatus(STATUS_IN_REVIEW);
 
         applicationMapper.insert(app);
-        notifyCurrentAuditor(app);
-        return applicationMapper.selectById(app.getId());
+        Application saved = applicationMapper.selectById(app.getId());
+
+        // 机构入驻申请：无登录上下文，申请人名取自表单，操作人/目标人填申请人名
+        userOpLogMapper.insert(UserOpLog.createLog(
+                null, applicantName,
+                null, applicantName,
+                UserOpLog.MODULE_ORG_REGISTER, UserOpLog.ACTION_SUBMIT,
+                "提交机构入驻申请：" + buildApplySummary(saved) + "，联系人："
+                        + (contactPerson == null ? applicantName : contactPerson)
+                        + (contactPhone == null ? "" : " / " + contactPhone)));
+
+        notifyCurrentAuditor(saved);
+        return saved;
     }
 
     // ==================== 机构入驻状态查询（公开接口） ====================
@@ -438,6 +478,43 @@ public class ApplicationService {
         if (rows == 0) {
             throw new BizException("申请数据更新失败");
         }
+
+        // 审核操作日志：每个节点审核均记一条，包括中间环节继续流转
+        SysUser operator = userId == null ? null : sysUserMapper.selectById(userId);
+        SysUser applicant = app.getApplicantId() == null || app.getApplicantId() <= 0
+                ? null : sysUserMapper.selectById(app.getApplicantId());
+        String module = resolveModule(app.getBizType());
+        String action;
+        String stageLabel;
+        if (!approve) {
+            action = UserOpLog.ACTION_REJECT;
+            stageLabel = "审核驳回";
+        } else if (node != null && node.getNextNodeId() != null) {
+            // 仍在流程中：本环节通过，继续流转
+            action = UserOpLog.ACTION_APPROVE;
+            CertAuditFlow nextNode = certAuditFlowMapper.selectById(node.getNextNodeId());
+            stageLabel = "本环节通过，流转至下一节点：" + describeNode(nextNode);
+        } else {
+            action = UserOpLog.ACTION_APPROVE;
+            stageLabel = "终审通过";
+        }
+        StringBuilder detail = new StringBuilder()
+                .append(stageLabel).append("（").append(BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "未知")).append("）：")
+                .append(buildApplySummary(app));
+        if (node != null) {
+            detail.append(" · 审核节点：").append(describeNode(node));
+        }
+        if (!approve && reason != null && !reason.trim().isEmpty()) {
+            detail.append(" · 驳回原因：").append(reason.trim());
+        }
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator == null ? userId : operator.getId(),
+                operator == null ? null : operator.getRealName(),
+                applicant == null ? null : applicant.getId(),
+                applicant == null
+                        ? ("ORG_REGISTER".equals(app.getBizType()) ? readText(app.getFormData(), "applicantName") : null)
+                        : applicant.getRealName(),
+                module, action, detail.toString()));
 
         if (app.getCurrentStatus() == STATUS_APPROVED) {
             onApproved(app);
@@ -835,6 +912,90 @@ public class ApplicationService {
         return CERT_BIZ.contains(bizType);
     }
 
+    // 申请 bizType → 操作日志 module
+    private String resolveModule(String bizType) {
+        if ("ORG_REGISTER".equals(bizType)) {
+            return UserOpLog.MODULE_ORG_REGISTER;
+        }
+        return UserOpLog.MODULE_APPLICATION;
+    }
+
+    // 操作日志详情：精简可读
+    private String buildApplySummary(Application app) {
+        if (app == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(app.getId());
+        String bizLabel = BIZ_TYPE_NAME.getOrDefault(app.getBizType(), "未知");
+        sb.append(" · 业务类型：").append(bizLabel);
+        if ("ORG_REGISTER".equals(app.getBizType())) {
+            String orgName = readText(app.getFormData(), "orgName");
+            if (orgName != null) {
+                sb.append(" · 机构：").append(orgName);
+            }
+            String applicantName = readText(app.getFormData(), "applicantName");
+            if (applicantName != null) {
+                sb.append(" · 申请人：").append(applicantName);
+            }
+        } else if ("CERT_APPLY".equals(app.getBizType())) {
+            Long stdId = app.getBizKey() != null ? app.getBizKey() : readStandardIdQuiet(app.getFormData());
+            if (stdId != null) {
+                CertStandard standard = certStandardMapper.selectById(stdId);
+                if (standard != null) {
+                    sb.append(" · 标准：").append(standard.getStandardName());
+                }
+            }
+            if (app.getApplicantId() != null && app.getApplicantId() > 0) {
+                SysUser u = sysUserMapper.selectById(app.getApplicantId());
+                if (u != null) {
+                    sb.append(" · 申请人：").append(u.getRealName());
+                }
+            }
+        } else if ("EXPERT_CERT".equals(app.getBizType())) {
+            Long stdId = app.getBizKey() != null ? app.getBizKey() : readStandardIdQuiet(app.getFormData());
+            if (stdId != null) {
+                CertStandard standard = certStandardMapper.selectById(stdId);
+                if (standard != null) {
+                    sb.append(" · 标准：").append(standard.getStandardName());
+                }
+            }
+            if (app.getExpertId() != null) {
+                SysUser u = sysUserMapper.selectById(app.getExpertId());
+                if (u != null) {
+                    sb.append(" · 专家：").append(u.getRealName());
+                }
+            } else if (app.getApplicantId() != null && app.getApplicantId() > 0) {
+                SysUser u = sysUserMapper.selectById(app.getApplicantId());
+                if (u != null) {
+                    sb.append(" · 申请人：").append(u.getRealName());
+                }
+            }
+        } else if ("PROJECT_UP".equals(app.getBizType())) {
+            Long projectId = readLong(app.getFormData(), "projectId");
+            if (projectId != null) {
+                Project p = projectMapper.selectById(projectId);
+                if (p != null) {
+                    sb.append(" · 项目：").append(p.getName());
+                }
+            }
+        } else {
+            if (app.getApplicantId() != null && app.getApplicantId() > 0) {
+                SysUser u = sysUserMapper.selectById(app.getApplicantId());
+                if (u != null) {
+                    sb.append(" · 申请人：").append(u.getRealName());
+                }
+            }
+        }
+        int s = app.getCurrentStatus() == null ? STATUS_DRAFT : app.getCurrentStatus();
+        String statusLabel = s == STATUS_APPROVED ? "已通过"
+                : s == STATUS_REJECTED ? "已驳回"
+                : s == STATUS_IN_REVIEW || s == STATUS_LEGACY_IN_REVIEW ? "审核中"
+                : "草稿";
+        sb.append(" · 状态：").append(statusLabel);
+        return sb.toString();
+    }
+
     /** 兼容两种键名：EXPERT_CERT 用 certStandardId，CERT_APPLY 历史数据用 standardId */
     private Long readStandardId(String formData) {
         Long id = readLong(formData, "certStandardId");
@@ -872,6 +1033,29 @@ public class ApplicationService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * 描述一个审批节点：以「审核人姓名 + 节点#id」为格式，
+     * 与 detailList() 中展示节点时优先展示审核人姓名的范式保持一致；
+     * 查不到审核人姓名时 fallback 为「用户#auditorId」，
+     * 节点为 null 时统一返回「未知」。
+     */
+    private String describeNode(CertAuditFlow n) {
+        if (n == null) {
+            return "未知";
+        }
+        String auditorName = null;
+        if (n.getAuditorId() != null) {
+            SysUser auditor = sysUserMapper.selectById(n.getAuditorId());
+            if (auditor != null && auditor.getRealName() != null && !auditor.getRealName().trim().isEmpty()) {
+                auditorName = auditor.getRealName().trim();
+            }
+        }
+        String auditorPart = auditorName != null
+                ? "审核人" + auditorName
+                : "用户#" + n.getAuditorId();
+        return auditorPart + "（节点#" + n.getId() + "）";
     }
 
     // ==================== 审核日志查询 ====================

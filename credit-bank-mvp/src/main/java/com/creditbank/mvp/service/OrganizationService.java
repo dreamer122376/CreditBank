@@ -6,8 +6,10 @@ import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.OrganizationAuditResult;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,15 +27,18 @@ public class OrganizationService {
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final UserOpLogMapper userOpLogMapper;
 
     public OrganizationService(OrganizationMapper organizationMapper,
                                SysUserMapper sysUserMapper,
                                PasswordEncoder passwordEncoder,
-                               NotificationService notificationService) {
+                               NotificationService notificationService,
+                               UserOpLogMapper userOpLogMapper) {
         this.organizationMapper = organizationMapper;
         this.sysUserMapper = sysUserMapper;
         this.passwordEncoder = passwordEncoder;
         this.notificationService = notificationService;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     public List<Organization> list() {
@@ -50,6 +55,7 @@ public class OrganizationService {
         return orgs;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Organization create(Organization org) {
         if (org.getName() == null || org.getName().trim().isEmpty()) {
             throw new BizException("机构名称不能为空");
@@ -57,16 +63,37 @@ public class OrganizationService {
         org.setId(null);
         org.setStatus(Organization.STATUS_PENDING);
         organizationMapper.insert(org);
-        return organizationMapper.selectById(org.getId());
+        Organization saved = organizationMapper.selectById(org.getId());
+        SysUser operator = currentOperator();
+        // 操作日志：创建机构
+        if (operator != null) {
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    operator.getId(), operator.getRealName(),
+                    UserOpLog.MODULE_ORGANIZATION, UserOpLog.ACTION_CREATE,
+                    "创建机构：" + buildOrgSummary(saved)));
+        }
+        return saved;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Organization update(Organization org) {
         Organization exist = organizationMapper.selectById(org.getId());
         if (exist == null) {
             throw new BizException("机构不存在：" + org.getId());
         }
         organizationMapper.updateById(org);
-        return organizationMapper.selectById(org.getId());
+        Organization saved = organizationMapper.selectById(org.getId());
+        SysUser operator = currentOperator();
+        // 操作日志：更新机构
+        if (operator != null) {
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    operator.getId(), operator.getRealName(),
+                    UserOpLog.MODULE_ORGANIZATION, UserOpLog.ACTION_UPDATE,
+                    "更新机构：" + buildOrgSummary(saved)));
+        }
+        return saved;
     }
 
     /** 入驻审核 / 启停：只允许流转到 1启用 或 2禁用 */
@@ -83,6 +110,7 @@ public class OrganizationService {
         boolean isAuditPass = exist.getStatus() == Organization.STATUS_PENDING && status == Organization.STATUS_ENABLED;
         boolean isDisable = status == Organization.STATUS_DISABLED;
         boolean isReEnable = exist.getStatus() == Organization.STATUS_DISABLED && status == Organization.STATUS_ENABLED;
+        int prevStatus = exist.getStatus() == null ? -1 : exist.getStatus();
         exist.setStatus(status);
         organizationMapper.updateById(exist);
 
@@ -98,6 +126,38 @@ public class OrganizationService {
                             .eq(SysUser::getOrgId, id)
                             .set(SysUser::getStatus, 1)
                             .set(SysUser::getFrozenAt, null));
+        }
+
+        // 操作日志：机构状态变更（审核通过/停用/重新启用）
+        SysUser operator = currentOperator();
+        if (operator != null) {
+            String action;
+            String stageLabel;
+            if (isAuditPass) {
+                action = UserOpLog.ACTION_APPROVE;
+                stageLabel = "审核通过机构入驻：";
+            } else if (isDisable) {
+                action = UserOpLog.ACTION_REVOKE;
+                stageLabel = "停用机构（冻结全部用户）：";
+            } else if (isReEnable) {
+                action = UserOpLog.ACTION_UPDATE;
+                stageLabel = "重新启用机构（解冻全部用户）：";
+            } else {
+                action = UserOpLog.ACTION_UPDATE;
+                stageLabel = "机构状态变更(" + statusLabel(prevStatus) + "→" + statusLabel(status) + ")：";
+            }
+            // targetUserId = 该机构的 org_admin（若存在）
+            SysUser orgAdmin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, id)
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    orgAdmin == null ? null : orgAdmin.getId(),
+                    orgAdmin == null ? null : orgAdmin.getRealName(),
+                    UserOpLog.MODULE_ORGANIZATION, action,
+                    stageLabel + buildOrgSummary(exist)));
         }
 
         if (isAuditPass) {
@@ -136,6 +196,7 @@ public class OrganizationService {
     }
 
     /** 拒绝机构入驻申请 */
+    @Transactional(rollbackFor = Exception.class)
     public void reject(Long id, String reason) {
         Organization exist = organizationMapper.selectById(id);
         if (exist == null) {
@@ -150,6 +211,15 @@ public class OrganizationService {
         exist.setStatus(Organization.STATUS_REJECTED);
         exist.setRejectReason(reason);
         organizationMapper.updateById(exist);
+        SysUser operator = currentOperator();
+        // 操作日志：驳回机构入驻申请
+        if (operator != null) {
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    null, exist.getContactPerson(),
+                    UserOpLog.MODULE_ORGANIZATION, UserOpLog.ACTION_REJECT,
+                    "驳回机构入驻申请：" + buildOrgSummary(exist) + " · 原因：" + reason.trim()));
+        }
     }
 
     private String generateAdminUsername(String orgName) {
@@ -198,5 +268,43 @@ public class OrganizationService {
     private boolean isUsernameAvailable(String username) {
         return sysUserMapper.selectCount(
                 new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, username)) == 0;
+    }
+
+    // --- 内部辅助方法 ---
+
+    private SysUser currentOperator() {
+        Long userId = CurrentUserUtil.getCurrentUserId();
+        return userId == null ? null : sysUserMapper.selectById(userId);
+    }
+
+    // 操作日志详情
+    private String buildOrgSummary(Organization org) {
+        if (org == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(org.getId());
+        if (org.getName() != null) {
+            sb.append(" · 机构：").append(org.getName());
+        }
+        if (org.getContactPerson() != null && !org.getContactPerson().trim().isEmpty()) {
+            sb.append(" · 联系人：").append(org.getContactPerson().trim());
+        }
+        if (org.getContactPhone() != null && !org.getContactPhone().trim().isEmpty()) {
+            sb.append(" · 电话：").append(org.getContactPhone().trim());
+        }
+        if (org.getStatus() != null) {
+            sb.append(" · ").append(statusLabel(org.getStatus()));
+        }
+        return sb.toString();
+    }
+
+    private String statusLabel(Integer status) {
+        if (status == null) return "未知";
+        if (status == Organization.STATUS_PENDING) return "待审核";
+        if (status == Organization.STATUS_ENABLED) return "已启用";
+        if (status == Organization.STATUS_DISABLED) return "已停用";
+        if (status == Organization.STATUS_REJECTED) return "已驳回";
+        return "状态" + status;
     }
 }

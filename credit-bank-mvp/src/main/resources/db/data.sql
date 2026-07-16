@@ -337,3 +337,359 @@ UPDATE `organization` SET `province` = '北京市' WHERE `province` = '北京';
 UPDATE `organization` SET `province` = '广东省' WHERE `province` = '广东';
 UPDATE `organization` SET `province` = '上海市' WHERE `province` = '上海';
 UPDATE `organization` SET `province` = '湖北省' WHERE `province` = '湖北';
+
+-- ========== 补充：冻结用户（用于测试解冻申诉功能） ==========
+UPDATE `sys_user` SET `status` = 0, `frozen_at` = DATE_ADD(NOW(), INTERVAL -3 DAY), `frozen_by` = 1 WHERE `id` = 17;
+UPDATE `sys_user` SET `balance` = 0 WHERE `id` = 17;
+
+-- ========== 补充：更多项目（覆盖所有状态：待审核、已上架、已驳回、已下架、审核中） ==========
+INSERT INTO `project` (`id`, `org_id`, `expert_id`, `name`, `description`, `credit_reward`, `credit_price`, `status`, `application_id`, `created_at`, `updated_at`) VALUES
+(6, 1, 9, '机器学习实战项目', '基于Python的机器学习算法实现与应用', 350, 50, 4, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(7, 2, 11, '桥梁结构设计大赛', '工程学院桥梁结构设计与模拟竞赛', 400, 0, 3, NULL, DATE_ADD(NOW(), INTERVAL -20 DAY), DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(8, 3, 13, '企业管理案例分析', '管理学院真实企业案例深度分析项目', 180, 0, 0, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(9, 9, NULL, '英语演讲训练营', '外国语学院英语口语提升训练项目', 120, 0, 1, NULL, DATE_ADD(NOW(), INTERVAL -7 DAY), DATE_ADD(NOW(), INTERVAL -7 DAY)),
+(10, 10, NULL, '校园马拉松赛事', '体育学院校园马拉松组织与参与', 150, 0, 1, NULL, DATE_ADD(NOW(), INTERVAL -10 DAY), DATE_ADD(NOW(), INTERVAL -10 DAY)),
+(11, 11, NULL, '模拟法庭辩论', '法学院模拟法庭实战辩论项目', 200, 0, 4, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(12, 4, NULL, '职业技能提升培训', '继续教育学院职业技能认证培训', 220, 30, 1, NULL, DATE_ADD(NOW(), INTERVAL -15 DAY), DATE_ADD(NOW(), INTERVAL -15 DAY));
+
+-- ========== 补充：更多学生报名项目（覆盖更多机构和项目组合） ==========
+INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `created_at`) VALUES
+(8, 16, 9, '进行中', DATE_ADD(NOW(), INTERVAL -6 DAY)),
+(9, 16, 12, '已报名', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(10, 17, 10, '进行中', DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(11, 18, 12, '已完成', DATE_ADD(NOW(), INTERVAL -14 DAY)),
+(12, 21, 9, '已报名', DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(13, 22, 10, '进行中', DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(14, 23, 11, '进行中', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(15, 25, 7, '已完成', DATE_ADD(NOW(), INTERVAL -25 DAY)),
+(16, 20, 6, '已报名', DATE_ADD(NOW(), INTERVAL -2 DAY));
+
+-- ========== 补充：更多积分规则（与新增项目关联） ==========
+INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `start_time`, `end_time`, `project_id`, `org_id`) VALUES
+(11, 'PROJECT_PARTICIPATE', '机器学习实战项目参与', 350, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 6, 1),
+(12, 'PROJECT_PARTICIPATE', '桥梁结构设计大赛参与', 400, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 7, 2),
+(13, 'PROJECT_EXCELLENT', '桥梁结构设计大赛优秀', 800, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 7, 2),
+(14, 'PROJECT_PARTICIPATE', '英语演讲训练营参与', 120, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 9, 9),
+(15, 'PROJECT_PARTICIPATE', '校园马拉松赛事参与', 150, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 10, 10),
+(16, 'PROJECT_PARTICIPATE', '模拟法庭辩论参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 11, 11),
+(17, 'PROJECT_PARTICIPATE', '职业技能提升培训参与', 220, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 12, 4);
+
+-- ========== 补充：更多学生证书（覆盖有效、已撤销两种状态） ==========
+INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES
+(2, 6, 1, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0006-0002'), '小明', '学生初级能力认证', '信息技术学院', 'STU2026CERT02', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -8 DAY), DATE_ADD(NOW(), INTERVAL 350 DAY)),
+(3, 7, 1, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0007-0003'), '小红', '学生初级能力认证', '工程学院', 'STU2026CERT03', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -6 DAY), DATE_ADD(NOW(), INTERVAL 355 DAY)),
+(4, 16, 1, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0016-0004'), '小丽', '学生初级能力认证', '继续教育学院', 'STU2026CERT04', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -4 DAY), DATE_ADD(NOW(), INTERVAL 358 DAY)),
+(5, 20, 8, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0020-0005'), '小雪', '信息技术学院-学生中级能力认证（专家评审）', '信息技术学院', 'STU2026CERT05', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY)),
+(6, 6, 9, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0006-0006'), '小明', '信息技术学院-学生中级能力认证（专家+管理员）', '信息技术学院', 'STU2026CERT06', 0, '证书信息与实际不符，经核查予以撤销', DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -10 DAY), DATE_ADD(NOW(), INTERVAL 350 DAY));
+
+-- ========== 补充：活动报名记录（campaign_enrollment - 原空表） ==========
+INSERT INTO `campaign_enrollment` (`id`, `campaign_id`, `user_id`, `enrolled_at`) VALUES
+(1, 1, 6, DATE_ADD(NOW(), INTERVAL -6 DAY)),
+(2, 1, 7, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(3, 1, 8, DATE_ADD(NOW(), INTERVAL -4 DAY)),
+(4, 1, 16, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(5, 1, 20, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(6, 1, 21, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(7, 3, 6, DATE_ADD(NOW(), INTERVAL -28 DAY)),
+(8, 3, 7, DATE_ADD(NOW(), INTERVAL -27 DAY)),
+(9, 3, 8, DATE_ADD(NOW(), INTERVAL -26 DAY)),
+(10, 2, 18, DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- ========== 补充：统一申请审批表（application - 原空表，覆盖所有业务类型和状态） ==========
+-- 状态：0草稿/1审核中/3通过/4驳回
+-- 业务类型：PROJECT_UP(项目上架)/CERT_APPLY(证书认证)/EXPERT_CERT(专家认证)/UNFREEZE_APPEAL(解冻申诉)/ORG_REGISTER(机构入驻)
+
+-- CERT_APPLY：学生证书认证申请（已通过，已对应student_cert #5）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(1, 'CERT_APPLY', 8, 20, 1, NULL, '{"certStandardId":8,"standardId":8}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY));
+
+-- CERT_APPLY：信息技术学院-学生中级（专家+管理员）（专家已通过，等待学院管理员终审）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(2, 'CERT_APPLY', 9, 16, 1, NULL, '{"certStandardId":9,"standardId":9}', 1, 206, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- CERT_APPLY：学生初级能力认证（自动通过型标准，need_manual_audit=0）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(3, 'CERT_APPLY', 1, 21, 9, NULL, '{"certStandardId":1,"standardId":1}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL -5 DAY));
+
+-- CERT_APPLY：学生证书认证申请（已驳回，等待重新提交）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(4, 'CERT_APPLY', 11, 22, 2, NULL, '{"certStandardId":11,"standardId":11}', 4, NULL, '累计积分不足1000分，请继续积累积分后再申请', DATE_ADD(NOW(), INTERVAL -4 DAY), DATE_ADD(NOW(), INTERVAL -3 DAY));
+
+-- EXPERT_CERT：专家资质认证申请（等待系统管理员终审）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(5, 'EXPERT_CERT', 3, 4, NULL, NULL, '{"certStandardId":3,"standardId":3,"fieldName":"人工智能领域"}', 1, 103, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- EXPERT_CERT：专家资质认证申请（已通过）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(6, 'EXPERT_CERT', 3, 9, 1, NULL, '{"certStandardId":3,"standardId":3,"fieldName":"大数据分析"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -22 DAY), DATE_ADD(NOW(), INTERVAL -20 DAY));
+
+-- UNFREEZE_APPEAL：解冻申诉（student_5 小强 id=17，被冻结）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(7, 'UNFREEZE_APPEAL', 16, 17, 5, NULL, '{"appealReason":"账号被盗后被异常操作，已向管理员说明情况，请求解冻账户","proofMaterial":"已提交身份核验材料"}', 1, 217, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- PROJECT_UP：项目上架申请（机器学习实战项目 id=6，学院管理员初审通过，等待平台管理员终审）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(8, 'PROJECT_UP', 7, 2, 1, NULL, '{"projectId":6,"certStandardId":7,"standardId":7,"projectName":"机器学习实战项目"}', 1, 203, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY));
+
+-- PROJECT_UP：项目上架申请（模拟法庭辩论 id=11，待法学院管理员初审）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(9, 'PROJECT_UP', 13, 15, 3, NULL, '{"projectId":11,"certStandardId":13,"standardId":13,"projectName":"模拟法庭辩论"}', 1, 212, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- ORG_REGISTER：机构入驻申请（待审核）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(10, 'ORG_REGISTER', 5, -1, NULL, NULL, '{"orgName":"音乐学院","applicantName":"韩老师","contactPerson":"韩老师","contactPhone":"13800138040","address":"艺术楼601"}', 1, 105, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- ORG_REGISTER：机构入驻申请（已通过 - 对应 id=8 理学院）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(11, 'ORG_REGISTER', 5, -1, 8, NULL, '{"orgName":"理学院","applicantName":"周教授","contactPerson":"周教授","contactPhone":"13800138019","address":"理学楼501"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY), DATE_ADD(NOW(), INTERVAL -38 DAY));
+
+-- CERT_APPLY：工程学院-学生中级（专家评审）（专家正在审核，节点=209 对应 expert_eng_1 id=11）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(12, 'CERT_APPLY', 11, 7, 2, NULL, '{"certStandardId":11,"standardId":11}', 1, 209, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- ========== 补充：申请审批业务记录表（application_audit_log - 原空表） ==========
+-- status: 2通过 / 3驳回
+-- 申请1（CERT_APPLY中级认证）：节点204（专家id=9）已通过
+INSERT INTO `application_audit_log` (`id`, `application_id`, `node_id`, `status`, `reject_reason`, `created_at`) VALUES
+(1, 1, 204, 2, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY));
+
+-- 申请2（CERT_APPLY中级专家+管理员）：节点205（专家id=9）已通过，等待206
+INSERT INTO `application_audit_log` (`id`, `application_id`, `node_id`, `status`, `reject_reason`, `created_at`) VALUES
+(2, 2, 205, 2, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY));
+
+-- 申请4（CERT_APPLY被驳回）：节点209（专家id=11）驳回
+INSERT INTO `application_audit_log` (`id`, `application_id`, `node_id`, `status`, `reject_reason`, `created_at`) VALUES
+(3, 4, 209, 3, '累计积分不足1000分，请继续积累积分后再申请', DATE_ADD(NOW(), INTERVAL -3 DAY));
+
+-- 申请6（EXPERT_CERT已通过）：节点103（admin id=1）通过
+INSERT INTO `application_audit_log` (`id`, `application_id`, `node_id`, `status`, `reject_reason`, `created_at`) VALUES
+(4, 6, 103, 2, NULL, DATE_ADD(NOW(), INTERVAL -20 DAY));
+
+-- 申请8（PROJECT_UP）：节点202（org_admin_1 id=2）初审通过，等待203终审
+INSERT INTO `application_audit_log` (`id`, `application_id`, `node_id`, `status`, `reject_reason`, `created_at`) VALUES
+(5, 8, 202, 2, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY));
+
+-- 申请11（ORG_REGISTER已通过）：节点105（admin id=1）通过
+INSERT INTO `application_audit_log` (`id`, `application_id`, `node_id`, `status`, `reject_reason`, `created_at`) VALUES
+(6, 11, 105, 2, NULL, DATE_ADD(NOW(), INTERVAL -38 DAY));
+
+-- ========== 补充：用户操作日志（user_op_log - 原空表，覆盖所有操作类型） ==========
+INSERT INTO `user_op_log` (`id`, `operator_id`, `operator_name`, `target_user_id`, `target_user_name`, `action`, `module`, `detail`, `created_at`) VALUES
+-- 用户管理操作
+(1, 1, '系统管理员', 17, '小强', 'FREEZE', 'USER', '冻结账户：检测到异常登录行为', DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(2, 2, '张三', 6, '小明', 'UPDATE', 'USER', '编辑用户信息：更新联系电话为13800138005', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+(3, 1, '系统管理员', NULL, NULL, 'BATCH_FREEZE', 'USER', '批量冻结 2 个用户（跳过 1 个管理员）', DATE_ADD(NOW(), INTERVAL -15 DAY)),
+(4, 1, '系统管理员', 7, '小红', 'RESET_PW', 'USER', '重置密码为默认密码', DATE_ADD(NOW(), INTERVAL -7 DAY)),
+-- 积分操作
+(5, 1, '系统管理员', 2, '张三', 'EARN', 'POINT', '为用户「张三」增加 500 积分，规则：管理员手动加分，说明：机构积分池初始化补充，当前余额：5500', DATE_ADD(NOW(), INTERVAL -12 DAY)),
+(6, 1, '系统管理员', 3, '李四', 'EARN', 'POINT', '为用户「李四」增加 1000 积分，规则：管理员手动加分，说明：机构积分池初始化补充，当前余额：9000', DATE_ADD(NOW(), INTERVAL -12 DAY)),
+(7, 1, '系统管理员', 15, '陈七', 'EARN', 'POINT', '为用户「陈七」增加 2000 积分，规则：管理员手动加分，说明：新机构入驻赠送积分池，当前余额：5000', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+-- 项目管理操作
+(8, 2, '张三', NULL, NULL, 'PROJECT_AUDIT', 'PROJECT', '项目「机器学习实战项目」初审通过，报送平台管理员终审', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(9, 1, '系统管理员', NULL, NULL, 'PROJECT_OFFLINE', 'PROJECT', '项目「桥梁结构设计大赛」已下架（活动周期结束）', DATE_ADD(NOW(), INTERVAL -5 DAY)),
+-- 活动报名操作
+(10, 6, '小明', NULL, NULL, 'CAMPAIGN_ENROLL', 'ENROLL', '报名活动：暑期学习季', DATE_ADD(NOW(), INTERVAL -6 DAY)),
+(11, 7, '小红', NULL, NULL, 'CAMPAIGN_ENROLL', 'ENROLL', '报名活动：暑期学习季', DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(12, 18, '小美', NULL, NULL, 'CAMPAIGN_LEAVE', 'ENROLL', '取消报名活动：迎新活动', DATE_ADD(NOW(), INTERVAL -22 DAY)),
+-- 项目报名操作
+(13, 16, '小丽', NULL, NULL, 'PROJECT_ENROLL', 'ENROLL', '报名项目：英语演讲训练营', DATE_ADD(NOW(), INTERVAL -6 DAY)),
+(14, 23, '大壮', NULL, NULL, 'PROJECT_ENROLL', 'ENROLL', '报名项目：模拟法庭辩论', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- 项目提交完成操作
+(15, 2, '张三', NULL, NULL, 'PROJECT_SUBMIT', 'PROJECT', '学生「小刚」完成项目「校园APP开发项目」，审核通过发放奖励', DATE_ADD(NOW(), INTERVAL -10 DAY)),
+(16, 3, '李四', NULL, NULL, 'PROJECT_SUBMIT', 'PROJECT', '学生「小红」完成项目「工程模拟平台」，审核通过发放奖励', DATE_ADD(NOW(), INTERVAL -5 DAY));
+
+-- ========== 补充：专家资质认证（新增已申请但还在走流程的专家） ==========
+-- 确保专家资质完整（专家 id=4 已申请资质审核中）
+
+-- ========== 补充：更多兑换记录（覆盖更多兑换商品） ==========
+INSERT INTO `transaction_log` (`id`, `user_id`, `amount`, `balance_after`, `biz_type`, `related_rule_id`, `description`, `created_at`) VALUES
+(91, 16, -180, 880, 'EXCHANGE', 12, '兑换桌面文具套装', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(92, 21, -250, 300, 'EXCHANGE', 9, '兑换保温杯', DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(93, 23, -450, 350, 'EXCHANGE', 7, '兑换双肩背包', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(94, 20, -700, 200, 'EXCHANGE', 8, '兑换机械键盘', DATE_ADD(NOW(), INTERVAL -4 DAY)),
+(95, 16, -900, 0, 'EXCHANGE', 11, '兑换智能手环', DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(96, 22, -120, 230, 'EXCHANGE', 10, '兑换校园咖啡券', DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(97, 2, 500, 4400, 'ADMIN', 10, '管理员手动加分（说明：机构积分池补充）', DATE_ADD(NOW(), INTERVAL -12 DAY)),
+(98, 3, 1000, 8750, 'ADMIN', 10, '管理员手动加分（说明：机构积分池补充）', DATE_ADD(NOW(), INTERVAL -12 DAY)),
+(99, 15, 2000, 5000, 'ADMIN', 10, '管理员手动加分（说明：新机构入驻赠送）', DATE_ADD(NOW(), INTERVAL -10 DAY));
+
+-- ========== 补充：调整 sys_user.balance 使其与最新 transaction_log 快照一致 ==========
+-- （避免运行时积分余额与流水对不上）
+UPDATE `sys_user` SET `balance` = 760 WHERE `id` = 6;
+UPDATE `sys_user` SET `balance` = 280 WHERE `id` = 7;
+UPDATE `sys_user` SET `balance` = 250 WHERE `id` = 8;
+UPDATE `sys_user` SET `balance` = 0 WHERE `id` = 16;
+UPDATE `sys_user` SET `balance` = 400 WHERE `id` = 18;
+UPDATE `sys_user` SET `balance` = 300 WHERE `id` = 21;
+UPDATE `sys_user` SET `balance` = 230 WHERE `id` = 22;
+UPDATE `sys_user` SET `balance` = 350 WHERE `id` = 23;
+UPDATE `sys_user` SET `balance` = 200 WHERE `id` = 20;
+UPDATE `sys_user` SET `balance` = 4400 WHERE `id` = 2;
+UPDATE `sys_user` SET `balance` = 8750 WHERE `id` = 3;
+UPDATE `sys_user` SET `balance` = 5000 WHERE `id` = 15;
+
+-- ========== 补充：更多学生用户的 balance 对齐 ==========
+-- student_17 小强(冻结) balance = 0 已设置
+-- student_19 大鹏 id=19: 无流水，保持初始300
+-- student_24 小芳 id=24: 无流水，保持初始200
+-- student_25 阿飞 id=25: 无流水，保持初始650
+UPDATE `sys_user` SET `balance` = 300 WHERE `id` = 19;
+UPDATE `sys_user` SET `balance` = 200 WHERE `id` = 24;
+UPDATE `sys_user` SET `balance` = 650 WHERE `id` = 25;
+
+-- ========== 补充：通知消息表（notification - 原空表） ==========
+-- 分类：SYSTEM(系统)/APPLICATION(申请审批)/POINT(积分)/MALL(商城)/CONVERSION(成果转换)
+-- 级别：INFO/SUCCESS/WARNING
+INSERT INTO `notification` (`id`, `event_code`, `scope_type`, `scope_value`, `category`, `level`, `title`, `content`, `source_type`, `source_id`, `action_path`, `actor_id`, `dedupe_key`, `status`, `created_at`, `expires_at`) VALUES
+-- === 欢迎通知（按用户） ===
+(1, 'WELCOME', 'USER', '1', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以管理用户、机构、积分规则和审批任务；右上角铃铛用于查看全平台业务通知。', NULL, NULL, '/dashboard', NULL, 'WELCOME:1:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(2, 'WELCOME', 'USER', '2', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以管理本机构用户、项目、积分规则和兑换商品，并在工作台查看机构积分池。', NULL, NULL, '/dashboard', NULL, 'WELCOME:2:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(3, 'WELCOME', 'USER', '3', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以管理本机构用户、项目、积分规则和兑换商品，并在工作台查看机构积分池。', NULL, NULL, '/dashboard', NULL, 'WELCOME:3:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(4, 'WELCOME', 'USER', '4', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以在业务审核中处理评审任务，并在"我的资质"查看认证信息。', NULL, NULL, '/dashboard', NULL, 'WELCOME:4:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(5, 'WELCOME', 'USER', '5', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以在业务审核中处理评审任务，并在"我的资质"查看认证信息。', NULL, NULL, '/dashboard', NULL, 'WELCOME:5:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(6, 'WELCOME', 'USER', '6', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以报名项目、参加活动获取积分，在积分商城兑换商品，并申请学生证书认证。', NULL, NULL, '/dashboard', NULL, 'WELCOME:6:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(7, 'WELCOME', 'USER', '7', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以报名项目、参加活动获取积分，在积分商城兑换商品，并申请学生证书认证。', NULL, NULL, '/dashboard', NULL, 'WELCOME:7:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+(8, 'WELCOME', 'USER', '8', 'SYSTEM', 'INFO', '欢迎使用学分银行', '你可以报名项目、参加活动获取积分，在积分商城兑换商品，并申请学生证书认证。', NULL, NULL, '/dashboard', NULL, 'WELCOME:8:v1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -40 DAY), NULL),
+-- === 申请审批通知（学生 - 证书申请结果） ===
+(9, 'CERT_APPLY_APPROVED', 'USER', '20', 'APPLICATION', 'SUCCESS', '学生中级认证已通过', '您申请的"信息技术学院-学生中级能力认证（专家评审）"已审核通过，证书已发放至"我的证书"。', 'CERT_APPLY', 1, '/student-certificate/5', 9, 'CERT_APPLY_APPROVED:1', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(10, 'CERT_APPLY_REJECTED', 'USER', '22', 'APPLICATION', 'WARNING', '证书认证申请被驳回', '您申请的"工程学院-学生中级能力认证"被驳回。驳回原因：累计积分不足1000分，请继续积累积分后再申请。', 'CERT_APPLY', 4, '/applications', 11, 'CERT_APPLY_REJECTED:4', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -3 DAY), NULL),
+-- === 申请审批通知（管理员 - 待办提醒） ===
+(11, 'EXPERT_CERT_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '专家资质认证待审核', '有1份专家资质认证申请（王五 - 人工智能领域）等待您的终审。', 'EXPERT_CERT', 5, '/applications?tab=expert', NULL, 'EXPERT_CERT_PENDING:5:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
+(12, 'UNFREEZE_APPEAL_PENDING', 'ROLE', 'admin', 'APPLICATION', 'WARNING', '账户解冻申诉待审核', '学生「小强」(student_5) 提交了解冻申诉，说明账号被盗后异常操作，已提交身份核验材料，请及时审核。', 'UNFREEZE_APPEAL', 7, '/applications?tab=unfreeze', 17, 'UNFREEZE_APPEAL_PENDING:7:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
+-- === 成果转换通知 ===
+(13, 'CONVERSION_APPLY_PENDING', 'ROLE', 'admin', 'CONVERSION', 'INFO', '新的成果转换申请待审核', '学生「小明」提交了成果转换申请：全国导游基础知识(李巧玲-智慧职教) → (0402114)导游基础知识，请及时审核。', 'CONVERSION_APPLICATION', 1, '/applications?tab=conversion&filter=pending', 6, 'CONVERSION_APPLY_PENDING:1:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL),
+(14, 'CONVERSION_APPLY_PENDING', 'ROLE', 'org_admin', 'CONVERSION', 'INFO', '新的成果转换申请待审核', '学生「小红」提交了成果转换申请：汽车构造(曹义等-中国大学MOOC) → (242714)汽车结构认知，请及时审核。', 'CONVERSION_APPLICATION', 2, '/applications?tab=conversion&filter=pending', 7, 'CONVERSION_APPLY_PENDING:2:ORG_ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(15, 'CONVERSION_APPLY_REJECTED', 'USER', '8', 'CONVERSION', 'WARNING', '成果转换申请已驳回', '您的成果转换申请：人工智能导论(Coursera) → 人工智能基础 已被驳回。驳回原因：课程名称与现有规则重复，请选择已有规则申请。', 'CONVERSION_APPLICATION', 3, '/conversion-apply?id=3&status=REJECTED', 1, 'CONVERSION_APPLY_REJECTED:3', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -4 DAY), NULL),
+-- === 积分变动通知 ===
+(16, 'POINT_EARNED', 'USER', '6', 'POINT', 'SUCCESS', '获得积分：校园APP开发优秀', '您因项目「校园APP开发项目」获评优秀，获得积分 +500 分，当前账户余额 1360 分。', 'REWARD', 14, '/transactions', 2, 'POINT_EARNED:14', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(17, 'POINT_EARNED', 'USER', '7', 'POINT', 'SUCCESS', '获得积分：工程模拟平台参与', '您参与完成了项目「工程模拟平台」，获得积分 +250 分，当前账户余额 580 分。', 'REWARD', 10, '/transactions', 3, 'POINT_EARNED:10', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL),
+(18, 'DAILY_SIGNIN_REMIND', 'ALL', NULL, 'POINT', 'INFO', '每日签到提醒', '今日还未签到哦！签到可获得10积分，连续签到还有额外奖励。', NULL, NULL, '/dashboard', NULL, 'DAILY_SIGNIN_REMIND:' . DATE_FORMAT(NOW(), '%Y%m%d'), 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL 1 DAY)),
+-- === 积分商城通知 ===
+(19, 'EXCHANGE_SUCCESS', 'USER', '6', 'MALL', 'SUCCESS', '兑换成功：荣誉证书', '您使用 500 积分成功兑换了"荣誉证书"，请在"我的订单"查看兑换详情。', 'EXCHANGE', 19, '/transactions', 6, 'EXCHANGE_SUCCESS:19', 'PUBLISHED', NOW(), NULL),
+(20, 'EXCHANGE_SUCCESS', 'USER', '8', 'MALL', 'SUCCESS', '兑换成功：充电宝', '您使用 800 积分成功兑换了"充电宝"，请于3个工作日内到信息技术学院办公室领取。', 'EXCHANGE', 20, '/transactions', 8, 'EXCHANGE_SUCCESS:20', 'PUBLISHED', NOW(), NULL),
+(21, 'NEW_EXCHANGE_ITEM', 'ALL', NULL, 'MALL', 'INFO', '商城上新：智能手环限时兑', '积分商城上新啦！智能手环只需900积分即可兑换，数量有限先到先得。', NULL, NULL, '/point-mall', NULL, 'NEW_EXCHANGE_ITEM:202607', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY)),
+-- === 管理员手动发布通知 ===
+(22, 'MANUAL_NOTICE', 'ALL', NULL, 'SYSTEM', 'WARNING', '【重要】系统维护通知', '平台将于本周六（7月18日）凌晨02:00-04:00进行系统维护升级，期间所有服务将暂停使用，请提前安排好您的操作。', 'MANUAL_NOTICE', NULL, NULL, 1, 'MANUAL_NOTICE:MAINTENANCE_20260718', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY)),
+(23, 'MANUAL_NOTICE', 'ORG', '1', 'SYSTEM', 'INFO', '信息技术学院：暑期项目申报通知', '信息技术学院2026年暑期实践项目申报已开启，请各教研室于7月25日前完成项目材料提交。', 'MANUAL_NOTICE', NULL, NULL, 2, 'MANUAL_NOTICE:ORG1_SUMMER_2026', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 10 DAY)),
+(24, 'MANUAL_NOTICE', 'ORG', '2', 'SYSTEM', 'INFO', '工程学院：专家评审会通知', '工程学院定于7月20日下午14:00在工程楼B201召开学生中级能力认证专家评审会，请相关专家准时参加。', 'MANUAL_NOTICE', NULL, NULL, 3, 'MANUAL_NOTICE:ORG2_EXPERT_MEET', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL 4 DAY)),
+-- === 机构入驻通知 ===
+(25, 'ORG_REGISTER_APPROVED', 'USER', '15', 'APPLICATION', 'SUCCESS', '机构入驻申请已通过', '您申请的"管理学院"入驻已审核通过，机构管理员账户已激活，请登录后完善机构信息。', 'ORG_REGISTER', 11, '/organizations', 1, 'ORG_REGISTER_APPROVED:11', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -38 DAY), NULL),
+(26, 'ORG_REGISTER_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '新机构入驻申请待审核', '机构「音乐学院」提交了入驻申请，联系人：韩老师，联系电话：13800138040，请及时审核。', 'ORG_REGISTER', 10, '/applications?tab=org', -1, 'ORG_REGISTER_PENDING:10:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -1 DAY), NULL),
+-- === 项目管理通知 ===
+(27, 'PROJECT_UP_PENDING', 'ROLE', 'admin', 'APPLICATION', 'INFO', '项目上架申请待终审', '项目「机器学习实战项目」(信息技术学院) 已通过机构初审，等待平台管理员终审上架。', 'PROJECT_UP', 8, '/projects/manage?filter=pending', 2, 'PROJECT_UP_PENDING:8:ADMIN', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(28, 'PROJECT_OFFLINE_NOTICE', 'ORG', '2', 'SYSTEM', 'WARNING', '项目已下架：桥梁结构设计大赛', '您机构的项目「桥梁结构设计大赛」因活动周期结束，已于昨日自动下架。如有需要可重新申请上架。', 'PROJECT', 7, '/projects/manage', 1, 'PROJECT_OFFLINE_NOTICE:7', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL);
+
+-- ========== 补充：通知接收人表（notification_recipient - 原空表） ==========
+-- 注意：按用户分发，部分通知已读，部分未读
+INSERT INTO `notification_recipient` (`id`, `notification_id`, `user_id`, `read_at`, `confirmed_at`, `created_at`) VALUES
+-- === 欢迎通知（所有用户） ===
+(1, 1, 1, DATE_ADD(NOW(), INTERVAL -39 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(2, 2, 2, DATE_ADD(NOW(), INTERVAL -38 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(3, 3, 3, DATE_ADD(NOW(), INTERVAL -37 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(4, 4, 4, DATE_ADD(NOW(), INTERVAL -36 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(5, 5, 5, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(6, 6, 6, DATE_ADD(NOW(), INTERVAL -35 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(7, 7, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(8, 8, 8, DATE_ADD(NOW(), INTERVAL -34 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(9, 1, 9, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(10, 2, 10, DATE_ADD(NOW(), INTERVAL -33 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(11, 3, 11, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(12, 4, 12, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(13, 1, 13, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(14, 2, 14, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(15, 3, 15, DATE_ADD(NOW(), INTERVAL -38 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(16, 6, 16, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(17, 6, 17, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(18, 6, 18, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(19, 6, 19, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(20, 6, 20, DATE_ADD(NOW(), INTERVAL -10 DAY), NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(21, 6, 21, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(22, 6, 22, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(23, 6, 23, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(24, 6, 24, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+(25, 6, 25, NULL, NULL, DATE_ADD(NOW(), INTERVAL -40 DAY)),
+-- === 证书申请通过（小雪 id=20） ===
+(26, 9, 20, DATE_ADD(NOW(), INTERVAL -1 DAY), NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+-- === 证书申请驳回（小雨 id=22） ===
+(27, 10, 22, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+-- === 管理员待办通知（admin id=1） ===
+(28, 11, 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(29, 12, 1, NULL, DATE_ADD(NOW(), INTERVAL -12 HOUR), DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- === 成果转换待审（管理员+机构管理员） ===
+(30, 13, 1, DATE_ADD(NOW(), INTERVAL -4 DAY), NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(31, 14, 2, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(32, 14, 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(33, 14, 15, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+-- === 转换驳回（小刚 id=8） ===
+(34, 15, 8, DATE_ADD(NOW(), INTERVAL -3 DAY), NULL, DATE_ADD(NOW(), INTERVAL -4 DAY)),
+-- === 积分获得通知 ===
+(35, 16, 6, DATE_ADD(NOW(), INTERVAL -1 DAY), NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(36, 17, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+-- === 每日签到提醒（发给学生 id=6,7,8,16,18,20,21,22,23,25） ===
+(37, 18, 6, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(38, 18, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(39, 18, 8, DATE_ADD(NOW(), INTERVAL -20 HOUR), NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(40, 18, 16, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(41, 18, 18, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(42, 18, 20, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(43, 18, 21, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(44, 18, 22, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(45, 18, 23, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+(46, 18, 25, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- === 商城兑换成功 ===
+(47, 19, 6, NULL, NULL, NOW()),
+(48, 20, 8, NULL, NULL, NOW()),
+-- === 商城上新（ALL 用户） ===
+(49, 21, 6, DATE_ADD(NOW(), INTERVAL -1 DAY), NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(50, 21, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(51, 21, 8, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(52, 21, 16, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(53, 21, 17, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(54, 21, 18, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(55, 21, 20, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(56, 21, 2, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(57, 21, 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(58, 21, 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(59, 21, 9, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(60, 21, 4, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(61, 21, 5, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+-- === 系统维护重要通知（ALL 用户） - WARNING 级别，部分已确认 ===
+(62, 22, 1, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(63, 22, 2, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -1 DAY), DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(64, 22, 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(65, 22, 4, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(66, 22, 5, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(67, 22, 6, DATE_ADD(NOW(), INTERVAL -1 DAY), NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(68, 22, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(69, 22, 8, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(70, 22, 9, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(71, 22, 15, DATE_ADD(NOW(), INTERVAL -2 DAY), NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(72, 22, 16, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(73, 22, 17, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(74, 22, 18, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+(75, 22, 20, NULL, NULL, DATE_ADD(NOW(), INTERVAL -3 DAY)),
+-- === 信息技术学院通知（ORG=1：用户id=2,6,8,9,10,21） ===
+(76, 23, 2, DATE_ADD(NOW(), INTERVAL -4 DAY), NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(77, 23, 6, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(78, 23, 8, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(79, 23, 9, DATE_ADD(NOW(), INTERVAL -4 DAY), NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(80, 23, 10, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(81, 23, 21, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+-- === 工程学院专家评审会通知（ORG=2：用户id=3,7,11,12,22） ===
+(82, 24, 3, DATE_ADD(NOW(), INTERVAL -1 DAY), NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(83, 24, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(84, 24, 11, DATE_ADD(NOW(), INTERVAL -1 DAY), NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(85, 24, 12, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(86, 24, 22, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+-- === 机构入驻通过（陈七 id=15） ===
+(87, 25, 15, DATE_ADD(NOW(), INTERVAL -37 DAY), NULL, DATE_ADD(NOW(), INTERVAL -38 DAY)),
+-- === 机构入驻待审（admin id=1） ===
+(88, 26, 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY)),
+-- === 项目上架待终审（admin id=1） ===
+(89, 27, 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+-- === 项目下架通知（工程学院 org=2：用户id=3,7,11,12,22） ===
+(90, 28, 3, DATE_ADD(NOW(), INTERVAL -4 DAY), NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(91, 28, 7, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(92, 28, 11, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(93, 28, 12, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(94, 28, 22, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY));

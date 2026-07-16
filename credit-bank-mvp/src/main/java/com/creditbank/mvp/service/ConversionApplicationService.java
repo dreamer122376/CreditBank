@@ -7,11 +7,13 @@ import com.creditbank.mvp.entity.ConversionRule;
 import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.ConversionApplicationMapper;
 import com.creditbank.mvp.mapper.ConversionRuleMapper;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,7 @@ public class ConversionApplicationService {
     private final SysUserMapper sysUserMapper;
     private final PointService pointService;
     private final NotificationService notificationService;
+    private final UserOpLogMapper userOpLogMapper;
 
     public ConversionApplicationService(ConversionApplicationMapper applicationMapper,
                                         ConversionRuleMapper conversionRuleMapper,
@@ -44,7 +47,8 @@ public class ConversionApplicationService {
                                         OrganizationMapper organizationMapper,
                                         SysUserMapper sysUserMapper,
                                         PointService pointService,
-                                        NotificationService notificationService) {
+                                        NotificationService notificationService,
+                                        UserOpLogMapper userOpLogMapper) {
         this.applicationMapper = applicationMapper;
         this.conversionRuleMapper = conversionRuleMapper;
         this.creditRuleMapper = creditRuleMapper;
@@ -52,6 +56,7 @@ public class ConversionApplicationService {
         this.sysUserMapper = sysUserMapper;
         this.pointService = pointService;
         this.notificationService = notificationService;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     public List<ConversionApplication> list() {
@@ -144,15 +149,22 @@ public class ConversionApplicationService {
         application.setApprovedAt(null);
         application.setCreatedAt(LocalDateTime.now());
         applicationMapper.insert(application);
+        ConversionApplication saved = getById(application.getId());
+
+        // 操作日志：提交人即为学生本人
+        userOpLogMapper.insert(UserOpLog.createLog(
+                student.getId(), student.getRealName(),
+                student.getId(), student.getRealName(),
+                UserOpLog.MODULE_CONVERSION_APPLY, UserOpLog.ACTION_SUBMIT,
+                "提交转换申请：" + buildApplySummary(saved)));
 
         // 通知管理员/机构管理员有新的待审核转换申请
-        notifyAdminsOfPendingApplication(application);
-
-        return getById(application.getId());
+        notifyAdminsOfPendingApplication(saved);
+        return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ConversionApplication audit(Long id, boolean approve, String reason, Long operatorId) {
+    public ConversionApplication audit(Long id, boolean approve, String reason, SysUser operator) {
         ConversionApplication application = getById(id);
         int status = application.getStatus() != null ? application.getStatus() : STATUS_PENDING;
 
@@ -170,14 +182,57 @@ public class ConversionApplicationService {
             application.setStatus(STATUS_APPROVED);
             application.setApprovedAt(LocalDateTime.now());
             if (application.getApplyType().equals(APPLY_TYPE_RULE_CONVERT)) {
-                grantCredit(application, operatorId);
+                grantCredit(application, operator.getId());
             }
         }
 
         applicationMapper.updateById(application);
+        ConversionApplication result = getById(id);
+
+        // 操作日志：审核维度，target=学生本人
+        SysUser student = sysUserMapper.selectById(application.getStudentId());
+        String action = approve ? UserOpLog.ACTION_APPROVE : UserOpLog.ACTION_REJECT;
+        String detail = (approve ? "审核通过转换申请：" : "审核驳回转换申请：") + buildApplySummary(result);
+        if (!approve && reason != null && !reason.trim().isEmpty()) {
+            detail = detail + " · 驳回原因：" + reason.trim();
+        }
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(),
+                student == null ? null : student.getId(),
+                student == null ? null : student.getRealName(),
+                UserOpLog.MODULE_CONVERSION_APPLY, action, detail));
+
         // 通知学生审核结果
-        notifyStudentOfAuditResult(application, approve, reason);
-        return getById(id);
+        notifyStudentOfAuditResult(result, approve, reason);
+        return result;
+    }
+
+    // 操作日志详情描述：简化阅读
+    private String buildApplySummary(ConversionApplication app) {
+        if (app == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(app.getId());
+        if (app.getApplyType() != null) {
+            sb.append(" [").append(APPLY_TYPE_RULE_CONVERT.equals(app.getApplyType()) ? "规则转换" : "自定义转换").append("]");
+        }
+        if (app.getOriginalName() != null) {
+            sb.append(" [").append(app.getOriginalType() == null ? "" : app.getOriginalType())
+              .append("] ").append(app.getOriginalName());
+        }
+        sb.append(" → ");
+        if (app.getConvertedName() != null) {
+            sb.append("[").append(app.getConvertedType() == null ? "" : app.getConvertedType())
+              .append("] ").append(app.getConvertedName());
+        }
+        if (app.getConvertedOrgName() != null && !app.getConvertedOrgName().isEmpty()) {
+            sb.append("（").append(app.getConvertedOrgName()).append("）");
+        }
+        String statusLabel = STATUS_PENDING == (app.getStatus() == null ? STATUS_PENDING : app.getStatus()) ? "待审核"
+                : (STATUS_APPROVED == (app.getStatus() == null ? -1 : app.getStatus()) ? "已通过" : "已驳回");
+        sb.append(" · ").append(statusLabel);
+        return sb.toString();
     }
 
     private void grantCredit(ConversionApplication application, Long operatorId) {

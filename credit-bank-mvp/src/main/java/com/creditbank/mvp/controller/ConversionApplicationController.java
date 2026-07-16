@@ -105,7 +105,7 @@ public class ConversionApplicationController {
         if (!"admin".equals(operator.getRole()) && !"org_admin".equals(operator.getRole())) {
             throw new BizException("无权限审核");
         }
-        return Result.ok(applicationService.audit(id, request.isApprove(), request.getReason(), userId));
+        return Result.ok(applicationService.audit(id, request.isApprove(), request.getReason(), operator));
     }
 
     public static class AuditRequest {

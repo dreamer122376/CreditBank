@@ -12,11 +12,12 @@ const convTodoCount = ref(0)   // 转换申请 - 待审核
 let timer = null
 let visibilityBound = false
 
-// 按角色判断是否有审核权限：与 MainLayout 菜单权限保持一致
+// 按角色判断是否有审核权限：与 useAuth.ROLE_NAME 的 key（全小写）保持一致
 function hasAuditRole(user) {
-  if (!user) return false
-  if (String(user.username || user.id) === 'admin') return true
-  return ['ORG_ADMIN', 'CENTER_REVIEWER', 'DEPT_REVIEWER', 'EXPERT'].includes(String(user.role))
+  if (!user || !user.role) return false
+  const role = String(user.role).toLowerCase()
+  // 与 MainLayout 菜单权限一致：admin / org_admin / expert 均有审核入口
+  return ['admin', 'org_admin', 'expert'].includes(role)
 }
 
 async function refreshAuditTodos() {
@@ -28,8 +29,9 @@ async function refreshAuditTodos() {
       convTodoCount.value = 0
       return
     }
+    // 与 Applications.vue loadData 调用口径完全一致：传实际 role + userId
     const [apps, convApps] = await Promise.all([
-      getApplications('REVIEWER', currentUser.value?.id),
+      getApplications(currentUser.value?.role, currentUser.value?.id),
       getConversionApplications()
     ])
     const appList = Array.isArray(apps?.records) ? apps.records : Array.isArray(apps) ? apps : []

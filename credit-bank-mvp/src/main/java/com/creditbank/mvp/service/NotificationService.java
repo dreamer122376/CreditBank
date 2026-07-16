@@ -370,14 +370,25 @@ public class NotificationService {
         notification.setExpiresAt(expiresAt);
         notificationMapper.insert(notification);
 
+        int inserted = 0;
         for (Long recipientId : recipientIds.stream().distinct().collect(Collectors.toList())) {
+            // 幂等：接收人已存在则跳过（修复并发启动/重复执行时
+            // notification_recipient.uk_notification_user 唯一索引报错导致 ApplicationContext 启动失败的 bug）
+            long exists = recipientMapper.selectCount(
+                    new LambdaQueryWrapper<NotificationRecipient>()
+                            .eq(NotificationRecipient::getNotificationId, notification.getId())
+                            .eq(NotificationRecipient::getUserId, recipientId));
+            if (exists > 0) {
+                continue;
+            }
             NotificationRecipient recipient = new NotificationRecipient();
             recipient.setNotificationId(notification.getId());
             recipient.setUserId(recipientId);
             recipient.setCreatedAt(now);
             recipientMapper.insert(recipient);
+            inserted++;
         }
-        return (int) recipientIds.stream().distinct().count();
+        return inserted;
     }
 
     private String welcomeContent(String role) {

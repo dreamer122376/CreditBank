@@ -6,10 +6,12 @@ import com.creditbank.mvp.entity.ConversionRule;
 import com.creditbank.mvp.entity.CreditRule;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.ConversionRuleMapper;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +30,18 @@ public class ConversionRuleService {
     private final OrganizationMapper organizationMapper;
     private final CreditRuleMapper creditRuleMapper;
     private final SysUserMapper sysUserMapper;
+    private final UserOpLogMapper userOpLogMapper;
 
     public ConversionRuleService(ConversionRuleMapper conversionRuleMapper,
                                  OrganizationMapper organizationMapper,
                                  CreditRuleMapper creditRuleMapper,
-                                 SysUserMapper sysUserMapper) {
+                                 SysUserMapper sysUserMapper,
+                                 UserOpLogMapper userOpLogMapper) {
         this.conversionRuleMapper = conversionRuleMapper;
         this.organizationMapper = organizationMapper;
         this.creditRuleMapper = creditRuleMapper;
         this.sysUserMapper = sysUserMapper;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     public List<ConversionRule> list() {
@@ -77,7 +82,7 @@ public class ConversionRuleService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ConversionRule create(ConversionRule rule) {
+    public ConversionRule create(ConversionRule rule, SysUser operator) {
         if (rule.getOriginalName() == null || rule.getOriginalName().trim().isEmpty()) {
             throw new BizException("原成果名称不能为空");
         }
@@ -116,11 +121,17 @@ public class ConversionRuleService {
         rule.setId(null);
         rule.setCreatedAt(LocalDateTime.now());
         conversionRuleMapper.insert(rule);
-        return getById(rule.getId());
+        ConversionRule saved = getById(rule.getId());
+        // 写操作日志：目标用户为空，因为规则是配置而非针对某个用户
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CONVERSION_RULE, UserOpLog.ACTION_CREATE,
+                "创建转换规则：" + buildRuleSummary(saved)));
+        return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ConversionRule update(ConversionRule rule) {
+    public ConversionRule update(ConversionRule rule, SysUser operator) {
         ConversionRule exist = getById(rule.getId());
         if (rule.getCreditRuleId() != null) {
             CreditRule creditRule = creditRuleMapper.selectById(rule.getCreditRuleId());
@@ -136,24 +147,71 @@ public class ConversionRuleService {
         rule.setCreatedAt(exist.getCreatedAt());
         rule.setCreatedBy(exist.getCreatedBy());
         conversionRuleMapper.updateById(rule);
-        return getById(rule.getId());
+        ConversionRule updated = getById(rule.getId());
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CONVERSION_RULE, UserOpLog.ACTION_UPDATE,
+                "编辑转换规则：" + buildRuleSummary(updated)));
+        return updated;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void delete(Long id) {
-        getById(id);
+    public void delete(Long id, SysUser operator) {
+        ConversionRule exist = getById(id);
         conversionRuleMapper.deleteById(id);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CONVERSION_RULE, UserOpLog.ACTION_DELETE,
+                "删除转换规则：" + buildRuleSummary(exist)));
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ConversionRule toggleEnabled(Long id, Integer isEnabled) {
+    public ConversionRule toggleEnabled(Long id, Integer isEnabled, SysUser operator) {
         ConversionRule exist = getById(id);
         if (isEnabled == null || (isEnabled != STATUS_ENABLED && isEnabled != STATUS_DISABLED)) {
             throw new BizException("非法的状态值：" + isEnabled);
         }
         exist.setIsEnabled(isEnabled);
         conversionRuleMapper.updateById(exist);
+        String actionLabel = isEnabled == STATUS_ENABLED ? "启用" : "停用";
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(), null, null,
+                UserOpLog.MODULE_CONVERSION_RULE, UserOpLog.ACTION_CONVERSION_TOGGLE,
+                actionLabel + "转换规则：" + buildRuleSummary(exist)));
         return exist;
+    }
+
+    // ========== 内部辅助 ==========
+
+    // 构造规则的简要描述，用于写操作日志的详情字段
+    private String buildRuleSummary(ConversionRule rule) {
+        if (rule == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(rule.getId());
+        if (rule.getOriginalName() != null) {
+            sb.append(" [").append(rule.getOriginalType() == null ? "" : rule.getOriginalType())
+              .append("] ").append(rule.getOriginalName());
+            if (rule.getOriginalOrgName() != null && !rule.getOriginalOrgName().isEmpty()) {
+                sb.append("（").append(rule.getOriginalOrgName()).append("）");
+            }
+        }
+        sb.append(" → ");
+        if (rule.getConvertedName() != null) {
+            sb.append("[").append(rule.getConvertedType() == null ? "" : rule.getConvertedType())
+              .append("] ").append(rule.getConvertedName());
+            if (rule.getConvertedOrgName() != null && !rule.getConvertedOrgName().isEmpty()) {
+                sb.append("（").append(rule.getConvertedOrgName()).append("）");
+            }
+        }
+        if (rule.getCreditValue() != null) {
+            sb.append(" · 赋分").append(rule.getCreditValue());
+        }
+        if (rule.getIsEnabled() != null) {
+            sb.append(" · ").append(rule.getIsEnabled() == STATUS_ENABLED ? "启用中" : "已停用");
+        }
+        return sb.toString();
     }
 
     private List<ConversionRule> enrichWithRelatedData(List<ConversionRule> rules) {

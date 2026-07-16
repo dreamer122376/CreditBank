@@ -9,12 +9,15 @@ import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.StudentCert;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.ApplicationMapper;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.StudentCertMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -36,19 +39,22 @@ public class StudentCertService {
     private final CertStandardMapper certStandardMapper;
     private final OrganizationMapper organizationMapper;
     private final CertAuditFlowMapper certAuditFlowMapper;
+    private final UserOpLogMapper userOpLogMapper;
 
     public StudentCertService(StudentCertMapper studentCertMapper,
                               ApplicationMapper applicationMapper,
                               SysUserMapper sysUserMapper,
                               CertStandardMapper certStandardMapper,
                               OrganizationMapper organizationMapper,
-                              CertAuditFlowMapper certAuditFlowMapper) {
+                              CertAuditFlowMapper certAuditFlowMapper,
+                              UserOpLogMapper userOpLogMapper) {
         this.studentCertMapper = studentCertMapper;
         this.applicationMapper = applicationMapper;
         this.sysUserMapper = sysUserMapper;
         this.certStandardMapper = certStandardMapper;
         this.organizationMapper = organizationMapper;
         this.certAuditFlowMapper = certAuditFlowMapper;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     public StudentCert issueForApplication(Application app) {
@@ -70,6 +76,7 @@ public class StudentCertService {
                         .eq(StudentCert::getStatus, 1)
                         .last("LIMIT 1"));
         if (existing != null) {
+            // 幂等返回，不重复写日志
             return existing;
         }
 
@@ -96,7 +103,18 @@ public class StudentCertService {
         cert.setIssuedAt(now);
         cert.setValidUntil(now.plusYears(1));
         studentCertMapper.insert(cert);
-        return studentCertMapper.selectById(cert.getId());
+        StudentCert saved = studentCertMapper.selectById(cert.getId());
+
+        // 发证操作日志：operator = 当前登录的审核人（ThreadLocal 中），target = 学生
+        Long operatorId = CurrentUserUtil.getCurrentUserId();
+        SysUser operator = operatorId == null ? null : sysUserMapper.selectById(operatorId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator == null ? operatorId : operator.getId(),
+                operator == null ? null : operator.getRealName(),
+                student.getId(), student.getRealName(),
+                UserOpLog.MODULE_STUDENT_CERT, UserOpLog.ACTION_ISSUE,
+                "发放学生证书：" + buildCertSummary(saved)));
+        return saved;
     }
 
     public List<StudentCert> listByStudent(Long studentId, String role, Long userId) {
@@ -148,7 +166,17 @@ public class StudentCertService {
         cert.setRevokeReason(reason.trim());
         cert.setRevokedAt(LocalDateTime.now());
         studentCertMapper.updateById(cert);
-        return studentCertMapper.selectById(id);
+        StudentCert saved = studentCertMapper.selectById(id);
+
+        // 撤回操作日志：操作人 userId 从参数取，target = 证书学生
+        SysUser operator = userId == null ? null : sysUserMapper.selectById(userId);
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator == null ? userId : operator.getId(),
+                operator == null ? null : operator.getRealName(),
+                cert.getStudentId(), cert.getStudentName(),
+                UserOpLog.MODULE_STUDENT_CERT, UserOpLog.ACTION_REVOKE,
+                "作废学生证书：" + buildCertSummary(saved) + " · 原因：" + reason.trim()));
+        return saved;
     }
 
     public StudentCertVerifyDTO verify(String certNo, String verifyCode) {
@@ -271,6 +299,31 @@ public class StudentCertService {
 
     private String buildCertNo(LocalDateTime issuedAt, Long studentId, Long applicationId) {
         return String.format("CB-%s-%04d-%04d", issuedAt.format(CERT_NO_DATE), studentId, applicationId);
+    }
+
+    // 操作日志详情
+    private String buildCertSummary(StudentCert cert) {
+        if (cert == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(cert.getId());
+        if (cert.getCertNo() != null) {
+            sb.append(" · 编号：").append(cert.getCertNo());
+        }
+        if (cert.getCertName() != null) {
+            sb.append(" · 证书：").append(cert.getCertName());
+        }
+        if (cert.getStudentName() != null) {
+            sb.append(" · 学生：").append(cert.getStudentName());
+        }
+        if (cert.getOrgName() != null && !cert.getOrgName().isEmpty()) {
+            sb.append(" · 机构：").append(cert.getOrgName());
+        }
+        if (cert.getStatus() != null) {
+            sb.append(" · ").append(cert.getStatus() == 1 ? "有效" : "已作废");
+        }
+        return sb.toString();
     }
 
     private Long readStandardId(String formData) {

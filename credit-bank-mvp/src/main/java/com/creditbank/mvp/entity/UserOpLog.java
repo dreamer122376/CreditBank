@@ -20,6 +20,24 @@ public class UserOpLog {
     public static final String MODULE_PROJECT = "PROJECT";
     public static final String MODULE_POINT = "POINT";
     public static final String MODULE_ENROLL = "ENROLL";
+    // 转换规则模块：记录创建/编辑/删除/启停等管理操作
+    public static final String MODULE_CONVERSION_RULE = "CONVERSION_RULE";
+    // 成果转换申请：学生提交转换申请、管理员审核
+    public static final String MODULE_CONVERSION_APPLY = "CONVERSION_APPLY";
+    // 证书申请：学生提交证书认证、管理员审核
+    public static final String MODULE_APPLICATION = "APPLICATION";
+    // 机构注册申请：机构提交注册、管理员审核
+    public static final String MODULE_ORG_REGISTER = "ORG_REGISTER";
+    // 学生证书：发放、撤回
+    public static final String MODULE_STUDENT_CERT = "STUDENT_CERT";
+    // 兑换规则管理：创建/编辑/启停（注意与 MODULE_POINT.EXCHANGE 区分：前者是后台配置管理，后者是用户行为）
+    public static final String MODULE_EXCHANGE_RULE = "EXCHANGE_RULE";
+    // 积分规则管理：创建/编辑/删除/启停/批量调账
+    public static final String MODULE_CREDIT_RULE = "CREDIT_RULE";
+    // 证书标准：创建/编辑/启停
+    public static final String MODULE_CERT_STANDARD = "CERT_STANDARD";
+    // 机构管理：创建/编辑/审核通过/驳回
+    public static final String MODULE_ORGANIZATION = "ORGANIZATION";
 
     // ========== 操作类型常量 ==========
     public static final String ACTION_FREEZE = "FREEZE";
@@ -40,6 +58,24 @@ public class UserOpLog {
     public static final String ACTION_PROJECT_LEAVE = "PROJECT_LEAVE";
     public static final String ACTION_PROJECT_SUBMIT = "PROJECT_SUBMIT";
     public static final String ACTION_EARN = "EARN";
+    // 积分兑换动作（与 TransactionLog.bizType=EXCHANGE 对齐，修复之前硬编码字符串的问题）
+    public static final String ACTION_EXCHANGE = "EXCHANGE";
+    // 转换规则启停动作（历史常量，仅 ConversionRuleService 专用）
+    public static final String ACTION_CONVERSION_TOGGLE = "CONVERSION_TOGGLE";
+    // 通用：配置类规则启停（兑换规则、积分规则、证书标准通用，module 区分维度）
+    public static final String ACTION_RULE_TOGGLE = "RULE_TOGGLE";
+    // 通用：申请/注册/提交（证书申请、机构注册、转换申请均复用）
+    public static final String ACTION_SUBMIT = "SUBMIT";
+    // 通用：审批通过（证书申请、机构注册、转换申请、机构审核均复用，module 区分维度）
+    public static final String ACTION_APPROVE = "APPROVE";
+    // 通用：审批驳回
+    public static final String ACTION_REJECT = "REJECT";
+    // 证书发放
+    public static final String ACTION_ISSUE = "ISSUE";
+    // 证书/资质撤回
+    public static final String ACTION_REVOKE = "REVOKE";
+    // 积分批量调账（按积分规则追溯调整历史数据）
+    public static final String ACTION_BATCH_ADJUST = "BATCH_ADJUST";
 
     @TableId(type = IdType.AUTO)
     private Long id;

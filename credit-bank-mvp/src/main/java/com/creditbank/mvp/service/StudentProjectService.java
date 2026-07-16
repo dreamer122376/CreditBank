@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.ProjectDetailDTO;
 import com.creditbank.mvp.dto.ProjectEnrollmentDTO;
+import com.creditbank.mvp.dto.StudentProjectAuditDTO;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.OrganizationMapper;
+import com.creditbank.mvp.mapper.ProjectMapper;
 import com.creditbank.mvp.mapper.StudentProjectMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.UserOpLogMapper;
@@ -33,6 +35,7 @@ public class StudentProjectService {
 
     private final StudentProjectMapper studentProjectMapper;
     private final ProjectService projectService;
+    private final ProjectMapper projectMapper;
     private final SysUserMapper sysUserMapper;
     private final OrganizationMapper organizationMapper;
     private final UserOpLogMapper userOpLogMapper;
@@ -40,12 +43,14 @@ public class StudentProjectService {
 
     public StudentProjectService(StudentProjectMapper studentProjectMapper,
                                  ProjectService projectService,
+                                 ProjectMapper projectMapper,
                                  SysUserMapper sysUserMapper,
                                  OrganizationMapper organizationMapper,
                                  UserOpLogMapper userOpLogMapper,
                                  PointService pointService) {
         this.studentProjectMapper = studentProjectMapper;
         this.projectService = projectService;
+        this.projectMapper = projectMapper;
         this.sysUserMapper = sysUserMapper;
         this.organizationMapper = organizationMapper;
         this.userOpLogMapper = userOpLogMapper;
@@ -213,6 +218,13 @@ public class StudentProjectService {
             throw new BizException("报名记录不存在：" + enrollmentId);
         }
 
+        if ("org_admin".equals(operator.getRole()) && operator.getOrgId() != null) {
+            Project project = projectMapper.selectById(enrollment.getProjectId());
+            if (project == null || !operator.getOrgId().equals(project.getOrgId())) {
+                throw new BizException("无权审核非本机构项目的报名");
+            }
+        }
+
         String current = enrollment.getStatus();
         if (StudentProject.STATUS_CANCELLED.equals(current)) {
             throw new BizException("已取消的报名不可修改状态");
@@ -283,6 +295,86 @@ public class StudentProjectService {
                 null, null,
                 UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_PROJECT_SUBMIT,
                 "提交项目完成申请：" + (project != null ? project.getName() : "")));
+    }
+
+    /**
+     * 查询待审核的报名列表（机构管理员只能查看本机构项目下的报名）。
+     */
+    public List<StudentProjectAuditDTO> getPendingAuditEnrollments(SysUser operator) {
+        if (!isOrgAdminOrAdmin(operator)) {
+            throw new BizException("无权操作");
+        }
+
+        System.out.println("[DEBUG] getPendingAuditEnrollments - operator: " + operator.getRealName() + ", role: " + operator.getRole() + ", orgId: " + operator.getOrgId());
+
+        LambdaQueryWrapper<StudentProject> query = new LambdaQueryWrapper<StudentProject>()
+                .eq(StudentProject::getStatus, StudentProject.STATUS_PENDING_REVIEW);
+
+        if ("org_admin".equals(operator.getRole()) && operator.getOrgId() != null) {
+            List<Project> orgProjects = projectMapper.selectList(
+                    new LambdaQueryWrapper<Project>()
+                            .eq(Project::getOrgId, operator.getOrgId()));
+            System.out.println("[DEBUG] org_admin projects count: " + orgProjects.size());
+            if (orgProjects.isEmpty()) {
+                return new ArrayList<>();
+            }
+            List<Long> projectIds = orgProjects.stream()
+                    .map(Project::getId)
+                    .collect(Collectors.toList());
+            System.out.println("[DEBUG] projectIds: " + projectIds);
+            query.in(StudentProject::getProjectId, projectIds);
+        }
+
+        List<StudentProject> enrollments = studentProjectMapper.selectList(query);
+        System.out.println("[DEBUG] enrollments count: " + enrollments.size());
+        if (enrollments.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> projectIds = enrollments.stream()
+                .map(StudentProject::getProjectId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Project> projectMap = projectMapper.selectBatchIds(projectIds)
+                .stream()
+                .collect(Collectors.toMap(Project::getId, p -> p));
+
+        Map<Long, SysUser> studentMap = sysUserMapper.selectBatchIds(
+                enrollments.stream().map(StudentProject::getStudentId).distinct().collect(Collectors.toList())
+        ).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+
+        Map<Long, Organization> orgMap = new java.util.HashMap<>();
+        for (Project project : projectMap.values()) {
+            if (project.getOrgId() != null && !orgMap.containsKey(project.getOrgId())) {
+                Organization org = organizationMapper.selectById(project.getOrgId());
+                if (org != null) {
+                    orgMap.put(project.getOrgId(), org);
+                }
+            }
+        }
+
+        return enrollments.stream().map(enrollment -> {
+            StudentProjectAuditDTO dto = new StudentProjectAuditDTO();
+            dto.setId(enrollment.getId());
+            dto.setStudentId(enrollment.getStudentId());
+            dto.setStudentName(studentMap.get(enrollment.getStudentId()) != null
+                    ? studentMap.get(enrollment.getStudentId()).getRealName()
+                    : "");
+            dto.setProjectId(enrollment.getProjectId());
+            dto.setProjectName(projectMap.get(enrollment.getProjectId()) != null
+                    ? projectMap.get(enrollment.getProjectId()).getName()
+                    : "");
+            Project project = projectMap.get(enrollment.getProjectId());
+            if (project != null) {
+                dto.setOrgId(project.getOrgId());
+                dto.setOrgName(orgMap.get(project.getOrgId()) != null
+                        ? orgMap.get(project.getOrgId()).getName()
+                        : "");
+            }
+            dto.setStatus(enrollment.getStatus());
+            dto.setCreatedAt(enrollment.getCreatedAt());
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     // ==================== 内部工具 ====================

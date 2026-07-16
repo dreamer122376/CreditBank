@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { getApplications } from '@/api/application'
 import { getConversionApplications } from '@/api/conversionApplication'
+import { getPendingAuditEnrollments } from '@/api/project'
 import { useAuth } from './useAuth'
 
 // 证书类业务类型：与 Applications.vue 保持一致
@@ -9,6 +10,7 @@ const CERT_BIZ_TYPES = ['CERT_APPLY', 'EXPERT_CERT']
 const bizTodoCount = ref(0)    // 业务流程 - 待我审核
 const certTodoCount = ref(0)   // 证书申请 - 待我审核
 const convTodoCount = ref(0)   // 转换申请 - 待审核
+const enrollmentTodoCount = ref(0) // 报名审核 - 待审核
 let timer = null
 let visibilityBound = false
 
@@ -27,21 +29,26 @@ async function refreshAuditTodos() {
       bizTodoCount.value = 0
       certTodoCount.value = 0
       convTodoCount.value = 0
+      enrollmentTodoCount.value = 0
       return
     }
     // 与 Applications.vue loadData 调用口径完全一致：传实际 role + userId
-    const [apps, convApps] = await Promise.all([
+    const [apps, convApps, enrollApps] = await Promise.all([
       getApplications(currentUser.value?.role, currentUser.value?.id),
-      getConversionApplications()
+      getConversionApplications(),
+      getPendingAuditEnrollments()
     ])
     const appList = Array.isArray(apps?.records) ? apps.records : Array.isArray(apps) ? apps : []
     const convList = Array.isArray(convApps?.records) ? convApps.records : Array.isArray(convApps) ? convApps : []
+    const enrollList = Array.isArray(enrollApps) ? enrollApps : []
     // 证书申请：CERT 类型 + canAudit
     certTodoCount.value = appList.filter(a => CERT_BIZ_TYPES.includes(a.bizType) && a.canAudit).length
     // 业务流程：非 CERT 类型 + canAudit
     bizTodoCount.value = appList.filter(a => !CERT_BIZ_TYPES.includes(a.bizType) && a.canAudit).length
     // 转换申请：status === 0
     convTodoCount.value = convList.filter(a => Number(a.status) === 0).length
+    // 报名审核：status === '待审核'
+    enrollmentTodoCount.value = enrollList.filter(e => e.status === '待审核').length
   } catch (_) {
     // 徽标获取失败不影响主流程
   }
@@ -75,11 +82,12 @@ function clearAuditTodos() {
   bizTodoCount.value = 0
   certTodoCount.value = 0
   convTodoCount.value = 0
+  enrollmentTodoCount.value = 0
 }
 
 // 导航栏汇总徽标
 const auditTodoCount = computed(() =>
-  bizTodoCount.value + certTodoCount.value + convTodoCount.value
+  bizTodoCount.value + certTodoCount.value + convTodoCount.value + enrollmentTodoCount.value
 )
 
 export function useAuditTodos() {
@@ -87,6 +95,7 @@ export function useAuditTodos() {
     bizTodoCount,
     certTodoCount,
     convTodoCount,
+    enrollmentTodoCount,
     auditTodoCount,
     refreshAuditTodos,
     startAuditTodosPolling,

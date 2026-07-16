@@ -26,6 +26,10 @@
               转换申请
               <span v-if="convTodoCount > 0" class="tab-badge" :class="{ wide: convTodoCount > 9 }">{{ fmtBadge(convTodoCount) }}</span>
             </span>
+            <span class="tab" :class="{ active: activeTab === 'enrollment' }" @click="switchTab('enrollment')">
+              报名审核
+              <span v-if="enrollmentTodoCount > 0" class="tab-badge" :class="{ wide: enrollmentTodoCount > 9 }">{{ fmtBadge(enrollmentTodoCount) }}</span>
+            </span>
           </div>
           <div class="header-right">
             <el-tag v-if="statFilter" closable type="primary" effect="plain" @close="statFilter = null">
@@ -36,7 +40,7 @@
         </div>
       </template>
 
-      <el-table v-if="activeTab !== 'conversion'" :data="filteredApps" border style="width: 100%;">
+      <el-table v-if="activeTab === 'biz' || activeTab === 'cert'" :data="filteredApps" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="65" />
         <el-table-column prop="bizTypeName" label="申请类型" width="130" />
         <el-table-column v-if="activeTab === 'cert'" label="认证标准" min-width="160">
@@ -78,7 +82,7 @@
         </el-table-column>
       </el-table>
 
-      <el-table v-else :data="filteredConversionApps" border style="width: 100%;">
+      <el-table v-if="activeTab === 'conversion'" :data="filteredConversionApps" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="65" />
         <el-table-column prop="studentName" label="申请人" width="100" />
         <el-table-column prop="applyType" label="申请类型" width="120">
@@ -150,8 +154,37 @@
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="activeTab !== 'conversion' && !filteredApps.length" :description="statFilter ? '当前筛选条件下暂无申请' : (activeTab === 'cert' ? '暂无证书申请' : '暂无业务流程申请')" />
+      <el-table v-if="activeTab === 'enrollment'" :data="filteredEnrollmentApps" border style="width: 100%;">
+        <el-table-column prop="id" label="ID" width="65" />
+        <el-table-column prop="studentName" label="学生姓名" width="110" />
+        <el-table-column prop="projectName" label="项目名称" min-width="180" />
+        <el-table-column prop="orgName" label="所属机构" min-width="120" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="getEnrollmentStatusType(scope.row.status)" size="small">
+              {{ scope.row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="报名时间" width="155">
+          <template #default="scope">
+            {{ formatTime(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="scope">
+            <template v-if="scope.row.status === '待审核'">
+              <el-button size="small" type="success" @click="auditEnrollment(scope.row, true)">通过</el-button>
+              <el-button size="small" type="danger" @click="openEnrollmentReject(scope.row)">驳回</el-button>
+            </template>
+            <span v-else class="muted">已处理</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-empty v-if="activeTab !== 'conversion' && activeTab !== 'enrollment' && !filteredApps.length" :description="statFilter ? '当前筛选条件下暂无申请' : (activeTab === 'cert' ? '暂无证书申请' : '暂无业务流程申请')" />
       <el-empty v-if="activeTab === 'conversion' && !filteredConversionApps.length" description="暂无转换申请记录" />
+      <el-empty v-if="activeTab === 'enrollment' && !filteredEnrollmentApps.length" description="暂无报名审核记录" />
     </el-card>
 
     <!-- 申请详情弹窗 -->
@@ -228,6 +261,19 @@
         <el-button type="danger" @click="confirmConvReject">确认驳回</el-button>
       </template>
     </el-dialog>
+
+    <!-- 报名审核驳回弹窗 -->
+    <el-dialog v-model="enrollRejectVisible" title="驳回报名审核" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="驳回原因" required>
+          <el-input v-model="enrollRejectReason" type="textarea" :rows="3" placeholder="请填写驳回原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="enrollRejectVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmEnrollReject">确认驳回</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -241,6 +287,7 @@ import { getApplications, auditApplication } from '@/api/application'
 import { getCertStandards } from '@/api/certStandard'
 import { getStudentCertByApplication } from '@/api/studentCert'
 import { getConversionApplications, auditConversionApplication } from '@/api/conversionApplication'
+import { getPendingAuditEnrollments, auditProjectCompletion } from '@/api/project'
 
 const CERT_BIZ_TYPES = ['CERT_APPLY', 'EXPERT_CERT']
 const STATUS_IN_REVIEW = 1
@@ -268,6 +315,12 @@ const convStatusFilter = ref(null)
 const convRejectVisible = ref(false)
 const convRejectReason = ref('')
 const convRejectTarget = ref(null)
+
+const enrollmentApps = ref([])
+const enrollmentTodoCount = ref(0)
+const enrollRejectVisible = ref(false)
+const enrollRejectReason = ref('')
+const enrollRejectTarget = ref(null)
 
 const detailForm = computed(() => {
   try {
@@ -339,6 +392,8 @@ const filteredApps = computed(() => {
   }
 })
 
+const filteredEnrollmentApps = computed(() => enrollmentApps.value)
+
 function toggleStat(key) {
   if (activeTab.value === 'conversion') {
     convStatusFilter.value = convStatusFilter.value === key ? null : key
@@ -358,16 +413,23 @@ onMounted(loadData)
 async function loadData() {
   loading.value = true
   try {
-    const [list, standardList, convList] = await Promise.all([
+    const [list, standardList, convList, enrollList] = await Promise.all([
       getApplications(currentUser.value?.role, currentUser.value?.id),
       getCertStandards(),
-      getConversionApplications()
+      getConversionApplications(),
+      getPendingAuditEnrollments()
     ])
     standards.value = standardList
     apps.value = list
     conversionApps.value = convList
+    enrollmentApps.value = enrollList
+    enrollmentTodoCount.value = enrollList.filter(e => e.status === '待审核').length
+    console.log('[DEBUG] enrollList:', JSON.stringify(enrollList))
+    console.log('[DEBUG] enrollList length:', enrollList.length)
+    console.log('[DEBUG] activeTab:', activeTab.value)
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
+    console.log('[DEBUG] loadData error:', error.message)
   } finally {
     loading.value = false
   }
@@ -515,6 +577,47 @@ async function confirmConvReject() {
   }
   await auditConversion(convRejectTarget.value, false, convRejectReason.value)
   convRejectVisible.value = false
+}
+
+function getEnrollmentStatusType(status) {
+  switch (status) {
+    case '待审核': return 'warning'
+    case '已完成': return 'success'
+    case '已报名': return 'info'
+    case '进行中': return 'primary'
+    case '已取消': return 'danger'
+    default: return 'info'
+  }
+}
+
+async function auditEnrollment(row, approve, reason = '') {
+  try {
+    if (approve) {
+      await ElMessageBox.confirm('确定要通过该报名审核吗？通过后将自动发放积分。', '确认通过', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+    }
+    await auditProjectCompletion(row.id, approve)
+    ElMessage.success(approve ? '审核通过' : '已驳回')
+    await Promise.all([loadData(), refreshAuditTodos()])
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '审核失败')
+    }
+  }
+}
+
+function openEnrollmentReject(row) {
+  enrollRejectTarget.value = row
+  enrollRejectReason.value = ''
+  enrollRejectVisible.value = true
+}
+
+async function confirmEnrollReject() {
+  if (!enrollRejectReason.value.trim()) {
+    ElMessage.warning('请填写驳回原因')
+    return
+  }
+  await auditEnrollment(enrollRejectTarget.value, false, enrollRejectReason.value)
+  enrollRejectVisible.value = false
 }
 </script>
 

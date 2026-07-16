@@ -55,6 +55,10 @@ export function getStudentsByProject(projectId) {
   return request.get('/student-projects/project/' + projectId + '/students')
 }
 
+export function getPendingAuditEnrollments() {
+  return request.get('/student-projects/pending-audit')
+}
+
 // ==================== 管理端 ====================
 
 /** 机构端：本机构项目列表 */

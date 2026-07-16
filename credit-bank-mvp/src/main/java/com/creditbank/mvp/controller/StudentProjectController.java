@@ -2,6 +2,7 @@ package com.creditbank.mvp.controller;
 
 import com.creditbank.mvp.common.Result;
 import com.creditbank.mvp.dto.ProjectEnrollmentDTO;
+import com.creditbank.mvp.dto.StudentProjectAuditDTO;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.service.StudentProjectService;
@@ -69,6 +70,14 @@ public class StudentProjectController {
         String newStatus = approve ? StudentProject.STATUS_COMPLETED : StudentProject.STATUS_IN_PROGRESS;
         studentProjectService.updateEnrollmentStatus(id, newStatus, operator);
         return Result.ok();
+    }
+
+    /** 查询待审核的报名列表（机构管理员只能查看本机构项目下的报名） */
+    @GetMapping("/pending-audit")
+    public Result<List<StudentProjectAuditDTO>> getPendingAuditEnrollments(
+            @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(studentProjectService.getPendingAuditEnrollments(operator));
     }
 
     @GetMapping("/project/{projectId}/students")

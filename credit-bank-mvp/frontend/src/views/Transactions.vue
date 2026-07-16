@@ -172,7 +172,7 @@ const pageTitle = computed(() => {
   const role = currentUser.value?.role
   if (role === 'admin') return '交易管理'
   if (role === 'org_admin') return '积分流水'
-  if (role === 'student') return '我的钱包'
+  if (role === 'student') return '我的积分'
   return '交易管理'
 })
 

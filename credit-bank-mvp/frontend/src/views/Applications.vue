@@ -14,9 +14,18 @@
       <template #header>
         <div class="card-header">
           <div class="header-tabs">
-            <span class="tab" :class="{ active: activeTab === 'biz' }" @click="switchTab('biz')">业务流程</span>
-            <span class="tab" :class="{ active: activeTab === 'cert' }" @click="switchTab('cert')">证书申请</span>
-            <span class="tab" :class="{ active: activeTab === 'conversion' }" @click="switchTab('conversion')">转换申请</span>
+            <span class="tab" :class="{ active: activeTab === 'biz' }" @click="switchTab('biz')">
+              业务流程
+              <span v-if="bizTodoCount > 0" class="tab-badge" :class="{ wide: bizTodoCount > 9 }">{{ fmtBadge(bizTodoCount) }}</span>
+            </span>
+            <span class="tab" :class="{ active: activeTab === 'cert' }" @click="switchTab('cert')">
+              证书申请
+              <span v-if="certTodoCount > 0" class="tab-badge" :class="{ wide: certTodoCount > 9 }">{{ fmtBadge(certTodoCount) }}</span>
+            </span>
+            <span class="tab" :class="{ active: activeTab === 'conversion' }" @click="switchTab('conversion')">
+              转换申请
+              <span v-if="convTodoCount > 0" class="tab-badge" :class="{ wide: convTodoCount > 9 }">{{ fmtBadge(convTodoCount) }}</span>
+            </span>
           </div>
           <div class="header-right">
             <el-tag v-if="statFilter" closable type="primary" effect="plain" @close="statFilter = null">
@@ -275,6 +284,17 @@ const certApps = computed(() => apps.value.filter(app => CERT_BIZ_TYPES.includes
 
 const bizApps = computed(() => apps.value.filter(app => !CERT_BIZ_TYPES.includes(app.bizType)))
 
+// 三个分类的待办数量：与侧边栏徽标判断逻辑保持一致
+const bizTodoCount = computed(() => bizApps.value.filter(a => a.canAudit).length)
+const certTodoCount = computed(() => certApps.value.filter(a => a.canAudit).length)
+const convTodoCount = computed(() => conversionApps.value.filter(a => Number(a.status) === 0).length)
+
+// 渲染徽标数字：>99 显示 99+
+function fmtBadge(n) {
+  if (n <= 0) return ''
+  return n > 99 ? '99+' : String(n)
+}
+
 const statItems = computed(() => {
   if (activeTab.value === 'conversion') {
     return [
@@ -507,7 +527,10 @@ async function confirmConvReject() {
 }
 
 .header-tabs .tab {
-  padding: 6px 18px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 26px 6px 18px;
   font-size: 14px;
   font-weight: 500;
   color: #64748b;
@@ -525,6 +548,45 @@ async function confirmConvReject() {
 .header-tabs .tab.active {
   color: #fff;
   background: #1e3a5f;
+}
+
+/* 标签页徽标：朱砂红，与侧边栏一致 */
+.tab-badge {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: #c92a2a;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #fff;
+  box-shadow: 0 2px 5px rgba(201, 42, 42, 0.3);
+  animation: badge-pop-tab 160ms ease-out;
+}
+.tab-badge.wide {
+  right: 3px;
+  min-width: 22px;
+  font-size: 9.5px;
+  letter-spacing: -0.02em;
+}
+.header-tabs .tab.active .tab-badge {
+  border-color: #1e3a5f;
+}
+@keyframes badge-pop-tab {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-badge { animation: none; }
 }
 
 .header-right {

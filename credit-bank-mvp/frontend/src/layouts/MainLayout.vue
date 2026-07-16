@@ -22,7 +22,14 @@
       >
         <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
           <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.title }}</span>
+          <span class="menu-label-wrap">
+            <span>{{ item.title }}</span>
+            <span
+              v-if="item.path === '/applications' && auditTodoCount > 0"
+              class="menu-badge"
+              :class="{ wide: auditTodoCount > 9 }"
+            >{{ auditTodoCount > 99 ? '99+' : auditTodoCount }}</span>
+          </span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -83,9 +90,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useAuditTodos } from '@/composables/useAuditTodos'
 import { ElMessage } from 'element-plus'
 import { submitUnfreezeAppeal } from '@/api/user'
 import NotificationBell from '@/components/NotificationBell.vue'
@@ -113,6 +121,13 @@ import {
 const router = useRouter()
 const route = useRoute()
 const { currentUser, ROLE_NAME, isFrozen, logout } = useAuth()
+const { auditTodoCount, startAuditTodosPolling, stopAuditTodosPolling, clearAuditTodos } = useAuditTodos()
+
+onMounted(startAuditTodosPolling)
+onUnmounted(() => {
+  stopAuditTodosPolling()
+  clearAuditTodos()
+})
 
 const activeMenu = computed(() => route.path)
 
@@ -192,7 +207,7 @@ const menuItems = computed(() => {
       { path: '/campaigns/student', title: '参与活动', icon: Promotion },
       { path: '/point-mall', title: '积分商城', icon: ShoppingCart },
       { path: '/profile', title: '我的资料', icon: Postcard },
-      { path: '/transactions', title: '我的钱包', icon: WalletFilled }
+      { path: '/transactions', title: '我的积分', icon: WalletFilled }
     ],
     expert: [
       { path: '/dashboard', title: '我的主页', icon: HomeFilled },
@@ -400,4 +415,45 @@ function handleCommand(command) {
 .freeze-icon { font-size: 18px; flex-shrink: 0; }
 .freeze-text { flex: 1; font-size: 13px; color: #856404; }
 .freeze-text strong { color: #d97706; }
+
+/* ===== 侧边栏徽标：朱砂红印章风 ===== */
+.menu-label-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.menu-badge {
+  position: absolute;
+  top: 2px;
+  right: -16px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #fff;
+  background: #c92a2a;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #fff;
+  box-shadow: 0 2px 4px rgba(201, 42, 42, 0.35);
+  animation: badge-pop 160ms ease-out;
+}
+.menu-badge.wide {
+  right: -20px;
+  min-width: 22px;
+  font-size: 9px;
+  letter-spacing: -0.02em;
+}
+@keyframes badge-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-badge { animation: none; }
+}
 </style>

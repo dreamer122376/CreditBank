@@ -23,3 +23,7 @@ export function getPointTrend(userId, days = 7) {
     params: { userId, days }
   })
 }
+
+export function getDashboardData() {
+  return request.get('/stats/dashboard')
+}

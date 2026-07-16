@@ -10,10 +10,6 @@
           <el-icon><Promotion /></el-icon>
           发布通知
         </el-button>
-        <el-button v-if="viewMode === 'RECEIVED' && unreadCount > 0" type="primary" plain @click="readAll">
-          <el-icon><CircleCheck /></el-icon>
-          全部已读
-        </el-button>
       </div>
     </div>
 
@@ -32,13 +28,19 @@
             <span v-if="option.value === 'UNREAD' && unreadCount">{{ unreadCount }}</span>
           </button>
         </div>
-        <el-select v-model="filters.category" placeholder="全部类型" clearable style="width: 150px" @change="reload">
-          <el-option label="系统消息" value="SYSTEM" />
-          <el-option label="申请审批" value="APPLICATION" />
-          <el-option label="成果转换" value="CONVERSION" />
-          <el-option label="积分变动" value="POINT" />
-          <el-option label="积分商城" value="MALL" />
-        </el-select>
+        <div class="filter-actions">
+          <el-button type="primary" plain size="small" @click="readAll">
+            <el-icon><CircleCheck /></el-icon>
+            全部已读
+          </el-button>
+          <el-select v-model="filters.category" placeholder="全部类型" clearable style="width: 150px" @change="reload">
+            <el-option label="系统消息" value="SYSTEM" />
+            <el-option label="申请审批" value="APPLICATION" />
+            <el-option label="成果转换" value="CONVERSION" />
+            <el-option label="积分变动" value="POINT" />
+            <el-option label="积分商城" value="MALL" />
+          </el-select>
+        </div>
       </div>
 
       <div class="message-list" v-loading="loading">
@@ -500,10 +502,13 @@ function formatTime(value) {
 }
 .management-tabs button.active { color: var(--cb-primary); border-bottom-color: var(--cb-primary); font-weight: 600; }
 .filter-bar {
+  display: flex;
+  align-items: center;
   padding: 0 18px;
   min-height: 54px;
   justify-content: space-between;
 }
+.filter-actions { display: flex; align-items: center; gap: 10px; }
 .status-filter { display: flex; align-self: stretch; gap: 22px; }
 .status-filter button {
   border: 0;

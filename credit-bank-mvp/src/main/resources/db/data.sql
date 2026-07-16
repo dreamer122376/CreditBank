@@ -147,9 +147,33 @@ INSERT INTO `campaign` (`id`, `title`, `multiplier`, `start_time`, `end_time`, `
 (2, '技能挑战赛', 2.0, DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 14 DAY), 0, NOW(), '各类技能挑战赛活动', 'campaign2.jpg', '工程学院', '["img3.jpg"]'),
 (3, '迎新活动', 1.2, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL -15 DAY), 2, NOW(), '新生入学迎新活动', 'campaign3.jpg', '校团委', '["img4.jpg","img5.jpg","img6.jpg"]');
 
+-- 学生证书认证申请初始数据（依赖 sys_user.id、cert_standard.id、cert_audit_flow.id）
+-- 301：小明申请中级认证，审核中（卡在标准8审批链的204节点，审核人钱七）
+-- 302：小刚的中级认证申请，已通过（对应 student_cert 2）
+-- 303：小刚的初级认证申请，自动通过型（对应 student_cert 1）
+INSERT INTO `application` (`id`, `biz_type`, `biz_key`, `applicant_id`, `org_id`, `expert_id`, `form_data`, `current_status`, `current_node_id`, `reject_reason`, `applied_at`, `updated_at`) VALUES
+(301, 'CERT_APPLY', NULL, 6, 1, NULL, '{"certStandardId": 8, "reason": "已完成中级课程学习并通过校内考核，申请中级能力认证"}', 1, 204, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY), DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(302, 'CERT_APPLY', NULL, 8, 1, NULL, '{"certStandardId": 8, "reason": "已取得初级认证并完成中级实训项目，申请中级能力认证"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -10 DAY), DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(303, 'CERT_APPLY', NULL, 8, 1, NULL, '{"certStandardId": 1, "reason": "完成初级课程学习，申请初级能力认证"}', 3, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL -5 DAY));
+
 -- 学生证书发放记录初始数据
 INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES
-(1, 8, 1, NULL, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0001'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY));
+(1, 8, 1, 303, CONCAT('CB-', DATE_FORMAT(NOW(), '%Y%m%d'), '-0008-0001'), '小刚', '学生初级能力认证', '信息技术学院', 'DEMO20260713', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY), DATE_ADD(NOW(), INTERVAL 360 DAY)),
+(2, 8, 8, 302, CONCAT('CB-', DATE_FORMAT(DATE_ADD(NOW(), INTERVAL -8 DAY), '%Y%m%d'), '-0008-0302'), '小刚', '信息技术学院-学生中级能力认证（专家评审）', '信息技术学院', 'DEMO20260716MID', 1, NULL, NULL, DATE_ADD(NOW(), INTERVAL -8 DAY), DATE_ADD(NOW(), INTERVAL 357 DAY));
+
+-- 学生证书申请配套通知（与 ApplicationService 实际发送的通知同构）
+-- 901：申请301进入钱七的审核环节（未读，演示审核人的待办提醒）
+-- 902：申请302审批通过，通知小刚（已读）
+-- 903：申请303自动通过，通知小刚（未读，演示未读角标）
+INSERT INTO `notification` (`id`, `event_code`, `scope_type`, `scope_value`, `category`, `level`, `title`, `content`, `source_type`, `source_id`, `action_path`, `actor_id`, `dedupe_key`, `status`, `created_at`, `expires_at`) VALUES
+(901, 'APPLICATION_PENDING', 'USER', '9', 'APPLICATION', 'INFO', '有新的申请待审核', '“证书认证申请”已进入你的审核环节。', 'APPLICATION', 301, '/applications', 6, 'APPLICATION_PENDING:301:204', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -2 DAY), NULL),
+(902, 'APPLICATION_APPROVED', 'USER', '8', 'APPLICATION', 'SUCCESS', '申请已通过', '你的“证书认证申请”已通过审核。', 'APPLICATION', 302, '/student-certs', 9, 'APPLICATION_APPROVED:302', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -8 DAY), NULL),
+(903, 'APPLICATION_APPROVED', 'USER', '8', 'APPLICATION', 'SUCCESS', '申请已通过', '你的“证书认证申请”已通过审核。', 'APPLICATION', 303, '/student-certs', 8, 'APPLICATION_APPROVED:303', 'PUBLISHED', DATE_ADD(NOW(), INTERVAL -5 DAY), NULL);
+
+INSERT INTO `notification_recipient` (`id`, `notification_id`, `user_id`, `read_at`, `confirmed_at`, `created_at`) VALUES
+(901, 901, 9, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(902, 902, 8, DATE_ADD(NOW(), INTERVAL -7 DAY), NULL, DATE_ADD(NOW(), INTERVAL -8 DAY)),
+(903, 903, 8, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY));
 
 -- 专家资质认证记录初始数据（依赖 sys_user.id 和 cert_standard.id）
 INSERT INTO `expert_cert` (`id`, `expert_id`, `cert_standard_id`, `field_name`, `application_id`, `status`, `issued_at`, `valid_until`) VALUES

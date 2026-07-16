@@ -1,10 +1,7 @@
 package com.creditbank.mvp.service;
 
 import com.creditbank.mvp.common.BizException;
-import com.creditbank.mvp.entity.Campaign;
-import com.creditbank.mvp.entity.CreditRule;
-import com.creditbank.mvp.entity.SysUser;
-import com.creditbank.mvp.entity.TransactionLog;
+import com.creditbank.mvp.entity.*;
 import com.creditbank.mvp.mapper.CreditRuleMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
@@ -219,7 +216,7 @@ class PointServiceTest {
 
         when(sysUserMapper.selectById(1L)).thenReturn(user);
         when(creditRuleMapper.selectOne(any())).thenReturn(rule);
-        when(campaignService.getActiveMultiplierCampaign()).thenReturn(null);
+        when(campaignService.getEnrolledMultiplierCampaign(1L)).thenReturn(null);
         when(sysUserMapper.updateById(any())).thenReturn(1);
         when(sysUserMapper.selectById(1L)).thenReturn(user);
         when(transactionLogMapper.insert(any())).thenReturn(1);
@@ -255,8 +252,7 @@ class PointServiceTest {
 
         when(sysUserMapper.selectById(1L)).thenReturn(user);
         when(creditRuleMapper.selectOne(any())).thenReturn(rule);
-        when(campaignService.getActiveMultiplierCampaign()).thenReturn(campaign);
-        when(campaignService.isEnrolled(1L, 1L)).thenReturn(true);
+        when(campaignService.getEnrolledMultiplierCampaign(1L)).thenReturn(campaign);
         when(sysUserMapper.updateById(any())).thenReturn(1);
         when(sysUserMapper.selectById(1L)).thenReturn(user);
         when(transactionLogMapper.insert(any())).thenReturn(1);
@@ -341,5 +337,163 @@ class PointServiceTest {
         assertEquals(2, result.size());
         assertEquals(2L, result.get(0).getId());
         System.out.println("✓ 测试通过: 获取交易流水成功 - 流水数量=" + result.size() + ", 最新流水ID=" + result.get(0).getId());
+    }
+
+    @Test
+    @DisplayName("earn - 管理员手动加分成功")
+    void testEarnAdminSuccess() {
+        SysUser user = new SysUser();
+        user.setId(1L);
+        user.setBalance(100);
+        user.setRealName("Student");
+        user.setRole("student");
+
+        CreditRule rule = new CreditRule();
+        rule.setId(2L);
+        rule.setEventCode("ADMIN");
+        rule.setEventName("管理员手动加分");
+        rule.setCreditValue(0);
+        rule.setIsEnabled(1);
+
+        SysUser operator = new SysUser();
+        operator.setId(2L);
+        operator.setRealName("Admin");
+
+        when(sysUserMapper.selectById(1L)).thenReturn(user);
+        when(creditRuleMapper.selectOne(any())).thenReturn(rule);
+        when(sysUserMapper.selectById(2L)).thenReturn(operator);
+        when(sysUserMapper.updateById(any())).thenReturn(1);
+        when(sysUserMapper.selectById(1L)).thenReturn(user);
+        when(transactionLogMapper.insert(any())).thenReturn(1);
+        when(userOpLogMapper.insert(any())).thenReturn(1);
+
+        SysUser result = pointService.earn(1L, "ADMIN", 2L, 200, "奖励");
+
+        assertNotNull(result);
+        assertEquals(300, user.getBalance());
+        verify(transactionLogMapper).insert(any());
+        verify(userOpLogMapper).insert(any());
+        System.out.println("✓ 测试通过: 管理员手动加分成功 - 原积分=100, 加分=200, 当前积分=" + user.getBalance());
+    }
+
+    @Test
+    @DisplayName("earn - 管理员手动加分超过5000")
+    void testEarnAdminExceedLimit() {
+        SysUser user = new SysUser();
+        user.setId(1L);
+        user.setBalance(100);
+
+        CreditRule rule = new CreditRule();
+        rule.setId(2L);
+        rule.setEventCode("ADMIN");
+        rule.setEventName("管理员手动加分");
+        rule.setIsEnabled(1);
+
+        when(sysUserMapper.selectById(1L)).thenReturn(user);
+        when(creditRuleMapper.selectOne(any())).thenReturn(rule);
+
+        BizException exception = assertThrows(BizException.class, () ->
+                pointService.earn(1L, "ADMIN", 1L, 6000, "超限"));
+        assertEquals("单次加分不能超过5000", exception.getMessage());
+        System.out.println("✓ 测试通过: 管理员手动加分超过5000时正确抛出异常 - " + exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("earn - 管理员手动加分未指定积分值")
+    void testEarnAdminNoValue() {
+        SysUser user = new SysUser();
+        user.setId(1L);
+        user.setBalance(100);
+
+        CreditRule rule = new CreditRule();
+        rule.setId(2L);
+        rule.setEventCode("ADMIN");
+        rule.setEventName("管理员手动加分");
+        rule.setIsEnabled(1);
+
+        when(sysUserMapper.selectById(1L)).thenReturn(user);
+        when(creditRuleMapper.selectOne(any())).thenReturn(rule);
+
+        BizException exception = assertThrows(BizException.class, () ->
+                pointService.earn(1L, "ADMIN", 1L, null));
+        assertEquals("管理员手动加分必须指定积分值", exception.getMessage());
+        System.out.println("✓ 测试通过: 管理员手动加分未指定积分值时正确抛出异常 - " + exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("rewardProjectCompletion - 项目完成发分成功（无活动翻倍）")
+    void testRewardProjectCompletionWithoutCampaign() {
+        SysUser student = new SysUser();
+        student.setId(1L);
+        student.setBalance(50);
+        student.setRealName("Student");
+
+        Project project = new Project();
+        project.setId(1L);
+        project.setName("Test Project");
+        project.setCreditReward(100);
+
+        when(sysUserMapper.selectById(1L)).thenReturn(student);
+        when(campaignService.getEnrolledMultiplierCampaign(1L)).thenReturn(null);
+        when(sysUserMapper.updateById(any())).thenReturn(1);
+        when(transactionLogMapper.insert(any())).thenReturn(1);
+        when(userOpLogMapper.insert(any())).thenReturn(1);
+        when(sysUserMapper.selectById(1L)).thenReturn(student);
+
+        SysUser result = pointService.rewardProjectCompletion(1L, project, 2L);
+
+        assertNotNull(result);
+        assertEquals(150, student.getBalance());
+        verify(transactionLogMapper).insert(any());
+        verify(userOpLogMapper).insert(any());
+        System.out.println("✓ 测试通过: 项目完成发分成功（无活动翻倍）- 基础积分=100, 当前积分=" + student.getBalance());
+    }
+
+    @Test
+    @DisplayName("rewardProjectCompletion - 项目完成发分（活动翻倍）")
+    void testRewardProjectCompletionWithCampaign() {
+        SysUser student = new SysUser();
+        student.setId(1L);
+        student.setBalance(50);
+        student.setRealName("Student");
+
+        Project project = new Project();
+        project.setId(1L);
+        project.setName("Test Project");
+        project.setCreditReward(100);
+
+        Campaign campaign = new Campaign();
+        campaign.setId(1L);
+        campaign.setMultiplier(BigDecimal.valueOf(2.5));
+
+        when(sysUserMapper.selectById(1L)).thenReturn(student);
+        when(campaignService.getEnrolledMultiplierCampaign(1L)).thenReturn(campaign);
+        when(sysUserMapper.updateById(any())).thenReturn(1);
+        when(transactionLogMapper.insert(any())).thenReturn(1);
+        when(userOpLogMapper.insert(any())).thenReturn(1);
+        when(sysUserMapper.selectById(1L)).thenReturn(student);
+
+        SysUser result = pointService.rewardProjectCompletion(1L, project, 2L);
+
+        assertNotNull(result);
+        assertEquals(300, student.getBalance());
+        verify(transactionLogMapper).insert(any());
+        verify(userOpLogMapper).insert(any());
+        System.out.println("✓ 测试通过: 项目完成发分（活动翻倍×2.5）- 基础积分=100, 翻倍后=250, 当前积分=" + student.getBalance());
+    }
+
+    @Test
+    @DisplayName("rewardProjectCompletion - 项目无积分奖励直接返回null")
+    void testRewardProjectCompletionNoReward() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setName("No Reward Project");
+        project.setCreditReward(0);
+
+        SysUser result = pointService.rewardProjectCompletion(1L, project, 2L);
+
+        assertNull(result);
+        verify(sysUserMapper, never()).selectById(any());
+        System.out.println("✓ 测试通过: 项目无积分奖励时直接返回null");
     }
 }

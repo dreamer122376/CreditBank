@@ -13,8 +13,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -392,5 +395,153 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(2, result.getRecords().size());
         System.out.println("✓ 测试通过: 获取操作日志成功 - 日志数量=" + result.getRecords().size() + ", 最新日志ID=" + result.getRecords().get(0).getId() + ", 操作=" + result.getRecords().get(0).getAction());
+    }
+
+    @Test
+    @DisplayName("listByOrg - 机构管理员只查看本机构学生")
+    void testListByOrg() {
+        SysUser student1 = new SysUser();
+        student1.setId(1L);
+        student1.setUsername("s1");
+        student1.setRole("student");
+        student1.setOrgId(1L);
+
+        SysUser student2 = new SysUser();
+        student2.setId(2L);
+        student2.setUsername("s2");
+        student2.setRole("student");
+        student2.setOrgId(2L);
+
+        when(sysUserMapper.selectList(any())).thenReturn(Collections.singletonList(student1));
+
+        List<SysUser> result = userService.listByOrg(1L);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1L, result.get(0).getId());
+        System.out.println("✓ 测试通过: 机构管理员查看本机构学生列表 - 数量=" + result.size());
+    }
+
+    @Test
+    @DisplayName("listAuditorCandidates - 管理员返回所有审核人")
+    void testListAuditorCandidatesAdmin() {
+        SysUser admin = new SysUser();
+        admin.setId(1L);
+        admin.setRole("admin");
+        admin.setStatus(1);
+
+        SysUser expert = new SysUser();
+        expert.setId(2L);
+        expert.setRole("expert");
+        expert.setStatus(1);
+
+        when(sysUserMapper.selectList(any())).thenReturn(Arrays.asList(admin, expert));
+
+        List<SysUser> result = userService.listAuditorCandidates(null, 1L, "admin");
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        System.out.println("✓ 测试通过: 管理员查询审核候选人 - 数量=" + result.size());
+    }
+
+    @Test
+    @DisplayName("listAuditorCandidates - 机构管理员只返回自己和本机构专家")
+    void testListAuditorCandidatesOrgAdmin() {
+        SysUser orgAdmin = new SysUser();
+        orgAdmin.setId(1L);
+        orgAdmin.setRole("org_admin");
+        orgAdmin.setStatus(1);
+        orgAdmin.setOrgId(1L);
+
+        SysUser expert = new SysUser();
+        expert.setId(2L);
+        expert.setRole("expert");
+        expert.setStatus(1);
+        expert.setOrgId(1L);
+
+        when(sysUserMapper.selectList(any())).thenReturn(Arrays.asList(orgAdmin, expert));
+
+        List<SysUser> result = userService.listAuditorCandidates(1L, 1L, "org_admin");
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        System.out.println("✓ 测试通过: 机构管理员查询审核候选人 - 数量=" + result.size());
+    }
+
+    @Test
+    @DisplayName("getOpLogs - 按模块筛选")
+    void testGetOpLogsFilterByModule() {
+        UserOpLog log = new UserOpLog();
+        log.setId(1L);
+        log.setModule(UserOpLog.MODULE_PROJECT);
+        log.setAction(UserOpLog.ACTION_PROJECT_AUDIT);
+
+        @SuppressWarnings("unchecked")
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<UserOpLog> page = mock(
+                com.baomidou.mybatisplus.extension.plugins.pagination.Page.class);
+        when(page.getRecords()).thenReturn(Collections.singletonList(log));
+        when(userOpLogMapper.selectPage(any(), any())).thenReturn(page);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<UserOpLog> result =
+                userService.getOpLogs(1, 10, null, UserOpLog.MODULE_PROJECT, null, null, null, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.getRecords().size());
+        assertEquals(UserOpLog.MODULE_PROJECT, result.getRecords().get(0).getModule());
+        System.out.println("✓ 测试通过: 操作日志按模块筛选成功 - 模块=" + result.getRecords().get(0).getModule());
+    }
+
+    @Test
+    @DisplayName("getOpLogs - 机构管理员只能查看本机构学生相关日志")
+    void testGetOpLogsOrgAdminIsolation() {
+        SysUser student = new SysUser();
+        student.setId(10L);
+        student.setRole("student");
+        student.setOrgId(1L);
+
+        UserOpLog log = new UserOpLog();
+        log.setId(1L);
+        log.setTargetUserId(10L);
+
+        @SuppressWarnings("unchecked")
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<UserOpLog> page = mock(
+                com.baomidou.mybatisplus.extension.plugins.pagination.Page.class);
+        when(page.getRecords()).thenReturn(Collections.singletonList(log));
+        when(sysUserMapper.selectList(any())).thenReturn(Collections.singletonList(student));
+        when(userOpLogMapper.selectPage(any(), any())).thenReturn(page);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<UserOpLog> result =
+                userService.getOpLogs(1, 10, null, null, null, null, null, 1L);
+
+        assertNotNull(result);
+        assertEquals(1, result.getRecords().size());
+        assertEquals(10L, result.getRecords().get(0).getTargetUserId());
+        System.out.println("✓ 测试通过: 机构管理员操作日志隔离成功 - 只能查看本机构学生日志");
+    }
+
+    @Test
+    @DisplayName("batchUpdateStatus - 返回统计结果")
+    void testBatchUpdateStatusReturnsResult() {
+        SysUser user = new SysUser();
+        user.setId(3L);
+        user.setUsername("student");
+        user.setRole("student");
+        user.setStatus(1);
+
+        SysUser operator = new SysUser();
+        operator.setId(2L);
+        operator.setRealName("Admin");
+
+        when(sysUserMapper.selectById(3L)).thenReturn(user);
+        when(sysUserMapper.updateById(any())).thenReturn(1);
+        when(userOpLogMapper.insert(any())).thenReturn(1);
+
+        Map<String, Object> result = userService.batchUpdateStatus(Collections.singletonList(3L), 0, operator);
+
+        assertNotNull(result);
+        assertEquals(1, result.get("total"));
+        assertEquals(1, result.get("processed"));
+        assertEquals(0, result.get("skipped"));
+        System.out.println("✓ 测试通过: 批量更新状态返回统计结果 - total=" + result.get("total") + ", processed=" + result.get("processed"));
     }
 }

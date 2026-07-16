@@ -10,8 +10,8 @@
 
     <!-- 卡片列表 -->
     <el-row :gutter="20">
-      <el-col :span="8" :xs="24" :sm="12" :md="8" v-for="item in list" :key="item.id" class="card-col">
-        <el-card class="project-card" shadow="hover" @click="goDetail(item.id)">
+      <el-col :span="8" :xs="24" :sm="12" :md="8" v-for="(item, idx) in list" :key="item.id" class="card-col">
+        <el-card class="project-card card-enter card-glow" shadow="hover" @click="goDetail(item.id)" :style="{ animationDelay: idx * 0.08 + 's' }">
           <div class="card-cover">
             <span class="cover-text">{{ item.name }}</span>
             <span v-if="item.creditReward > 0" class="badge-bonus">

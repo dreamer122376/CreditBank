@@ -17,9 +17,8 @@
       <template #header>
         <div class="card-header">
           <div class="header-left">
-            <span class="title-icon">🔗</span>
             <span class="card-title">转换规则目录</span>
-            <span class="card-subtitle">共 {{ rules.length }} 条映射规则</span>
+            <span class="card-subtitle">共 {{ filteredRules.length }} 条映射规则</span>
           </div>
           <div class="header-right">
             <el-tag v-if="statFilter" closable type="primary" effect="plain" @close="statFilter = null">
@@ -32,10 +31,10 @@
         </div>
       </template>
 
-      <el-table :data="filteredRules" border :row-class-name="rowClassName" style="width: 100%;" :max-height="tableMaxHeight">
+      <el-table :data="pagedRules" border :row-class-name="rowClassName" style="width: 100%;">
         <el-table-column label="序号" width="60" align="center">
           <template #default="{$index}">
-            <span class="seq-no">{{ String($index + 1).padStart(2, '0') }}</span>
+            <span class="seq-no">{{ String((currentPage - 1) * pageSize + $index + 1).padStart(2, '0') }}</span>
           </template>
         </el-table-column>
 
@@ -167,6 +166,18 @@
         </el-table-column>
       </el-table>
 
+      <div class="pagination-wrapper" v-if="filteredRules.length > 0">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="filteredRules.length"
+          layout="total, sizes, prev, pager, next, jumper"
+          small
+          background
+          @size-change="currentPage = 1" />
+      </div>
+
       <el-empty v-if="!filteredRules.length" description="暂无符合条件的转换规则" :image-size="120">
         <el-button v-if="canCreate" type="primary" @click="openCreate">创建第一条规则</el-button>
       </el-empty>
@@ -295,7 +306,9 @@ const dialogVisible = ref(false)
 const form = ref({})
 const statFilter = ref(null)
 
-const tableMaxHeight = computed(() => Math.max(400, window.innerHeight - 380) + 'px')
+// 分页：取消表格 max-height 后，通过前端分页限制单次渲染条数，滚动由页面外层统一管理
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 // 管理操作按钮显隐：公开模式一律不可创建；管理模式按角色判断
 const canCreate = computed(() => {
@@ -355,8 +368,15 @@ const filteredRules = computed(() => {
   }
 })
 
+// 分页切片：表格按 filteredRules 分页，避免一次性渲染大量行造成双滚动条
+const pagedRules = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredRules.value.slice(start, start + pageSize.value)
+})
+
 function toggleStat(key) {
   statFilter.value = statFilter.value === key ? null : key
+  currentPage.value = 1
 }
 
 function rowClassName({ row }) {
@@ -603,10 +623,6 @@ async function handleDelete(row) {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.title-icon {
-  font-size: 20px;
 }
 
 .card-title {
@@ -982,6 +998,16 @@ async function handleDelete(row) {
 
 .form-row :deep(.el-form-item) {
   margin-bottom: 12px;
+}
+
+/* ============ 分页：置于卡片底部，滚动由页面外置滚动条统一处理 ============ */
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 16px 8px 4px;
+  border-top: 1px solid #f1f3f5;
+  margin-top: 4px;
 }
 
 /* ============ 响应式 ============ */

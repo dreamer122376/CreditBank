@@ -158,7 +158,7 @@ async function handleLeave() {
 }
 async function handleDelete() {
   try {
-    await ElMessageBox.confirm('确定要删除该活动吗？', '确认删除', { type: 'warning' })
+    await ElMessageBox.confirm('确定要删除该活动吗？', '确认删除', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     await deleteCampaign(campaign.value.id)
     ElMessage.success('已删除')
     router.push('/campaigns')

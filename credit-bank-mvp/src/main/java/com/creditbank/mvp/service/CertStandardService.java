@@ -6,10 +6,13 @@ import com.creditbank.mvp.entity.CertAuditFlow;
 import com.creditbank.mvp.entity.CertStandard;
 import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
+import com.creditbank.mvp.entity.UserOpLog;
 import com.creditbank.mvp.mapper.CertAuditFlowMapper;
 import com.creditbank.mvp.mapper.CertStandardMapper;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
+import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,15 +29,18 @@ public class CertStandardService {
     private final CertAuditFlowMapper certAuditFlowMapper;
     private final OrganizationMapper organizationMapper;
     private final SysUserMapper sysUserMapper;
+    private final UserOpLogMapper userOpLogMapper;
 
     public CertStandardService(CertStandardMapper certStandardMapper,
                                CertAuditFlowMapper certAuditFlowMapper,
                                OrganizationMapper organizationMapper,
-                               SysUserMapper sysUserMapper) {
+                               SysUserMapper sysUserMapper,
+                               UserOpLogMapper userOpLogMapper) {
         this.certStandardMapper = certStandardMapper;
         this.certAuditFlowMapper = certAuditFlowMapper;
         this.organizationMapper = organizationMapper;
         this.sysUserMapper = sysUserMapper;
+        this.userOpLogMapper = userOpLogMapper;
     }
 
     /** 查询全部认证标准（附带机构名、首节点审核人名、流程步数） */
@@ -85,12 +91,21 @@ public class CertStandardService {
         if (standard.getNeedManualAudit() == null) {
             standard.setNeedManualAudit(1);
         }
-        // 自动通过型标准不应有流程首节点
         if (standard.getNeedManualAudit() == 0) {
             standard.setFirstNodeId(null);
         }
         certStandardMapper.insert(standard);
-        return certStandardMapper.selectById(standard.getId());
+        CertStandard saved = certStandardMapper.selectById(standard.getId());
+        SysUser operator = currentOperator();
+        // 操作日志：创建证书标准
+        if (operator != null) {
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    operator.getId(), operator.getRealName(),
+                    UserOpLog.MODULE_CERT_STANDARD, UserOpLog.ACTION_CREATE,
+                    "创建证书标准：" + buildStandardSummary(saved)));
+        }
+        return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -100,12 +115,21 @@ public class CertStandardService {
             throw new BizException("认证标准不存在：" + standard.getId());
         }
         validateStandardFields(standard, false);
-        // 自动通过型标准不应有流程首节点
         if (standard.getNeedManualAudit() != null && standard.getNeedManualAudit() == 0) {
             standard.setFirstNodeId(null);
         }
         certStandardMapper.updateById(standard);
-        return certStandardMapper.selectById(standard.getId());
+        CertStandard saved = certStandardMapper.selectById(standard.getId());
+        SysUser operator = currentOperator();
+        // 操作日志：更新证书标准
+        if (operator != null) {
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    operator.getId(), operator.getRealName(),
+                    UserOpLog.MODULE_CERT_STANDARD, UserOpLog.ACTION_UPDATE,
+                    "更新证书标准：" + buildStandardSummary(saved)));
+        }
+        return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -114,12 +138,59 @@ public class CertStandardService {
         if (exist == null) {
             throw new BizException("认证标准不存在：" + id);
         }
-        exist.setIsEnabled(exist.getIsEnabled() != null && exist.getIsEnabled() == 1 ? 0 : 1);
+        boolean wasEnabled = exist.getIsEnabled() != null && exist.getIsEnabled() == 1;
+        exist.setIsEnabled(wasEnabled ? 0 : 1);
         certStandardMapper.updateById(exist);
+        SysUser operator = currentOperator();
+        // 操作日志：启用/停用证书标准
+        if (operator != null) {
+            userOpLogMapper.insert(UserOpLog.createLog(
+                    operator.getId(), operator.getRealName(),
+                    operator.getId(), operator.getRealName(),
+                    UserOpLog.MODULE_CERT_STANDARD, UserOpLog.ACTION_RULE_TOGGLE,
+                    (wasEnabled ? "停用证书标准：" : "启用证书标准：") + buildStandardSummary(exist)));
+        }
         return exist;
     }
 
     // ---- 内部方法 ----
+
+    private SysUser currentOperator() {
+        Long userId = CurrentUserUtil.getCurrentUserId();
+        return userId == null ? null : sysUserMapper.selectById(userId);
+    }
+
+    // 操作日志详情
+    private String buildStandardSummary(CertStandard s) {
+        if (s == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(s.getId());
+        if (s.getStandardName() != null) {
+            sb.append(" · 名称：").append(s.getStandardName());
+        }
+        if (s.getTargetRole() != null) {
+            sb.append(" · 适用：").append(targetRoleLabel(s.getTargetRole()));
+        }
+        if (s.getVersion() != null) {
+            sb.append(" · 版本：").append(s.getVersion());
+        }
+        if (s.getNeedManualAudit() != null) {
+            sb.append(" · ").append(s.getNeedManualAudit() == 1 ? "人工审核" : "自动通过");
+        }
+        if (s.getIsEnabled() != null) {
+            sb.append(" · ").append(s.getIsEnabled() == 1 ? "启用中" : "已停用");
+        }
+        return sb.toString();
+    }
+
+    private String targetRoleLabel(String role) {
+        if ("student".equals(role)) return "学生";
+        if ("expert".equals(role)) return "专家";
+        if ("org_admin".equals(role)) return "机构管理员";
+        return role == null ? "" : role;
+    }
 
     private void validateStandardFields(CertStandard standard, boolean isCreate) {
         if (standard.getStandardName() == null || standard.getStandardName().trim().isEmpty()) {

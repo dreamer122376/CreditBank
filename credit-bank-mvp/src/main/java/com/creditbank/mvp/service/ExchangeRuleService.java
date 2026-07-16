@@ -55,7 +55,6 @@ public class ExchangeRuleService {
         }
         SysUser operator = requireCurrentUser();
         if ("org_admin".equals(operator.getRole())) {
-            // 机构管理员只能创建本机构的规则，归属以后端为准
             rule.setOrgId(operator.getOrgId());
         }
         rule.setId(null);
@@ -63,12 +62,20 @@ public class ExchangeRuleService {
             rule.setIsEnabled(1);
         }
         exchangeRuleMapper.insert(rule);
+        ExchangeRule saved = exchangeRuleMapper.selectById(rule.getId());
+        // 操作日志：创建兑换规则
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(),
+                operator.getId(), operator.getRealName(),
+                UserOpLog.MODULE_EXCHANGE_RULE, UserOpLog.ACTION_CREATE,
+                "创建兑换规则：" + buildRuleSummary(saved)));
         if (rule.getIsEnabled() != null && rule.getIsEnabled() == 1) {
-            notifyRulePublished(rule, operator, "CREATE");
+            notifyRulePublished(saved, operator, "CREATE");
         }
-        return exchangeRuleMapper.selectById(rule.getId());
+        return saved;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public ExchangeRule update(ExchangeRule rule) {
         ExchangeRule exist = exchangeRuleMapper.selectById(rule.getId());
         if (exist == null) {
@@ -83,11 +90,17 @@ public class ExchangeRuleService {
             throw new BizException("库存不能为负数");
         }
         if ("org_admin".equals(operator.getRole())) {
-            // 机构管理员不能把规则改挂到别的机构
             rule.setOrgId(exist.getOrgId());
         }
         exchangeRuleMapper.updateById(rule);
-        return exchangeRuleMapper.selectById(rule.getId());
+        ExchangeRule saved = exchangeRuleMapper.selectById(rule.getId());
+        // 操作日志：更新兑换规则
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(),
+                operator.getId(), operator.getRealName(),
+                UserOpLog.MODULE_EXCHANGE_RULE, UserOpLog.ACTION_UPDATE,
+                "更新兑换规则：" + buildRuleSummary(saved)));
+        return saved;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -98,9 +111,16 @@ public class ExchangeRuleService {
         }
         SysUser operator = requireCurrentUser();
         checkRuleOwnership(exist, operator);
-        exist.setIsEnabled(exist.getIsEnabled() != null && exist.getIsEnabled() == 1 ? 0 : 1);
+        boolean wasEnabled = exist.getIsEnabled() != null && exist.getIsEnabled() == 1;
+        exist.setIsEnabled(wasEnabled ? 0 : 1);
         exchangeRuleMapper.updateById(exist);
-        if (exist.getIsEnabled() == 1) {
+        // 操作日志：启停兑换规则
+        userOpLogMapper.insert(UserOpLog.createLog(
+                operator.getId(), operator.getRealName(),
+                operator.getId(), operator.getRealName(),
+                UserOpLog.MODULE_EXCHANGE_RULE, UserOpLog.ACTION_RULE_TOGGLE,
+                (wasEnabled ? "停用兑换规则：" : "启用兑换规则：") + buildRuleSummary(exist)));
+        if (!wasEnabled) {
             notifyRulePublished(exist, operator, "ENABLE:" + System.currentTimeMillis());
         }
         return exist;
@@ -157,7 +177,7 @@ public class ExchangeRuleService {
 
         userOpLogMapper.insert(UserOpLog.createLog(
                 userId, user.getRealName(), userId, user.getRealName(),
-                UserOpLog.MODULE_POINT, "EXCHANGE",
+                UserOpLog.MODULE_POINT, UserOpLog.ACTION_EXCHANGE,
                 "用户「" + user.getRealName() + "」兑换「" + rule.getItemName() + "」，消耗 " + rule.getRequiredCredit() + " 积分，当前余额：" + newBalance));
 
         notificationService.sendToUser(
@@ -207,5 +227,27 @@ public class ExchangeRuleService {
         if (rule.getOrgId() == null || !rule.getOrgId().equals(operator.getOrgId())) {
             throw new BizException("只能管理本机构的兑换规则");
         }
+    }
+
+    // 操作日志详情：精简阅读
+    private String buildRuleSummary(ExchangeRule rule) {
+        if (rule == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("#").append(rule.getId());
+        if (rule.getItemName() != null) {
+            sb.append(" · 兑换品：").append(rule.getItemName());
+        }
+        if (rule.getRequiredCredit() != null) {
+            sb.append(" · 所需积分：").append(rule.getRequiredCredit());
+        }
+        if (rule.getStock() != null) {
+            sb.append(" · 库存：").append(rule.getStock());
+        }
+        if (rule.getIsEnabled() != null) {
+            sb.append(" · ").append(rule.getIsEnabled() == 1 ? "启用中" : "已停用");
+        }
+        return sb.toString();
     }
 }

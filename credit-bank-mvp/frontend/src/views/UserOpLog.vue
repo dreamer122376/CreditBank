@@ -8,12 +8,21 @@
     <el-card>
       <el-form :model="query" inline class="filter-form">
         <el-form-item label="模块">
-          <el-select v-model="query.module" placeholder="全部模块" clearable style="width: 140px">
+          <el-select v-model="query.module" placeholder="全部模块" clearable style="width: 150px">
             <el-option label="用户管理" value="USER" />
             <el-option label="平台活动" value="CAMPAIGN" />
             <el-option label="项目管理" value="PROJECT" />
             <el-option label="积分" value="POINT" />
             <el-option label="报名" value="ENROLL" />
+            <el-option label="转换规则" value="CONVERSION_RULE" />
+            <el-option label="成果转换申请" value="CONVERSION_APPLY" />
+            <el-option label="证书申请" value="APPLICATION" />
+            <el-option label="机构入驻申请" value="ORG_REGISTER" />
+            <el-option label="学生证书" value="STUDENT_CERT" />
+            <el-option label="兑换规则" value="EXCHANGE_RULE" />
+            <el-option label="积分规则" value="CREDIT_RULE" />
+            <el-option label="证书标准" value="CERT_STANDARD" />
+            <el-option label="机构管理" value="ORGANIZATION" />
           </el-select>
         </el-form-item>
         <el-form-item label="操作类型">
@@ -26,6 +35,12 @@
             <el-option label="编辑信息" value="UPDATE" />
             <el-option label="创建" value="CREATE" />
             <el-option label="删除" value="DELETE" />
+            <el-option label="提交" value="SUBMIT" />
+            <el-option label="审核通过" value="APPROVE" />
+            <el-option label="审核驳回" value="REJECT" />
+            <el-option label="证书发放" value="ISSUE" />
+            <el-option label="撤回/停用" value="REVOKE" />
+            <el-option label="批量调账" value="BATCH_ADJUST" />
             <el-option label="项目审核" value="PROJECT_AUDIT" />
             <el-option label="项目下架" value="PROJECT_OFFLINE" />
             <el-option label="活动报名" value="CAMPAIGN_ENROLL" />
@@ -33,6 +48,9 @@
             <el-option label="项目报名" value="PROJECT_ENROLL" />
             <el-option label="项目取消" value="PROJECT_LEAVE" />
             <el-option label="获得积分" value="EARN" />
+            <el-option label="商品兑换" value="EXCHANGE" />
+            <el-option label="规则启停" value="CONVERSION_TOGGLE" />
+            <el-option label="规则启停(通用)" value="RULE_TOGGLE" />
           </el-select>
         </el-form-item>
         <el-form-item label="关键词">
@@ -120,7 +138,16 @@ const MODULE_MAP = {
   CAMPAIGN: '平台活动',
   PROJECT: '项目管理',
   POINT: '积分',
-  ENROLL: '报名'
+  ENROLL: '报名',
+  CONVERSION_RULE: '转换规则',
+  CONVERSION_APPLY: '成果转换申请',
+  APPLICATION: '证书申请',
+  ORG_REGISTER: '机构入驻申请',
+  STUDENT_CERT: '学生证书',
+  EXCHANGE_RULE: '兑换规则',
+  CREDIT_RULE: '积分规则',
+  CERT_STANDARD: '证书标准',
+  ORGANIZATION: '机构管理'
 }
 
 const ACTION_MAP = {
@@ -132,6 +159,12 @@ const ACTION_MAP = {
   UPDATE: { text: '编辑信息', type: 'info' },
   CREATE: { text: '创建', type: 'success' },
   DELETE: { text: '删除', type: 'danger' },
+  SUBMIT: { text: '提交', type: 'primary' },
+  APPROVE: { text: '审核通过', type: 'success' },
+  REJECT: { text: '审核驳回', type: 'danger' },
+  ISSUE: { text: '证书发放', type: 'success' },
+  REVOKE: { text: '撤回/停用', type: 'warning' },
+  BATCH_ADJUST: { text: '批量调账', type: 'warning' },
   PROJECT_AUDIT: { text: '项目审核', type: 'primary' },
   PROJECT_APPROVE: { text: '审核通过', type: 'success' },
   PROJECT_REJECT: { text: '审核驳回', type: 'danger' },
@@ -141,7 +174,10 @@ const ACTION_MAP = {
   CAMPAIGN_LEAVE: { text: '活动取消', type: 'info' },
   PROJECT_ENROLL: { text: '项目报名', type: 'success' },
   PROJECT_LEAVE: { text: '项目取消', type: 'info' },
-  EARN: { text: '获得积分', type: 'success' }
+  EARN: { text: '获得积分', type: 'success' },
+  EXCHANGE: { text: '商品兑换', type: 'warning' },
+  CONVERSION_TOGGLE: { text: '规则启停', type: 'warning' },
+  RULE_TOGGLE: { text: '规则启停', type: 'warning' }
 }
 
 function moduleText(m) { return MODULE_MAP[m] || m || '—' }

@@ -264,7 +264,7 @@ async function toggleStatus(row) {
   const newStatus = row.status === 1 ? 0 : 1
   const actionText = newStatus === 0 ? '冻结' : '解冻'
   try {
-    await ElMessageBox.confirm(`确定要${actionText}用户「${row.realName}」吗？`, `确认${actionText}`, { type: 'warning' })
+    await ElMessageBox.confirm(`确定要${actionText}用户「${row.realName}」吗？`, `确认${actionText}`, { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     await updateUserStatus(row.id, newStatus)
     ElMessage.success(`${actionText}成功`)
     await loadData()
@@ -286,7 +286,7 @@ async function batchFreeze() {
     return
   }
   try {
-    await ElMessageBox.confirm(`确定要冻结选中的 ${eligible.length} 个用户吗？`, '确认批量冻结', { type: 'warning' })
+    await ElMessageBox.confirm(`确定要冻结选中的 ${eligible.length} 个用户吗？`, '确认批量冻结', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     await batchUpdateStatus(eligible, 0)
     ElMessage.success(`批量冻结成功：${eligible.length} 个`)
     clearSelection()

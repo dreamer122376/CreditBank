@@ -191,10 +191,14 @@ public class PointService {
         if (isAdminRule && "org_admin".equals(user.getRole()) && user.getOrgId() != null) {
             Organization org = organizationMapper.selectById(user.getOrgId());
             String orgName = org != null ? org.getName() : "机构 " + user.getOrgId();
+            String poolContent = "平台已向“" + orgName + "”积分池追加 " + finalCredit + " 积分。";
+            if (remark != null && !remark.trim().isEmpty()) {
+                poolContent += "原因：" + remark.trim() + "。";
+            }
             notificationService.sendToAll(
                     "ORG_POINTS_GRANTED", NotificationService.CATEGORY_POINT, "INFO",
                     "机构积分池已增加",
-                    "平台已向“" + orgName + "”积分池追加 " + finalCredit + " 积分。",
+                    poolContent,
                     null, "TRANSACTION", txn.getId(),
                     "ORG_POINTS_GRANTED:" + txn.getId(), realOperatorId);
         }

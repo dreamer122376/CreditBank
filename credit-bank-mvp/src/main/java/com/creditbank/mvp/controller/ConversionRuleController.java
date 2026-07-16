@@ -79,29 +79,29 @@ public class ConversionRuleController {
             rule.setConvertedOrgId(operator.getOrgId());
         }
         rule.setCreatedBy(operatorId);
-        return Result.ok(conversionRuleService.create(rule));
+        return Result.ok(conversionRuleService.create(rule, operator));
     }
 
     @PostMapping("/update")
     public Result<ConversionRule> update(@RequestBody ConversionRule rule) {
-        checkRulePermission(rule.getId());
-        return Result.ok(conversionRuleService.update(rule));
+        SysUser operator = checkRulePermission(rule.getId());
+        return Result.ok(conversionRuleService.update(rule, operator));
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        checkRulePermission(id);
-        conversionRuleService.delete(id);
+        SysUser operator = checkRulePermission(id);
+        conversionRuleService.delete(id, operator);
         return Result.ok();
     }
 
     @PostMapping("/{id}/toggle")
     public Result<ConversionRule> toggle(@PathVariable Long id, @RequestBody ToggleRequest request) {
-        checkRulePermission(id);
-        return Result.ok(conversionRuleService.toggleEnabled(id, request.getIsEnabled()));
+        SysUser operator = checkRulePermission(id);
+        return Result.ok(conversionRuleService.toggleEnabled(id, request.getIsEnabled(), operator));
     }
 
-    private void checkRulePermission(Long ruleId) {
+    private SysUser checkRulePermission(Long ruleId) {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         if (operatorId == null) {
             throw new BizException("未登录");
@@ -111,7 +111,7 @@ public class ConversionRuleController {
             throw new BizException("用户不存在");
         }
         if ("admin".equals(operator.getRole())) {
-            return;
+            return operator;
         }
         ConversionRule rule = conversionRuleService.getById(ruleId);
         if (rule.getConvertedOrgId() == null) {
@@ -120,6 +120,7 @@ public class ConversionRuleController {
         if (!rule.getConvertedOrgId().equals(operator.getOrgId())) {
             throw new BizException("无权限操作其他机构的规则");
         }
+        return operator;
     }
 
     public static class ToggleRequest {

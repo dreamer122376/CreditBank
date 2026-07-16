@@ -257,10 +257,55 @@ public class NotificationService {
         if (user == null) {
             return;
         }
+        // 修复性自清理：移除当前用户收件箱中所有"角色错配的欢迎通知"收件人关联
+        // 即：本用户收到的、属于WELCOME事件、但该notification目标scope_value并非本用户ID的脏数据
+        cleanupMismatchedWelcomeRecipients(userId);
         String content = welcomeContent(user.getRole());
         publish("WELCOME", "USER", String.valueOf(userId), CATEGORY_SYSTEM, "INFO",
                 "欢迎使用学分银行", content, null, null, "/dashboard", null,
                 "WELCOME:" + userId + ":v1", Collections.singletonList(userId));
+    }
+
+    /**
+     * 清理指定用户下错配的 WELCOME 通知收件人记录。
+     * 逻辑：取出该用户的所有WELCOME类通知收件人关联，若关联的notification并非以该用户为目标（scope_value != userId），则删除。
+     * 用于自愈历史脏数据，防止用户看到其他角色的欢迎通知内容。
+     */
+    private void cleanupMismatchedWelcomeRecipients(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        // 1. 找出所有 WELCOME 类 notification 的 id 与 scope_value 对
+        List<SystemNotification> welcomes = notificationMapper.selectList(
+                new LambdaQueryWrapper<SystemNotification>()
+                        .eq(SystemNotification::getEventCode, "WELCOME"));
+        if (welcomes.isEmpty()) {
+            return;
+        }
+        // 2. 找出本用户在这些 notification 下的收件人记录
+        List<Long> welcomeIds = welcomes.stream()
+                .map(SystemNotification::getId)
+                .collect(Collectors.toList());
+        List<NotificationRecipient> userRecipients = recipientMapper.selectList(
+                new LambdaQueryWrapper<NotificationRecipient>()
+                        .eq(NotificationRecipient::getUserId, userId)
+                        .in(NotificationRecipient::getNotificationId, welcomeIds));
+        if (userRecipients.isEmpty()) {
+            return;
+        }
+        // 构建 notificationId -> scopeValue 的索引便于快速比对
+        java.util.Map<Long, String> scopeByNotification = new java.util.HashMap<>();
+        for (SystemNotification n : welcomes) {
+            scopeByNotification.put(n.getId(), n.getScopeValue());
+        }
+        String expectedScope = String.valueOf(userId);
+        // 3. 删除错配：notification 对应的目标 scope_value 不是当前 userId
+        for (NotificationRecipient r : userRecipients) {
+            String scope = scopeByNotification.get(r.getNotificationId());
+            if (scope == null || !expectedScope.equals(scope)) {
+                recipientMapper.deleteById(r.getId());
+            }
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -370,14 +415,25 @@ public class NotificationService {
         notification.setExpiresAt(expiresAt);
         notificationMapper.insert(notification);
 
+        int inserted = 0;
         for (Long recipientId : recipientIds.stream().distinct().collect(Collectors.toList())) {
+            // 幂等：接收人已存在则跳过（修复并发启动/重复执行时
+            // notification_recipient.uk_notification_user 唯一索引报错导致 ApplicationContext 启动失败的 bug）
+            long exists = recipientMapper.selectCount(
+                    new LambdaQueryWrapper<NotificationRecipient>()
+                            .eq(NotificationRecipient::getNotificationId, notification.getId())
+                            .eq(NotificationRecipient::getUserId, recipientId));
+            if (exists > 0) {
+                continue;
+            }
             NotificationRecipient recipient = new NotificationRecipient();
             recipient.setNotificationId(notification.getId());
             recipient.setUserId(recipientId);
             recipient.setCreatedAt(now);
             recipientMapper.insert(recipient);
+            inserted++;
         }
-        return (int) recipientIds.stream().distinct().count();
+        return inserted;
     }
 
     private String welcomeContent(String role) {

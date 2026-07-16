@@ -150,7 +150,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" fixed="right" align="center" class-name="col-action" v-if="currentUser">
+        <el-table-column label="操作" width="180" fixed="right" align="center" class-name="col-action" v-if="!readonly && currentUser">
           <template #default="{ row }">
             <template v-if="canOperate(row)">
               <div class="op-col">
@@ -282,6 +282,11 @@ import { useAuth } from '@/composables/useAuth'
 
 const { currentUser } = useAuth()
 
+// 公开模式显式开关：为 true 时强制隐藏所有管理操作与管理数据加载，与全局登录态解耦
+const props = defineProps({
+  readonly: { type: Boolean, default: false }
+})
+
 const loading = ref(true)
 const rules = ref([])
 const organizations = ref([])
@@ -292,9 +297,11 @@ const statFilter = ref(null)
 
 const tableMaxHeight = computed(() => Math.max(400, window.innerHeight - 380) + 'px')
 
-const canCreate = computed(() =>
-  currentUser.value?.role === 'admin' || currentUser.value?.role === 'org_admin'
-)
+// 管理操作按钮显隐：公开模式一律不可创建；管理模式按角色判断
+const canCreate = computed(() => {
+  if (props.readonly) return false
+  return currentUser.value?.role === 'admin' || currentUser.value?.role === 'org_admin'
+})
 
 // ============ 统计卡片 ============
 const statItems = computed(() => ([
@@ -384,8 +391,10 @@ function truncateType(type) {
 onMounted(async () => {
   loading.value = true
   try {
-    // 未登录时只加载规则基础数据；已登录时并行加载所有数据，性能更优
-    if (currentUser.value) {
+    // 公开只读模式：仅加载规则目录，不请求机构/积分规则等管理侧数据
+    if (props.readonly) {
+      await loadData()
+    } else if (currentUser.value) {
       await Promise.all([loadData(), loadOrganizations(), loadCreditRules()])
     } else {
       await loadData()
@@ -430,6 +439,7 @@ function canOperate(row) {
 
 // ============ CRUD ============
 function openCreate() {
+  if (props.readonly) return
   const now = new Date()
   const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
   form.value = {
@@ -449,11 +459,13 @@ function openCreate() {
 }
 
 function openEdit(row) {
+  if (props.readonly) return
   form.value = { ...row }
   dialogVisible.value = true
 }
 
 async function save() {
+  if (props.readonly) return
   if (!form.value.originalName?.trim()) return ElMessage.warning('请输入原成果名称')
   if (!form.value.convertedName?.trim()) return ElMessage.warning('请输入转换后成果名称')
   if (!form.value.originalType?.trim()) return ElMessage.warning('请输入原成果类型')
@@ -470,6 +482,7 @@ async function save() {
 }
 
 async function toggle(row) {
+  if (props.readonly) return
   try {
     await toggleConversionRule(row.id, row.isEnabled === 1 ? 0 : 1)
     ElMessage.success(row.isEnabled === 1 ? '已停用' : '已启用')
@@ -480,6 +493,7 @@ async function toggle(row) {
 }
 
 async function handleDelete(row) {
+  if (props.readonly) return
   try {
     await ElMessageBox.confirm(
       `确定删除规则「${row.convertedName}」？此操作不可恢复。`,

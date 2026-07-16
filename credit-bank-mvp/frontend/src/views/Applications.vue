@@ -236,6 +236,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuth } from '@/composables/useAuth'
+import { useAuditTodos } from '@/composables/useAuditTodos'
 import { getApplications, auditApplication } from '@/api/application'
 import { getCertStandards } from '@/api/certStandard'
 import { getStudentCertByApplication } from '@/api/studentCert'
@@ -249,6 +250,7 @@ const IN_REVIEW_STATUSES = [STATUS_IN_REVIEW]
 
 const router = useRouter()
 const { currentUser } = useAuth()
+const { refreshAuditTodos } = useAuditTodos()
 
 const loading = ref(true)
 const apps = ref([])
@@ -376,7 +378,8 @@ async function audit(row, approve, reason) {
     await auditApplication(row.id, currentUser.value?.role, currentUser.value?.id, approve, reason)
     ElMessage.success(approve ? '已通过' : '已驳回')
     detailVisible.value = false
-    await loadData()
+    // 页面列表刷新 + 徽标同步刷新（避免 30s 等待）
+    await Promise.all([loadData(), refreshAuditTodos()])
   } catch (error) {
     ElMessage.error(error.message || '操作失败')
   }
@@ -486,11 +489,12 @@ function getConvStatusText(status) {
 async function auditConversion(row, approve, reason = '') {
   try {
     if (approve) {
-      await ElMessageBox.confirm('确定要通过该转换申请吗？通过后将自动发放积分。', '确认通过', { type: 'warning' })
+      await ElMessageBox.confirm('确定要通过该转换申请吗？通过后将自动发放积分。', '确认通过', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     }
     await auditConversionApplication(row.id, approve, reason)
     ElMessage.success(approve ? '审核通过' : '已驳回')
-    await loadData()
+    // 页面列表刷新 + 徽标同步刷新（避免 30s 等待）
+    await Promise.all([loadData(), refreshAuditTodos()])
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error.message || '审核失败')

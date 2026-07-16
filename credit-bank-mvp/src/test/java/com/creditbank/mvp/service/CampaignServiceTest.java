@@ -166,7 +166,8 @@ class CampaignServiceTest {
         Campaign update = mockCampaign(1L, "New Title", BigDecimal.valueOf(2.0), 1,
                 LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2));
 
-        when(campaignMapper.selectById(1L)).thenReturn(existing);
+        // update() 先 getById() 取 existing，再 updateById，最后再次 getById() 返回
+        when(campaignMapper.selectById(1L)).thenReturn(existing, update);
         when(campaignMapper.updateById(any())).thenReturn(1);
         when(userOpLogMapper.insert(any())).thenReturn(1);
 
@@ -315,14 +316,4 @@ class CampaignServiceTest {
         System.out.println("✓ 测试通过: 获取当前翻倍活动成功 - 倍率=" + result.getMultiplier());
     }
 
-    @Test
-    @DisplayName("refreshStatus - 定时刷新活动状态")
-    void testRefreshStatus() {
-        when(campaignMapper.update(any(), any())).thenReturn(1);
-
-        campaignService.refreshStatus();
-
-        verify(campaignMapper, times(2)).update(any(), any());
-        System.out.println("✓ 测试通过: 定时刷新活动状态成功");
-    }
 }

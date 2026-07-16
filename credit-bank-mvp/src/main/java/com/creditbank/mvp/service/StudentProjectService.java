@@ -40,6 +40,7 @@ public class StudentProjectService {
     private final OrganizationMapper organizationMapper;
     private final UserOpLogMapper userOpLogMapper;
     private final PointService pointService;
+    private final NotificationService notificationService;
 
     public StudentProjectService(StudentProjectMapper studentProjectMapper,
                                  ProjectService projectService,
@@ -47,7 +48,8 @@ public class StudentProjectService {
                                  SysUserMapper sysUserMapper,
                                  OrganizationMapper organizationMapper,
                                  UserOpLogMapper userOpLogMapper,
-                                 PointService pointService) {
+                                 PointService pointService,
+                                 NotificationService notificationService) {
         this.studentProjectMapper = studentProjectMapper;
         this.projectService = projectService;
         this.projectMapper = projectMapper;
@@ -55,6 +57,7 @@ public class StudentProjectService {
         this.organizationMapper = organizationMapper;
         this.userOpLogMapper = userOpLogMapper;
         this.pointService = pointService;
+        this.notificationService = notificationService;
     }
 
     // ==================== 学生端：我的项目 ====================
@@ -266,6 +269,29 @@ public class StudentProjectService {
             Project project = projectService.getById(enrollment.getProjectId());
             if (project != null) {
                 pointService.rewardProjectCompletion(enrollment.getStudentId(), project, operator.getId());
+                // 通知学生审核通过
+                notificationService.sendToUser(
+                        "PROJECT_APPROVED", NotificationService.CATEGORY_APPLICATION, "SUCCESS",
+                        "项目审核通过",
+                        "您的项目「" + project.getName() + "」完成申请已审核通过，积分已发放。",
+                        "/my-projects",
+                        "PROJECT", project.getId(),
+                        "project_approved_" + enrollment.getId(),
+                        enrollment.getStudentId(), operator.getId());
+            }
+        }
+        // 审核驳回时通知学生
+        if (StudentProject.STATUS_PENDING_REVIEW.equals(current) && StudentProject.STATUS_IN_PROGRESS.equals(newStatus)) {
+            Project project = projectService.getById(enrollment.getProjectId());
+            if (project != null) {
+                notificationService.sendToUser(
+                        "PROJECT_REJECTED", NotificationService.CATEGORY_APPLICATION, "WARNING",
+                        "项目审核驳回",
+                        "您的项目「" + project.getName() + "」完成申请已被驳回，可重新提交。",
+                        "/my-projects",
+                        "PROJECT", project.getId(),
+                        "project_rejected_" + enrollment.getId(),
+                        enrollment.getStudentId(), operator.getId());
             }
         }
     }
@@ -295,6 +321,25 @@ public class StudentProjectService {
                 null, null,
                 UserOpLog.MODULE_ENROLL, UserOpLog.ACTION_PROJECT_SUBMIT,
                 "提交项目完成申请：" + (project != null ? project.getName() : "")));
+
+        // 通知机构管理员审核
+        if (project != null && project.getOrgId() != null && student != null) {
+            SysUser orgAdmin = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysUser>()
+                            .eq(SysUser::getOrgId, project.getOrgId())
+                            .eq(SysUser::getRole, "org_admin")
+                            .last("LIMIT 1"));
+            if (orgAdmin != null) {
+                notificationService.sendToUser(
+                        "PROJECT_REVIEW", NotificationService.CATEGORY_APPLICATION, "INFO",
+                        "项目完成申请待审核",
+                        "学生「" + student.getRealName() + "」提交了项目「" + project.getName() + "」的完成申请，请及时审核。",
+                        "/projects/manage",
+                        "PROJECT", project.getId(),
+                        "project_review_" + enrollment.getId(),
+                        orgAdmin.getId(), studentId);
+            }
+        }
     }
 
     /**

@@ -86,7 +86,7 @@
     </el-dialog>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="项目详情" width="640px">
+    <el-dialog v-model="detailVisible" title="项目详情" width="820px">
       <div v-loading="detailLoading">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="项目ID">{{ detail.id }}</el-descriptions-item>
@@ -105,30 +105,50 @@
 
         <!-- 报名学生列表仅机构管理员可见 -->
         <div class="students-section" v-if="isOrgAdmin">
-          <div class="section-title">报名学生（{{ students.length }} 人）</div>
+          <div class="section-title">
+            报名学生（{{ students.length }} 人）
+            <span v-if="pendingCount > 0" class="pending-badge">{{ pendingCount }} 人待审核</span>
+          </div>
           <el-table :data="students" border size="small" style="width:100%;">
-            <el-table-column type="index" label="序号" width="60" />
-            <el-table-column prop="realName" label="学生姓名" width="120" />
-            <el-table-column prop="username" label="账号" width="140" />
-            <el-table-column label="报名状态" width="100">
+            <el-table-column type="index" label="#" width="50" />
+            <el-table-column prop="realName" label="学生" width="100" />
+            <el-table-column prop="username" label="账号" width="120" />
+            <el-table-column label="状态" width="100">
               <template #default="scope">
-                <el-tag :type="studentStatusType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                <el-tag :type="studentStatusType(scope.row.status)" size="small" effect="light">
+                  {{ scope.row.status }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="enrolledAt" label="报名时间" width="160">
+            <el-table-column prop="enrolledAt" label="报名时间" width="150">
               <template #default="scope">{{ fmt(scope.row.enrolledAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" min-width="160">
+            <el-table-column label="操作" min-width="200">
               <template #default="scope">
                 <template v-if="scope.row.status === '待审核'">
-                  <el-button size="small" type="success" plain @click="handleAuditCompletion(scope.row, true)">通过</el-button>
-                  <el-button size="small" type="danger" plain @click="handleAuditCompletion(scope.row, false)">驳回</el-button>
+                  <div class="audit-actions">
+                    <el-button size="small" type="success" plain
+                      @click="handleAuditCompletion(scope.row, true)"
+                      :loading="auditingRow === scope.row.enrollmentId && auditApprove">
+                      <el-icon><Check /></el-icon>通过 · 发积分
+                    </el-button>
+                    <el-button size="small" type="danger" plain
+                      @click="handleAuditCompletion(scope.row, false)"
+                      :loading="auditingRow === scope.row.enrollmentId && !auditApprove">
+                      <el-icon><Close /></el-icon>驳回 · 退回
+                    </el-button>
+                  </div>
                 </template>
-                <span v-else style="color:#868e96;font-size:12px;">—</span>
+                <span v-else class="audit-done-text">
+                  <el-icon v-if="scope.row.status === '已完成'"><CircleCheck /></el-icon>
+                  {{ scope.row.status === '已完成' ? '已通过审核并发放积分' : scope.row.status === '已取消' ? '学生已取消报名' : '' }}
+                  {{ scope.row.status === '进行中' ? '学生进行中' : '' }}
+                  {{ scope.row.status === '已报名' ? '等待学生提交' : '' }}
+                </span>
               </template>
             </el-table-column>
           </el-table>
-          <div v-if="students.length === 0" style="text-align:center;padding:24px;color:#868e96;">暂无学生报名</div>
+          <div v-if="students.length === 0" style="text-align:center;padding:24px;color:var(--cb-muted);">暂无学生报名</div>
         </div>
       </div>
       <template #footer>
@@ -150,6 +170,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Check, Close, CircleCheck } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { getOrgProjects, getAllProjects, createProject, updateProject, offlineProject, auditProject, getOrgProjectDetail, auditProjectCompletion } from '@/api/project'
 import { getExperts } from '@/api/expert'
@@ -170,6 +191,10 @@ const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref({})
 const students = ref([])
+const auditingRow = ref(null)
+const auditApprove = ref(true)
+
+const pendingCount = computed(() => students.value.filter(s => s.status === '待审核').length)
 const filterStatus = ref(null)
 const pageNum = ref(1)
 const pageSize = ref(10)
@@ -347,13 +372,21 @@ async function openDetail(row) {
 
 async function handleAuditCompletion(row, approve) {
   const action = approve ? '通过' : '驳回'
+  auditingRow.value = row.enrollmentId
+  auditApprove.value = approve
   try {
-    await ElMessageBox.confirm('确定要' + action + '「' + row.realName + '」的完成申请吗？', action + '确认', { type: approve ? 'info' : 'warning' })
+    await ElMessageBox.confirm(
+      approve
+        ? '确认通过「' + row.realName + '」的完成申请？通过后将自动发放 ' + (detail.value.creditReward || 0) + ' 积分。'
+        : '确认驳回「' + row.realName + '」的完成申请？驳回后学生可重新提交。',
+      action + '确认', { type: approve ? 'info' : 'warning' })
     await auditProjectCompletion(row.enrollmentId, approve)
-    ElMessage.success('已' + action)
+    ElMessage.success(approve ? '已通过并发放积分' : '已驳回，学生可重新提交')
     openDetail(detail.value)
   } catch (e) {
     if (e !== 'cancel') ElMessage.error(e.message || '操作失败')
+  } finally {
+    auditingRow.value = null
   }
 }
 
@@ -376,17 +409,22 @@ onMounted(() => { loadData(); loadExperts() })
 
 <style scoped>
 .card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
 }
-.students-section {
-  margin-top: 20px;
-}
+.students-section { margin-top: 20px; }
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 10px;
+  font-size: 14px; font-weight: 600; color: var(--cb-charcoal);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
 }
+.pending-badge {
+  font-size: 11px; font-weight: 500; color: #fff;
+  background: var(--cb-warning); padding: 2px 8px; border-radius: 10px;
+}
+
+.audit-actions { display: flex; gap: 8px; }
+.audit-done-text {
+  font-size: 12px; color: var(--cb-muted);
+  display: flex; align-items: center; gap: 4px;
+}
+.audit-done-text .el-icon { color: var(--cb-success); }
 </style>

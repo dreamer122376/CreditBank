@@ -1,7 +1,8 @@
 package com.creditbank.mvp.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.creditbank.mvp.common.BizException;
 import com.creditbank.mvp.dto.OrganizationAuditResult;
 import com.creditbank.mvp.entity.Organization;
@@ -43,12 +44,12 @@ public class OrganizationService {
 
     public List<Organization> list() {
         List<Organization> orgs = organizationMapper.selectList(
-                new LambdaQueryWrapper<Organization>().orderByDesc(Organization::getId));
+                new QueryWrapper<Organization>().orderByDesc("id"));
         for (Organization org : orgs) {
             SysUser admin = sysUserMapper.selectOne(
-                    new LambdaQueryWrapper<SysUser>()
-                            .eq(SysUser::getOrgId, org.getId())
-                            .eq(SysUser::getRole, "org_admin")
+                    new QueryWrapper<SysUser>()
+                            .eq("org_id", org.getId())
+                            .eq("role", "org_admin")
                             .last("LIMIT 1"));
             org.setCreditPool(admin != null && admin.getBalance() != null ? admin.getBalance() : 0);
         }
@@ -116,16 +117,16 @@ public class OrganizationService {
 
         if (isDisable) {
             sysUserMapper.update(null,
-                    new LambdaUpdateWrapper<SysUser>()
-                            .eq(SysUser::getOrgId, id)
-                            .set(SysUser::getStatus, 0)
-                            .set(SysUser::getFrozenAt, LocalDateTime.now()));
+                    new UpdateWrapper<SysUser>()
+                            .eq("org_id", id)
+                            .set("status", 0)
+                            .set("frozen_at", LocalDateTime.now()));
         } else if (isReEnable) {
             sysUserMapper.update(null,
-                    new LambdaUpdateWrapper<SysUser>()
-                            .eq(SysUser::getOrgId, id)
-                            .set(SysUser::getStatus, 1)
-                            .set(SysUser::getFrozenAt, null));
+                    new UpdateWrapper<SysUser>()
+                            .eq("org_id", id)
+                            .set("status", 1)
+                            .set("frozen_at", null));
         }
 
         // 操作日志：机构状态变更（审核通过/停用/重新启用）
@@ -162,9 +163,9 @@ public class OrganizationService {
 
         if (isAuditPass) {
             SysUser existingAdmin = sysUserMapper.selectOne(
-                    new LambdaQueryWrapper<SysUser>()
-                            .eq(SysUser::getOrgId, id)
-                            .eq(SysUser::getRole, "org_admin")
+                    new QueryWrapper<SysUser>()
+                            .eq("org_id", id)
+                            .eq("role", "org_admin")
                             .last("LIMIT 1"));
             if (existingAdmin != null) {
                 notificationService.ensureWelcomeNotification(existingAdmin.getId());
@@ -267,7 +268,7 @@ public class OrganizationService {
 
     private boolean isUsernameAvailable(String username) {
         return sysUserMapper.selectCount(
-                new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, username)) == 0;
+                new QueryWrapper<SysUser>().eq("username", username)) == 0;
     }
 
     // --- 内部辅助方法 ---

@@ -842,3 +842,33 @@ body {
 .pulse-ring {
   animation: softPulse 2s ease infinite;
 }
+
+/* ============ 封面装饰图形交互 ============ */
+/* 使用父级 hover 触发，绕过 pointer-events: none */
+.detail-cover:hover .cover-geo.ring,
+.card-cover:hover .cover-geo.ring {
+  transform: rotate(15deg) scale(1.1);
+  border-color: rgba(255,255,255,0.3);
+}
+.detail-cover:hover .cover-geo.dot,
+.card-cover:hover .cover-geo.dot {
+  transform: translateY(-6px) scale(1.4);
+  background: rgba(255,255,255,0.4);
+}
+.detail-cover:hover .cover-diagonal,
+.card-cover:hover .cover-diagonal {
+  transform: rotate(-15deg) translateX(10px);
+  background: rgba(255,255,255,0.2);
+}
+.cover-geo, .cover-diagonal {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 封面点击涟漪 */
+.ripple-active {
+  animation: coverRipple 0.6s ease-out;
+}
+@keyframes coverRipple {
+  0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+  100% { box-shadow: 0 0 0 40px rgba(255,255,255,0); }
+}

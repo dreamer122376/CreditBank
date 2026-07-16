@@ -208,8 +208,21 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e8edf5 0%, #dce3f0 50%, #eef1f7 100%);
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(59,91,219,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(121,80,242,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(11,122,79,0.04) 0%, transparent 60%),
+    linear-gradient(160deg, #eef2fb 0%, #e8eef8 30%, #f0f4fc 60%, #eaf0fa 100%);
   padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.org-register-wrap::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 85%, rgba(59,91,219,0.06) 0%, transparent 30%),
+    radial-gradient(circle at 85% 15%, rgba(121,80,242,0.05) 0%, transparent 30%);
 }
 
 
@@ -219,14 +232,28 @@ async function handleSubmit() {
   width: 880px;
   max-width: 100%;
   min-height: 560px;
-  background: var(--cb-bg-card);
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
   border-radius: var(--cb-radius-xl);
   box-shadow:
     0 20px 60px rgba(59,91,219,0.15),
-    0 0 0 1px rgba(59,91,219,0.08);
+    0 0 0 1px rgba(59,91,219,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.8);
   overflow: hidden;
   animation: panelPop 0.6s ease both;
   transition: box-shadow 0.3s ease;
+  position: relative;
+}
+.register-panel::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--cb-primary), #7950f2, var(--cb-primary-light), #0b7a4f);
+  background-size: 300% 100%;
+  animation: topBarShimmer 4s ease infinite;
+  z-index: 10; pointer-events: none;
+}
+@keyframes topBarShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 .register-panel:hover {
   box-shadow:
@@ -354,10 +381,20 @@ async function handleSubmit() {
 .submit-btn {
   width: 100%; margin-top: 8px;
   transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #3b5bdb 100%);
+  background-size: 300% 300%;
+  background-position: 0% 50%;
+  border: none; color: #fff; font-weight: 600; letter-spacing: 2px;
+  box-shadow: 0 4px 15px rgba(102,126,234,0.3);
 }
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(59,91,219,0.3);
+  box-shadow: 0 8px 25px rgba(118,75,162,0.4);
+  animation: btnShimmer 0.8s ease forwards;
+}
+@keyframes btnShimmer {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
 }
 .submit-btn:active { transform: translateY(0); }
 
@@ -379,6 +416,16 @@ async function handleSubmit() {
 .form-footer {
   text-align: center; padding-top: 20px;
   border-top: 1px solid var(--cb-border-light); margin-top: auto;
+}
+
+/* 输入框渐变焦点 */
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
+  border-color: #667eea !important;
+}
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
+  border-color: #667eea !important;
 }
 
 @media (max-width: 768px) {

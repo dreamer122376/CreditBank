@@ -37,13 +37,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import DashboardMap from './DashboardMap.vue'
 import PointMall from './PointMall.vue'
 import ConversionRules from './ConversionRules.vue'
 
 const router = useRouter()
+const route = useRoute()
 const activeTab = ref('dashboard')
 
 const tabs = [
@@ -51,6 +52,13 @@ const tabs = [
   { key: 'conversion-rules', label: '转换规则' },
   { key: 'dashboard', label: '数据大屏' }
 ]
+
+onMounted(() => {
+  const tab = route.query.tab
+  if (tab && tabs.some(t => t.key === tab)) {
+    activeTab.value = tab
+  }
+})
 
 function goLogin() {
   router.push('/login')

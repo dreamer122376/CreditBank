@@ -5,7 +5,7 @@
       <div v-for="item in statItems" :key="item.key"
            class="stat-card" :class="{ active: statFilter === item.key }"
            @click="toggleStat(item.key)">
-        <div class="stat-icon" :style="{ background: item.bgColor }"></div>
+        <div class="stat-icon" :style="{ background: item.bgColor }" v-html="item.icon"></div>
         <div class="stat-content">
           <div class="stat-value" :style="{ color: item.color }">{{ item.count }}</div>
           <div class="stat-label">{{ item.label }}</div>
@@ -323,7 +323,7 @@ const statItems = computed(() => ([
     label: '全部规则',
     color: '#1e3a5f',
     bgColor: 'linear-gradient(135deg, #3b82f6 0%, #1e3a5f 100%)',
-    icon: '📋',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>`,
     count: rules.value.length
   },
   {
@@ -331,7 +331,7 @@ const statItems = computed(() => ([
     label: '课程类',
     color: '#4f46e5',
     bgColor: 'linear-gradient(135deg, #818cf8 0%, #4f46e5 100%)',
-    icon: '📚',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
     count: rules.value.filter(r => r.convertedType === '课程').length
   },
   {
@@ -339,7 +339,7 @@ const statItems = computed(() => ([
     label: '项目/竞赛类',
     color: '#059669',
     bgColor: 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
-    icon: '🏆',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/><path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><path d="M12 17v6"/><path d="M8 23h8"/><path d="M7 2h10v4a5 5 0 0 1-10 0V2z"/><line x1="17" y1="3" x2="12" y2="9"/><line x1="7" y1="3" x2="12" y2="9"/></svg>`,
     count: rules.value.filter(r =>
       r.convertedType && (r.convertedType.includes('项目') || r.convertedType.includes('大赛') || r.convertedType.includes('优秀'))
     ).length
@@ -349,7 +349,7 @@ const statItems = computed(() => ([
     label: '已停用',
     color: '#c0392b',
     bgColor: 'linear-gradient(135deg, #f87171 0%, #c0392b 100%)',
-    icon: '🚫',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`,
     count: rules.value.filter(r => r.isEnabled !== 1).length
   }
 ]))

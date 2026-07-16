@@ -201,7 +201,7 @@ const routes = [
         path: '/conversion-rules',
         name: 'ConversionRules',
         component: () => import('@/views/ConversionRules.vue'),
-        meta: { title: '转换规则' }
+        meta: { title: '转换规则', roles: ['admin', 'org_admin'] }
       },
       {
         path: '/conversion-apply',
@@ -219,15 +219,29 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const { currentUser } = useAuth()
+  const { currentUser, ROLE_NAME } = useAuth()
   const publicPaths = ['/', '/login', '/org-register', '/dashboard-map', '/certificate-verify']
   if (publicPaths.includes(to.path)) {
     next()
-  } else if (!currentUser.value) {
-    next('/login')
-  } else {
-    next()
+    return
   }
+  // 未登录：跳登录页
+  if (!currentUser.value) {
+    next('/login')
+    return
+  }
+  // 路由声明了角色白名单时：当前用户角色不在白名单内 → 跳回工作台并提示
+  const whitelist = to.meta?.roles
+  if (Array.isArray(whitelist) && whitelist.length > 0) {
+    const role = currentUser.value.role
+    if (!whitelist.includes(role)) {
+      const name = ROLE_NAME?.[role] || role
+      console.warn(`[router] 角色 ${name} 无权访问 ${to.path}，已重定向至 /dashboard`)
+      next('/dashboard')
+      return
+    }
+  }
+  next()
 })
 
 export default router

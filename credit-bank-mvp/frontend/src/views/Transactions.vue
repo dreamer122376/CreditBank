@@ -123,6 +123,11 @@
 </template>
 
 <script setup>
+/**
+ * Transactions.vue - 交易流水页面（额外注释）
+ * 功能：根据角色显示不同标题（交易管理/积分流水/我的积分），
+ *       支持按业务类型、时间范围筛选，管理员可撤销流水（生成反向补差）。
+ */
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'

@@ -202,6 +202,9 @@ public class StatsService {
         return dto;
     }
 
+    /**
+     * 获取近 N 天积分概览（按日统计收入/支出/兑换/活动/净值）
+     */
     public List<PointOverviewDTO> getPointOverview(int days) {
         List<PointOverviewDTO> result = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -496,6 +499,9 @@ public class StatsService {
 
     // ==================== 数据大屏 ====================
 
+    /**
+     * 获取数据大屏数据：KPI 指标、角色分类、同比对比、省份分布、月度趋势
+     */
     public DashboardVO getDashboardData() {
         DashboardVO vo = new DashboardVO();
 

@@ -180,6 +180,7 @@ public class UserService {
     // ==================== 重置密码 ====================
 
     @Transactional(rollbackFor = Exception.class)
+    /** 重置用户密码（禁止操作系统管理员和自己） */
     public void resetPassword(Long id, String newPassword, SysUser operator) {
         SysUser user = getUser(id);
         checkAdminProtection(operator, user, "重置密码");

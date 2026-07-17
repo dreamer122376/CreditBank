@@ -47,6 +47,11 @@
 </template>
 
 <script setup>
+/**
+ * PublicHome.vue - 公开主页（额外注释）
+ * 功能：未登录用户的着陆页，顶栏导航切换"数据大屏/积分商城/转换规则"三个公开模块，
+ *       已登录用户显示"进入控制台"按钮和退出登录。
+ */
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DashboardMap from './DashboardMap.vue'
@@ -86,15 +91,8 @@ function goOrgRegister() {
 }
 
 function goDashboard() {
-  // 已登录用户点击"进入控制台"：跳转到 MainLayout 的默认首页（绝对路径 /dashboard，而非嵌套的 /app/dashboard）
-  const role = currentUser.value?.role
-  if (role === 'admin' || role === 'org_admin' || role === 'expert') {
-    router.push('/dashboard')
-  } else if (role === 'student') {
-    router.push('/dashboard')
-  } else {
-    router.push('/dashboard')
-  }
+  // 已登录用户点击"进入控制台"：跳转到 MainLayout 的默认首页
+  router.push('/dashboard')
 }
 
 function handleLogout() {

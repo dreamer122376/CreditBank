@@ -102,6 +102,11 @@
 </template>
 
 <script setup>
+/**
+ * MainLayout.vue - 主布局组件（额外注释）
+ * 功能：侧边栏 + 顶栏 + 内容区组合，根据角色动态渲染菜单，
+ *       显示登录用户信息、冻结横幅、解冻申诉弹窗、审核待办徽标。
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
@@ -155,13 +160,15 @@ const roleTitle = computed(() => {
   return titles[currentUser.value?.role] || ''
 })
 
-// 解冻申诉
+// 解冻申诉状态
 const appealVisible = ref(false)
 const appealReason = ref('')
 const appealing = ref(false)
 
+// 格式化时间戳：截取前16位，替换 T 为空格
 function fmt(t) { if (!t) return ''; return t.length >= 16 ? t.substring(0, 16).replace('T', ' ') : t }
 
+// 提交解冻申诉
 async function submitAppeal() {
   if (!appealReason.value.trim()) { ElMessage.warning('请填写申诉理由'); return }
   appealing.value = true
@@ -177,6 +184,7 @@ async function submitAppeal() {
   }
 }
 
+// 根据角色动态生成侧边栏菜单项
 const menuItems = computed(() => {
   const menus = {
     admin: [
@@ -245,6 +253,7 @@ const menuItems = computed(() => {
   return menus[currentUser.value?.role] || []
 })
 
+// 下拉菜单命令处理：退出登录
 function handleCommand(command) {
   if (command === 'logout') {
     logout()

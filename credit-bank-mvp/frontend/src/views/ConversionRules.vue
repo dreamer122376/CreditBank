@@ -289,6 +289,13 @@
 </template>
 
 <script setup>
+/**
+ * ConversionRules.vue - 转换规则管理页面（额外注释）
+ * 功能：支持公开只读模式（readonly prop）和管理员/机构管理员 CRUD。
+ *       统计卡片按"全部/课程类/项目类/已停用"分类筛选；
+ *       表格展示 SOURCE→TARGET 映射关系（含积分规则关联）；
+ *       弹窗表单含"原成果→转换后成果"双区块 + 关联积分规则选择。
+ */
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Right, OfficeBuilding, Switch, Check } from '@element-plus/icons-vue'
@@ -564,6 +571,7 @@ function onCreditRuleChange() {
 }
 
 // openCreate/openEdit 后：若已有关联积分规则，立刻回显 eventName 到只读输入框
+// 打开新增弹窗：预填生效时间为当前~一年后
 function openCreate() {
   if (props.readonly) return
   const now = new Date()
@@ -593,6 +601,7 @@ function openEdit(row) {
   dialogVisible.value = true
 }
 
+// 保存规则：新增或更新，校验必填字段
 async function save() {
   if (props.readonly) return
   if (!form.value.originalName?.trim()) return ElMessage.warning('请输入原成果名称')
@@ -610,6 +619,7 @@ async function save() {
   }
 }
 
+// 切换启用/停用状态
 async function toggle(row) {
   if (props.readonly) return
   try {
@@ -621,6 +631,7 @@ async function toggle(row) {
   }
 }
 
+// 删除规则：二次确认后删除
 async function handleDelete(row) {
   if (props.readonly) return
   try {

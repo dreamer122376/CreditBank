@@ -116,6 +116,11 @@
 </template>
 
 <script setup>
+/**
+ * UserOpLog.vue - 操作日志页面（额外注释）
+ * 功能：按模块、操作类型、关键词、时间范围筛选系统操作日志，
+ *       展示操作人、目标用户、操作详情等审计信息。
+ */
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getOpLogs } from '@/api/user'

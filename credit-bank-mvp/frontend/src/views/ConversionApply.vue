@@ -253,6 +253,12 @@
 </template>
 
 <script setup>
+/**
+ * ConversionApply.vue - 转换申请页面（额外注释）
+ * 功能：学生查看已有的转换规则并快速申请（RULE_CONVERT），或新增自定义规则申请（RULE_ADD）。
+ *       支持上传证明材料（PDF/Word/图片），可重新提交被驳回的申请。
+ *       管理员在 Applications.vue 的"转换申请"tab 中审核。
+ */
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Paperclip, View } from '@element-plus/icons-vue'

@@ -11,6 +11,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 成果转换申请控制器。
+ * 学生提交转换申请，管理员审核，按角色过滤列表。
+ * 额外注释
+ */
 @RestController
 @RequestMapping("/api/conversion-application")
 public class ConversionApplicationController {

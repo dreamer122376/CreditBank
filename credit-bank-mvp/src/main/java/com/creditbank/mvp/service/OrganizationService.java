@@ -19,6 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 机构服务。
+ * 负责机构的创建、更新、入驻审核/启停（含关联用户批量冻结/解冻），
+ * 以及机构管理员账号的自动生成。
+ * 额外注释
+ */
 @Service
 public class OrganizationService {
 
@@ -42,6 +48,7 @@ public class OrganizationService {
         this.userOpLogMapper = userOpLogMapper;
     }
 
+    /** 获取所有机构列表（带积分池余额） */
     public List<Organization> list() {
         List<Organization> orgs = organizationMapper.selectList(
                 new QueryWrapper<Organization>().orderByDesc("id"));
@@ -56,6 +63,7 @@ public class OrganizationService {
         return orgs;
     }
 
+    /** 创建机构（初始状态为待审核） */
     @Transactional(rollbackFor = Exception.class)
     public Organization create(Organization org) {
         if (org.getName() == null || org.getName().trim().isEmpty()) {
@@ -77,6 +85,7 @@ public class OrganizationService {
         return saved;
     }
 
+    /** 更新机构基本信息 */
     @Transactional(rollbackFor = Exception.class)
     public Organization update(Organization org) {
         Organization exist = organizationMapper.selectById(org.getId());

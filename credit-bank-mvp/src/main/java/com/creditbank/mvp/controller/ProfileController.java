@@ -6,6 +6,10 @@ import com.creditbank.mvp.service.ProfileService;
 import com.creditbank.mvp.util.CurrentUserUtil;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 个人资料控制器（查看/编辑个人信息、修改密码）。
+ * 额外注释
+ */
 @RestController
 @RequestMapping("/api/profile")
 public class ProfileController {

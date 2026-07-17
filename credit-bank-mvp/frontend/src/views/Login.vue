@@ -231,6 +231,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
 })
 
+// 登录：调用 useAuth 的 login，成功后跳转工作台
 async function handleLogin() {
   const { username, password } = loginForm.value
   if (!username || !password) {
@@ -249,7 +250,7 @@ async function handleLogin() {
   }
 }
 
-// [TEST-ONLY]
+// [TEST-ONLY] 测试用户快速登录
 async function handleTestLoginByUser(username) {
   loading.value = true
   loginMsg.value = ''
@@ -278,6 +279,7 @@ function onUserTypeChange() {
   registerForm.value.institutionName = ''
 }
 
+// 注册：校验输入后调用 useAuth 的 register，成功后自动跳转工作台
 async function handleRegister() {
   const { username, password, confirmPassword, realName, userType } = registerForm.value
   if (!username || !password || !realName) {
@@ -305,6 +307,7 @@ function goOrgRegister() {
   router.push('/org-register')
 }
 
+// 顶部导航 tab 跳转公开主页对应模块
 function goHome(tab) {
   router.push({ path: '/', query: { tab } })
 }

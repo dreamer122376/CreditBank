@@ -140,6 +140,11 @@
 </template>
 
 <script setup>
+/**
+ * Accounts.vue - 账户管理/用户管理页面（额外注释）
+ * 功能：按角色筛选用户列表，支持搜索、冻结/解冻（单个或批量）、重置密码、
+ *       加分（机构管理员可加积分池，学生按积分规则加分）。
+ */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'

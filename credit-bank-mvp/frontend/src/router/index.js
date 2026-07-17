@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
+// 路由表：公开路由（meta.public）不校验登录；需角色校验的路由通过 meta.roles 声明白名单
 const routes = [
   {
     path: '/login',
@@ -218,8 +219,10 @@ const router = createRouter({
   routes
 })
 
+// 全局导航守卫：登录校验 + 角色权限校验
 router.beforeEach((to, from, next) => {
   const { currentUser, ROLE_NAME } = useAuth()
+  // 公开页面（首页、登录、注册、数据大屏、证书验真）无需登录
   const publicPaths = ['/', '/login', '/org-register', '/dashboard-map', '/certificate-verify']
   if (publicPaths.includes(to.path)) {
     next()

@@ -228,6 +228,11 @@
 </template>
 
 <script setup>
+/**
+ * Notifications.vue - 通知页面（额外注释）
+ * 功能：双视图——“我的通知”接收端（含未读/已读/重要通知确认）/“已发布”管理端；
+ *       admin/org_admin 可发布全平台或指定机构通知，含有效期和重要级别。
+ */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'

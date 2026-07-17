@@ -8,8 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 角色授权拦截器。
+ * 根据请求路径和 HTTP 方法，判断当前用户角色是否有权限访问。
+ * 权限分三级：公开路径 → 需登录路径 → 管理员/机构管理员路径。
+ * 额外注释
+ */
 public class RoleAuthorizationInterceptor implements HandlerInterceptor {
 
+    /** 仅管理员（admin）可访问的路径及方法 */
     private static final Map<String, List<String>> ADMIN_ONLY_PATHS = Map.ofEntries(
             Map.entry("/api/users/create", List.of("POST")),
             Map.entry("/api/users/{id}/status", List.of("PUT")),
@@ -65,8 +72,10 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             Map.entry("/api/sign-in/{id}/verify", List.of("POST"))
     );
 
+    /** 引用 AuthConstants 中的公开路径 */
     private static final Set<String> PUBLIC_PATHS = AuthConstants.PUBLIC_PATHS;
 
+    /** 仅需登录（任意角色）即可访问的路径，用于角色拦截前的初步过滤 */
     private static final List<String> AUTHENTICATED_ONLY_PATHS = List.of(
             "/api/profile/**",
             "/api/points/earn",
@@ -108,6 +117,7 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
+        // 公开路径直接放行
         if (isPublicPath(path)) {
             return true;
         }
@@ -117,13 +127,16 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 检查是否为仅管理员路径
         if (isAdminOnlyPath(path, method) && !"admin".equals(role)) {
             ResponseUtil.writeError(response, 403, "无权限，仅管理员可操作");
             return false;
         }
 
+        // 检查是否为管理员或机构管理员路径
         if (isAdminOrOrgAdminPath(path, method)) {
             boolean allowed = "admin".equals(role) || "org_admin".equals(role);
+            // 专家角色也允许审核操作
             if (!allowed && "expert".equals(role) && path.contains("/audit")) {
                 allowed = true;
             }
@@ -136,10 +149,16 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    /**
+     * 判断是否为公开路径
+     */
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.contains(path);
     }
 
+    /**
+     * 判断是否为仅管理员路径（同时匹配路径和方法）
+     */
     private boolean isAdminOnlyPath(String path, String method) {
         for (Map.Entry<String, List<String>> entry : ADMIN_ONLY_PATHS.entrySet()) {
             String pattern = entry.getKey();
@@ -151,6 +170,9 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
         return false;
     }
 
+    /**
+     * 判断是否为管理员或机构管理员路径（同时匹配路径和方法）
+     */
     private boolean isAdminOrOrgAdminPath(String path, String method) {
         for (Map.Entry<String, List<String>> entry : ADMIN_OR_ORG_ADMIN_PATHS.entrySet()) {
             String pattern = entry.getKey();
@@ -162,6 +184,11 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
         return false;
     }
 
+    /**
+     * 路径匹配工具方法。
+     * 支持 {id} 通配符匹配（如 /api/users/{id}/status），
+     * 同时限制 {id} 部分不能包含斜杠，避免误匹配多级路径。
+     */
     private boolean matchesPath(String path, String pattern) {
         if (pattern.contains("{id}")) {
             String prefix = pattern.substring(0, pattern.indexOf("{id}"));

@@ -5,7 +5,7 @@
       <div v-for="item in statItems" :key="item.key"
            class="stat-card" :class="{ active: activeTab === 'conversion' ? convStatusFilter === item.key : activeTab === 'enrollment' ? enrollStatusFilter === item.key : statFilter === item.key }"
            @click="toggleStat(item.key)"
-           v-show="item.key !== 'placeholder'">
+           v-show="item.key !== 'placeholder' && !(activeTab === 'conversion' && isExpert)">
         <div class="stat-value" :style="{ color: item.color }">{{ item.count }}</div>
         <div class="stat-label">{{ item.label }}</div>
       </div>
@@ -23,7 +23,8 @@
               证书申请
               <span v-if="certTodoCount > 0" class="tab-badge" :class="{ wide: certTodoCount > 9 }">{{ fmtBadge(certTodoCount) }}</span>
             </span>
-            <span class="tab" :class="{ active: activeTab === 'conversion' }" @click="switchTab('conversion')">
+            <!-- 专家不显示转换申请tab -->
+            <span v-if="showConversionTab" class="tab" :class="{ active: activeTab === 'conversion' }" @click="switchTab('conversion')">
               转换申请
               <span v-if="convTodoCount > 0" class="tab-badge" :class="{ wide: convTodoCount > 9 }">{{ fmtBadge(convTodoCount) }}</span>
             </span>
@@ -89,7 +90,7 @@
         </el-table-column>
       </el-table>
 
-      <el-table v-if="activeTab === 'conversion'" :data="filteredConversionApps" border style="width: 100%;">
+      <el-table v-if="activeTab === 'conversion' && showConversionTab" :data="filteredConversionApps" border style="width: 100%;">
         <el-table-column prop="id" label="ID" width="65" />
         <el-table-column prop="studentName" label="申请人" width="100" />
         <el-table-column prop="applyType" label="申请类型" width="120">
@@ -230,7 +231,7 @@
       </el-table>
 
       <el-empty v-if="activeTab !== 'conversion' && activeTab !== 'enrollment' && !filteredApps.length" :description="statFilter ? '当前筛选条件下暂无申请' : (activeTab === 'cert' ? '暂无证书申请' : '暂无业务流程申请')" />
-      <el-empty v-if="activeTab === 'conversion' && !filteredConversionApps.length" description="暂无转换申请记录" />
+      <el-empty v-if="activeTab === 'conversion' && showConversionTab && !filteredConversionApps.length" description="暂无转换申请记录" />
       <el-empty v-if="activeTab === 'enrollment' && !filteredEnrollmentApps.length" description="暂无报名审核记录" />
     </el-card>
 
@@ -437,6 +438,11 @@ const router = useRouter()
 const { currentUser } = useAuth()
 const { refreshAuditTodos } = useAuditTodos()
 
+// 判断当前用户是否为专家：专家不显示转换申请标签页
+const isExpert = computed(() => currentUser.value?.role === 'expert')
+// 是否显示转换申请tab：非专家角色可见
+const showConversionTab = computed(() => !isExpert.value)
+
 const loading = ref(true)
 const apps = ref([])
 const standards = ref([])
@@ -566,34 +572,43 @@ function toggleStat(key) {
 }
 
 function switchTab(tab) {
-  activeTab.value = tab
+  // 专家角色不允许进入转换申请tab，默认切到业务流程
+  if (tab === 'conversion' && isExpert.value) {
+    activeTab.value = 'biz'
+  } else {
+    activeTab.value = tab
+  }
   statFilter.value = null
   convStatusFilter.value = null
   enrollStatusFilter.value = null
 }
 
-onMounted(loadData)
+onMounted(() => {
+  // 专家初始化时若默认处于conversion，切回biz（理论上默认是biz，这里是安全兜底）
+  if (isExpert.value && activeTab.value === 'conversion') {
+    activeTab.value = 'biz'
+  }
+  loadData()
+})
 
 async function loadData() {
   loading.value = true
   try {
-    const [list, standardList, convList, enrollList] = await Promise.all([
+    // 专家角色不需要加载转换申请数据
+    const tasks = [
       getApplications(currentUser.value?.role, currentUser.value?.id),
       getCertStandards(),
-      getConversionApplications(),
+      showConversionTab.value ? getConversionApplications() : Promise.resolve([]),
       getAllEnrollmentsForAudit()
-    ])
+    ]
+    const [list, standardList, convList, enrollList] = await Promise.all(tasks)
     standards.value = standardList
     apps.value = list
     conversionApps.value = convList
     enrollmentApps.value = enrollList
     enrollmentTodoCount.value = enrollList.filter(e => e.status === '待审核').length
-    console.log('[DEBUG] enrollList:', JSON.stringify(enrollList))
-    console.log('[DEBUG] enrollList length:', enrollList.length)
-    console.log('[DEBUG] activeTab:', activeTab.value)
   } catch (error) {
     ElMessage.error(error.message || '加载数据失败')
-    console.log('[DEBUG] loadData error:', error.message)
   } finally {
     loading.value = false
   }

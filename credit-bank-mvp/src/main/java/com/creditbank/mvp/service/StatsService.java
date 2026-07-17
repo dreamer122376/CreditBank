@@ -291,6 +291,9 @@ public class StatsService {
         Map<String, String> bizTypeName = new HashMap<>();
         bizTypeName.put("PROJECT_UP", "项目上架审核");
         bizTypeName.put("CERT_APPLY", "证书认证申请");
+        bizTypeName.put("EXPERT_CERT", "专家认证申请");
+        bizTypeName.put("UNFREEZE_APPEAL", "解冻申诉");
+        bizTypeName.put("ORG_REGISTER", "机构入驻申请");
 
         Map<Integer, String[]> statusMap = new HashMap<>();
         statusMap.put(1, new String[]{"审核中", "warning"});

@@ -29,7 +29,7 @@
               <span v-if="convTodoCount > 0" class="tab-badge" :class="{ wide: convTodoCount > 9 }">{{ fmtBadge(convTodoCount) }}</span>
             </span>
             <span class="tab" :class="{ active: activeTab === 'enrollment' }" @click="switchTab('enrollment')">
-              报名审核
+              项目审核
               <span v-if="enrollmentTodoCount > 0" class="tab-badge" :class="{ wide: enrollmentTodoCount > 9 }">{{ fmtBadge(enrollmentTodoCount) }}</span>
             </span>
           </div>
@@ -232,7 +232,7 @@
 
       <el-empty v-if="activeTab !== 'conversion' && activeTab !== 'enrollment' && !filteredApps.length" :description="statFilter ? '当前筛选条件下暂无申请' : (activeTab === 'cert' ? '暂无证书申请' : '暂无业务流程申请')" />
       <el-empty v-if="activeTab === 'conversion' && showConversionTab && !filteredConversionApps.length" description="暂无转换申请记录" />
-      <el-empty v-if="activeTab === 'enrollment' && !filteredEnrollmentApps.length" description="暂无报名审核记录" />
+      <el-empty v-if="activeTab === 'enrollment' && !filteredEnrollmentApps.length" description="暂无项目审核记录" />
     </el-card>
 
     <!-- 申请详情弹窗 -->
@@ -400,8 +400,8 @@
       </template>
     </el-dialog>
 
-    <!-- 报名审核驳回弹窗 -->
-    <el-dialog v-model="enrollRejectVisible" title="驳回报名审核" width="420px">
+    <!-- 项目审核驳回弹窗 -->
+    <el-dialog v-model="enrollRejectVisible" title="驳回项目审核" width="420px">
       <el-form label-width="80px">
         <el-form-item label="驳回原因" required>
           <el-input v-model="enrollRejectReason" type="textarea" :rows="3" placeholder="请填写驳回原因" />
@@ -828,7 +828,7 @@ function getEnrollmentStatusType(status) {
 async function auditEnrollment(row, approve, reason = '') {
   try {
     if (approve) {
-      await ElMessageBox.confirm('确定要通过该报名审核吗？通过后将自动发放积分。', '确认通过', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+      await ElMessageBox.confirm('确定要通过该项目审核吗？通过后将自动发放积分。', '确认通过', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
     }
     await auditProjectCompletion(row.id, approve)
     ElMessage.success(approve ? '审核通过' : '已驳回')

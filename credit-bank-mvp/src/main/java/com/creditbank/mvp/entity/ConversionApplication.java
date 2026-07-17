@@ -40,6 +40,9 @@ public class ConversionApplication {
     @TableField("certificate_file")
     private String certificateFile;
 
+    @TableField("form_data")
+    private String formData;
+
     @TableField("apply_type")
     private String applyType;
 
@@ -144,6 +147,14 @@ public class ConversionApplication {
 
     public void setCertificateFile(String certificateFile) {
         this.certificateFile = certificateFile;
+    }
+
+    public String getFormData() {
+        return formData;
+    }
+
+    public void setFormData(String formData) {
+        this.formData = formData;
     }
 
     public String getApplyType() {

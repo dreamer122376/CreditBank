@@ -235,6 +235,7 @@ public class ConversionApplicationService {
         return sb.toString();
     }
 
+    // 审核通过：按已关联的 creditRuleId 精确加积分，避免 eventCode 模糊匹配失败
     private void grantCredit(ConversionApplication application, Long operatorId) {
         Long creditRuleId = null;
         String eventCode = null;
@@ -246,6 +247,7 @@ public class ConversionApplicationService {
             }
         }
 
+        // 只要拿到了 ruleId，就按主键精确查询积分规则 —— 不再依赖 eventCode 匹配
         if (creditRuleId != null) {
             CreditRule creditRule = creditRuleMapper.selectById(creditRuleId);
             if (creditRule != null) {
@@ -254,11 +256,13 @@ public class ConversionApplicationService {
         }
 
         if (eventCode == null) {
+            // 兜底：申请单没挂 ruleId/ruleId 没关联积分规则时，直接从申请单取 convertedType 作 eventCode
             eventCode = application.getConvertedType();
+            creditRuleId = null;
         }
 
-        // 传入真实审核人 operatorId，避免操作日志误记为学生本人
-        pointService.earn(application.getStudentId(), eventCode, operatorId);
+        // 传入真实审核人 operatorId；优先使用 ruleId 精确命中（PointService.earn 第 6 个参数 ruleId != null 时按 ID 查）
+        pointService.earn(application.getStudentId(), eventCode, operatorId, null, null, creditRuleId);
     }
 
     private List<ConversionApplication> enrichWithRelatedData(List<ConversionApplication> applications) {

@@ -32,6 +32,24 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
+        <el-table-column label="证明材料" min-width="180">
+          <template #default="scope">
+            <div v-if="parseFormDataAtts(scope.row).length">
+              <el-link
+                v-for="(att, i) in parseFormDataAtts(scope.row)"
+                :key="i"
+                type="primary"
+                :href="getFileDownloadUrl(att.url)"
+                target="_blank"
+                style="display:inline-flex;align-items:center;margin-right:10px;margin-bottom:4px;"
+                size="small">
+                <el-icon style="margin-right:3px;"><Paperclip /></el-icon>
+                {{ att.name?.slice(0, 10) }}{{ att.name?.length > 10 ? '…' : '' }}
+              </el-link>
+            </div>
+            <span v-else style="color:#868e96;font-size:12px;">无附件</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="createdAt" label="提交时间" width="140">
           <template #default="scope">
             {{ formatDateTime(scope.row.createdAt) }}
@@ -129,7 +147,26 @@
         </el-form-item>
 
         <el-form-item label="证明材料">
-          <el-input v-model="form.certificateFile" placeholder="上传证明材料文件路径" />
+          <el-upload
+            style="width: 100%;"
+            action="/api/files/upload-attachment"
+            name="file"
+            :headers="uploadHeaders"
+            :limit="5"
+            :file-list="uploadList"
+            :before-upload="beforeUpload"
+            :on-success="onUploadSuccess"
+            :on-remove="onUploadRemove"
+            :on-error="onUploadError"
+          >
+            <el-button size="small">
+              <el-icon><Paperclip /></el-icon>
+              上传文件
+            </el-button>
+            <template #tip>
+              <div class="upload-tip">支持 PDF、Word、图片，单个不超过 10MB，最多 5 个</div>
+            </template>
+          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -158,6 +195,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Paperclip } from '@element-plus/icons-vue'
 import {
   getConversionApplications,
   submitConversionApplication
@@ -175,6 +213,84 @@ const organizations = ref([])
 const dialogVisible = ref(false)
 const form = ref({})
 const isEdit = ref(false)
+
+// 证明材料：附件数组（持久化到 formData.attachments）+ upload 组件绑定的 file-list
+const attachments = ref([])
+const uploadList = ref([])
+
+// 与 StudentCerts.vue 保持一致：直接从 localStorage 取 cb_token（useAuth 未暴露 getToken）
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('cb_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
+
+// 上传前置校验：10MB 以内
+function beforeUpload(file) {
+  const maxSize = 10 * 1024 * 1024
+  if (file.size > maxSize) {
+    ElMessage.warning('单个文件不能超过 10MB')
+    return false
+  }
+  return true
+}
+
+// 上传成功后：把后端返回的 { url, storedName, originalName } 合并保存到 attachments
+function onUploadSuccess(response, file) {
+  if (response && (response.code === 0 || response.code === 200) && response.data) {
+    const item = {
+      name: response.data.originalName || response.data.name || file.name,
+      url: response.data.url || response.data.fileUrl || response.data.storedName
+    }
+    attachments.value.push(item)
+  } else if (response && typeof response.url === 'string') {
+    attachments.value.push({
+      name: file.name,
+      url: response.url
+    })
+  } else {
+    attachments.value.push({
+      name: file.name,
+      url: file.response?.url || file.name
+    })
+  }
+}
+
+// 删除文件时：同步从 attachments 移除
+function onUploadRemove(file) {
+  const name = file.name
+  const url = file.url || file.response?.url
+  const idx = attachments.value.findIndex(a => a.name === name || a.url === url)
+  if (idx >= 0) attachments.value.splice(idx, 1)
+}
+
+function onUploadError(err) {
+  ElMessage.error('上传失败：' + (err?.message || '请稍后重试'))
+}
+
+// URL 处理：FileController 下载路由是 /api/files/download/{storedName}，url 若含目录前缀 "files/xxx" 直接取尾段
+function getFileDownloadUrl(url) {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  // url 格式可能是 "files/abc.pdf" 或直接是 "abc.pdf"
+  const clean = String(url).replace(/^files\//, '')
+  return `/api/files/download/${encodeURIComponent(clean)}`
+}
+
+// 解析单条申请的证明材料：优先用 formData.attachments；降级用旧的 certificate_file 单文件
+function parseFormDataAtts(row) {
+  if (row?.formData) {
+    try {
+      const obj = typeof row.formData === 'string' ? JSON.parse(row.formData) : row.formData
+      if (Array.isArray(obj?.attachments) && obj.attachments.length) {
+        return obj.attachments.filter(a => a && typeof a.url === 'string')
+      }
+    } catch (_) { /* JSON 解析失败降级用旧字段 */ }
+  }
+  if (row?.certificateFile) {
+    return [{ name: '证明材料', url: row.certificateFile }]
+  }
+  return []
+}
 
 const availableRules = computed(() => {
   return rules.value.filter(r => r.isEnabled === 1)
@@ -243,7 +359,10 @@ function formatDateTime(dateStr) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
+// 初始化申请弹窗：清空/回填附件
 function openApply(row = null) {
+  attachments.value = []
+  uploadList.value = []
   isEdit.value = row !== null
   if (row) {
     form.value = {
@@ -256,7 +375,19 @@ function openApply(row = null) {
       convertedName: row.convertedName,
       convertedOrgId: row.convertedOrgId,
       convertedType: row.convertedType,
-      certificateFile: row.certificateFile
+      certificateFile: row.certificateFile || ''
+    }
+    // 重新提交时：把历史附件解析出来回填
+    const existAtts = parseFormDataAtts(row)
+    if (existAtts.length) {
+      attachments.value = [...existAtts]
+      // 回填 el-upload 的 file-list 初始值（便于学生重新提交时能看到原先上传的列表）
+      uploadList.value = existAtts.map((a, i) => ({
+        name: a.name || `附件${i + 1}`,
+        url: getFileDownloadUrl(a.url),
+        status: 'success',
+        uid: Date.now() + i
+      }))
     }
   } else {
     form.value = {
@@ -275,6 +406,8 @@ function openApply(row = null) {
 }
 
 function applyByRule(rule) {
+  attachments.value = []
+  uploadList.value = []
   form.value = {
     ruleId: rule.id,
     applyType: 'RULE_CONVERT',
@@ -329,6 +462,10 @@ async function submit() {
   try {
     const submitData = { ...form.value }
     delete submitData.id
+    // 附件：存到 formData JSON（多文件标准格式）
+    submitData.formData = JSON.stringify({ attachments: attachments.value })
+    // 兼容旧接口：第一个附件 URL 回写到 certificateFile，避免历史单文件逻辑断链
+    submitData.certificateFile = attachments.value.length ? attachments.value[0].url : ''
     await submitConversionApplication(submitData)
     ElMessage.success('申请提交成功')
     dialogVisible.value = false
@@ -355,5 +492,12 @@ async function submit() {
 .reject-reason {
   color: #f56c6c;
   font-size: 12px;
+}
+
+.upload-tip {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.5;
 }
 </style>

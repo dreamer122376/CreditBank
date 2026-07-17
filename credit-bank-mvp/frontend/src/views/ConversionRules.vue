@@ -87,13 +87,13 @@
                   <el-icon><OfficeBuilding /></el-icon>
                   {{ row.convertedOrgName || '通用' }}
                 </span>
-                <!-- 转换后类型：使用 Tooltip + Popover 确保显示完全 -->
-                <el-tooltip v-if="row.convertedType && row.convertedType.length > 8"
-                            :content="row.convertedType" placement="top">
+                <!-- 转换后类型：使用 Tooltip + Popover 确保显示完全；按中文 creditRuleName 展示并截断 -->
+                <el-tooltip v-if="displayConvertedType(row).length > 8"
+                            :content="displayConvertedType(row)" placement="top">
                   <el-popover v-if="row.creditRuleName" placement="top" :width="220" trigger="hover">
                     <template #reference>
-                      <el-tag :type="getConvertedTypeTag(row.convertedType)" size="small" effect="dark" class="type-tag converted-type">
-                        {{ truncateType(row.convertedType) }}
+                      <el-tag :type="getConvertedTypeTagByRow(row)" size="small" effect="dark" class="type-tag converted-type">
+                        {{ truncateType(displayConvertedType(row)) }}
                       </el-tag>
                     </template>
                     <div class="popover-content">
@@ -102,15 +102,15 @@
                       <el-tag type="success" effect="light" class="popover-credit">+{{ row.creditValue }} 积分</el-tag>
                     </div>
                   </el-popover>
-                  <el-tag v-else :type="getConvertedTypeTag(row.convertedType)" size="small" effect="dark" class="type-tag converted-type">
-                    {{ truncateType(row.convertedType) }}
+                  <el-tag v-else :type="getConvertedTypeTagByRow(row)" size="small" effect="dark" class="type-tag converted-type">
+                    {{ truncateType(displayConvertedType(row)) }}
                   </el-tag>
                 </el-tooltip>
                 <template v-else>
                   <el-popover v-if="row.creditRuleName" placement="top" :width="220" trigger="hover">
                     <template #reference>
-                      <el-tag :type="getConvertedTypeTag(row.convertedType)" size="small" effect="dark" class="type-tag converted-type">
-                        {{ row.convertedType }}
+                      <el-tag :type="getConvertedTypeTagByRow(row)" size="small" effect="dark" class="type-tag converted-type">
+                        {{ displayConvertedType(row) }}
                       </el-tag>
                     </template>
                     <div class="popover-content">
@@ -119,8 +119,8 @@
                       <el-tag type="success" effect="light" class="popover-credit">+{{ row.creditValue }} 积分</el-tag>
                     </div>
                   </el-popover>
-                  <el-tag v-else :type="getConvertedTypeTag(row.convertedType)" size="small" effect="dark" class="type-tag converted-type">
-                    {{ row.convertedType }}
+                  <el-tag v-else :type="getConvertedTypeTagByRow(row)" size="small" effect="dark" class="type-tag converted-type">
+                    {{ displayConvertedType(row) }}
                   </el-tag>
                 </template>
               </div>
@@ -228,8 +228,11 @@
                 <el-option v-for="o in organizations" :key="o.id" :label="o.name" :value="o.id" />
               </el-select>
             </el-form-item>
-            <el-form-item label="转换后类型" required class="form-col">
-              <el-input v-model="form.convertedType" placeholder="例如：课程 / 校园APP开发优秀" />
+            <el-form-item label="转换后类型" class="form-col">
+              <el-input
+                v-model="form.convertedType"
+                disabled
+                :placeholder="form.creditRuleId ? '自动根据关联积分规则生成' : '请先选择关联的积分规则（必填项）'" />
             </el-form-item>
           </div>
         </div>
@@ -239,13 +242,22 @@
             <span class="section-link-icon">🔗</span>
             <span class="section-title">关联设置</span>
           </div>
-          <el-form-item label="关联积分规则">
-            <el-select v-model="form.creditRuleId" placeholder="选择积分规则（审核通过自动加分）" style="width:100%;" filterable>
-              <el-option label="不关联（仅记录转换）" :value="null" />
+          <el-form-item label="关联积分规则" required>
+            <el-select
+              v-model="form.creditRuleId"
+              placeholder="必须选择积分规则（审核通过后按该规则自动加积分）"
+              style="width:100%;"
+              filterable
+              @change="onCreditRuleChange">
               <el-option v-for="cr in creditRules" :key="cr.id"
                          :label="`${cr.eventName}  (+${cr.creditValue} 积分)`"
                          :value="cr.id" />
             </el-select>
+            <div class="hint-text" v-if="selectedCreditRule">
+              事件编码：<code>{{ selectedCreditRule.eventCode }}</code> ·
+              所属机构：{{ selectedCreditRule.orgId ? '机构专属' : '平台通用' }} ·
+              状态：{{ selectedCreditRule.isEnabled === 1 ? '启用中' : '已停用' }}
+            </div>
           </el-form-item>
           <div class="form-row">
             <el-form-item label="生效开始时间" class="form-col">
@@ -332,7 +344,7 @@ const statItems = computed(() => ([
     color: '#4f46e5',
     bgColor: 'linear-gradient(135deg, #818cf8 0%, #4f46e5 100%)',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
-    count: rules.value.filter(r => r.convertedType === '课程').length
+    count: rules.value.filter(r => isCourseRule(r)).length
   },
   {
     key: 'project',
@@ -340,9 +352,7 @@ const statItems = computed(() => ([
     color: '#059669',
     bgColor: 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/><path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><path d="M12 17v6"/><path d="M8 23h8"/><path d="M7 2h10v4a5 5 0 0 1-10 0V2z"/><line x1="17" y1="3" x2="12" y2="9"/><line x1="7" y1="3" x2="12" y2="9"/></svg>`,
-    count: rules.value.filter(r =>
-      r.convertedType && (r.convertedType.includes('项目') || r.convertedType.includes('大赛') || r.convertedType.includes('优秀'))
-    ).length
+    count: rules.value.filter(r => isProjectRule(r)).length
   },
   {
     key: 'disabled',
@@ -359,10 +369,8 @@ const filteredRules = computed(() => {
   const list = rules.value
   switch (statFilter.value) {
     case 'all': return list
-    case 'course': return list.filter(r => r.convertedType === '课程')
-    case 'project': return list.filter(r =>
-      r.convertedType && (r.convertedType.includes('项目') || r.convertedType.includes('大赛') || r.convertedType.includes('优秀'))
-    )
+    case 'course': return list.filter(r => isCourseRule(r))
+    case 'project': return list.filter(r => isProjectRule(r))
     case 'disabled': return list.filter(r => r.isEnabled !== 1)
     default: return list
   }
@@ -400,6 +408,41 @@ function getConvertedTypeTag(type) {
   if (type.includes('大赛') || type.includes('竞赛') || type.includes('优秀')) return 'danger'
   if (type.includes('认证') || type.includes('证书')) return 'success'
   return 'primary'
+}
+
+// 方案A后 convertedType = eventCode（英文）；展示给用户时，优先取 creditRuleName（中文名），兜底 convertedType
+function displayConvertedType(row) {
+  if (!row) return ''
+  if (typeof row.creditRuleName === 'string' && row.creditRuleName.trim()) {
+    return row.creditRuleName
+  }
+  return row.convertedType || ''
+}
+
+// 分类 tag 优先按关联的积分规则判断（eventCode 前缀 / eventName 关键字），兜底用旧 convertedType 关键字
+function getConvertedTypeTagByRow(row) {
+  if (!row) return 'info'
+  // 优先用关联的积分规则对象
+  const cr = row.creditRuleId != null ? creditRulesById.value.get(row.creditRuleId) : null
+  if (cr) {
+    const code = (cr.eventCode || '').toLowerCase()
+    const name = cr.eventName || ''
+    if (code.startsWith('course_') || name.includes('课程')) return ''
+    if (code.startsWith('project_') || name.includes('项目') || name.includes('开发')) return 'warning'
+    if (name.includes('大赛') || name.includes('竞赛') || name.includes('优秀')) return 'danger'
+    if (name.includes('认证') || name.includes('证书')) return 'success'
+    return 'primary'
+  }
+  // 其次：row 本身已经带了后端返回的 creditRuleName（只读模式下 creditRules 可能没加载）
+  if (typeof row.creditRuleName === 'string' && row.creditRuleName) {
+    const n = row.creditRuleName
+    if (n.includes('课程')) return ''
+    if (n.includes('项目') || n.includes('开发')) return 'warning'
+    if (n.includes('大赛') || n.includes('竞赛') || n.includes('优秀')) return 'danger'
+    if (n.includes('认证') || n.includes('证书')) return 'success'
+    return 'primary'
+  }
+  return getConvertedTypeTag(row.convertedType)
 }
 
 function truncateType(type) {
@@ -448,6 +491,36 @@ async function loadCreditRules() {
   }
 }
 
+// 积分规则索引：便于 course/project 分类 & form 回显（只读模式下 creditRules 可能为空，会降级用 convertedType 判断）
+const creditRulesById = computed(() => {
+  const map = new Map()
+  for (const cr of creditRules.value) map.set(cr.id, cr)
+  return map
+})
+
+// 判断某条转换规则是否对应「课程类」积分规则（优先按关联积分规则，兜底按历史 convertedType 中文）
+function isCourseRule(rule) {
+  if (!rule) return false
+  const cr = rule.creditRuleId != null ? creditRulesById.value.get(rule.creditRuleId) : null
+  if (cr) {
+    if ((cr.eventCode && cr.eventCode.toLowerCase().startsWith('course_')) ||
+        (cr.eventName && cr.eventName.includes('课程'))) return true
+  }
+  return rule.convertedType === '课程'
+}
+
+// 判断某条转换规则是否对应「项目/竞赛类」积分规则
+function isProjectRule(rule) {
+  if (!rule) return false
+  const cr = rule.creditRuleId != null ? creditRulesById.value.get(rule.creditRuleId) : null
+  if (cr) {
+    if ((cr.eventCode && cr.eventCode.toLowerCase().startsWith('project_')) ||
+        (cr.eventName && (cr.eventName.includes('项目') || cr.eventName.includes('大赛') ||
+                          cr.eventName.includes('优秀') || cr.eventName.includes('竞赛')))) return true
+  }
+  return !!(rule.convertedType && (rule.convertedType.includes('项目') || rule.convertedType.includes('大赛') || rule.convertedType.includes('优秀')))
+}
+
 // ============ 操作权限 ============
 function canOperate(row) {
   if (currentUser.value?.role === 'admin') return true
@@ -458,6 +531,22 @@ function canOperate(row) {
 }
 
 // ============ CRUD ============
+// 当前选中的积分规则（用于展示其 eventName、状态等信息）
+const selectedCreditRule = computed(() => {
+  if (form.value.creditRuleId == null) return null
+  return creditRulesById.value.get(form.value.creditRuleId) || null
+})
+
+// 管理员在弹窗中切换积分规则时，把 eventName 回显到「转换后类型」只读输入框（仅作展示；保存时后端自动用 eventCode）
+function onCreditRuleChange() {
+  if (!selectedCreditRule.value) {
+    form.value.convertedType = ''
+    return
+  }
+  form.value.convertedType = selectedCreditRule.value.eventName || ''
+}
+
+// openCreate/openEdit 后：若已有关联积分规则，立刻回显 eventName 到只读输入框
 function openCreate() {
   if (props.readonly) return
   const now = new Date()
@@ -481,6 +570,9 @@ function openCreate() {
 function openEdit(row) {
   if (props.readonly) return
   form.value = { ...row }
+  // 打开编辑态时，如果 creditRuleId 已关联过就回显 eventName 作为展示
+  const cr = row.creditRuleId != null ? creditRulesById.value.get(row.creditRuleId) : null
+  if (cr && cr.eventName) form.value.convertedType = cr.eventName
   dialogVisible.value = true
 }
 
@@ -489,7 +581,7 @@ async function save() {
   if (!form.value.originalName?.trim()) return ElMessage.warning('请输入原成果名称')
   if (!form.value.convertedName?.trim()) return ElMessage.warning('请输入转换后成果名称')
   if (!form.value.originalType?.trim()) return ElMessage.warning('请输入原成果类型')
-  if (!form.value.convertedType?.trim()) return ElMessage.warning('请输入转换后成果类型')
+  if (form.value.creditRuleId == null) return ElMessage.warning('必须选择关联的积分规则（审核通过后按该规则加积分）')
   try {
     if (form.value.id) await updateConversionRule(form.value)
     else await createConversionRule(form.value)

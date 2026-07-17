@@ -92,14 +92,20 @@ public class ConversionRuleService {
         if (rule.getOriginalType() == null || rule.getOriginalType().trim().isEmpty()) {
             throw new BizException("原成果类型不能为空");
         }
-        if (rule.getConvertedType() == null || rule.getConvertedType().trim().isEmpty()) {
-            throw new BizException("转换后成果类型不能为空");
+        // 方案A：creditRuleId 必填，保证转换通过后加积分能精确命中积分规则
+        if (rule.getCreditRuleId() == null) {
+            throw new BizException("必须关联一条积分规则（审核通过后按该规则自动加积分）");
         }
-        if (rule.getCreditRuleId() != null) {
-            CreditRule creditRule = creditRuleMapper.selectById(rule.getCreditRuleId());
-            if (creditRule == null) {
-                throw new BizException("积分规则不存在：" + rule.getCreditRuleId());
-            }
+        CreditRule creditRule = creditRuleMapper.selectById(rule.getCreditRuleId());
+        if (creditRule == null) {
+            throw new BizException("积分规则不存在：" + rule.getCreditRuleId());
+        }
+        if (creditRule.getIsEnabled() == null || creditRule.getIsEnabled() != 1) {
+            throw new BizException("关联的积分规则已停用，请先启用再关联");
+        }
+        // 自动回写 convertedType = eventCode（兜底展示），前端展示以 creditRule.eventName 为主
+        if (creditRule.getEventCode() != null && !creditRule.getEventCode().trim().isEmpty()) {
+            rule.setConvertedType(creditRule.getEventCode());
         }
         if (rule.getOriginalOrgId() != null) {
             Organization org = organizationMapper.selectById(rule.getOriginalOrgId());
@@ -133,11 +139,22 @@ public class ConversionRuleService {
     @Transactional(rollbackFor = Exception.class)
     public ConversionRule update(ConversionRule rule, SysUser operator) {
         ConversionRule exist = getById(rule.getId());
+        // 用户显式传入了新的 creditRuleId（非空）：重新校验并回写 convertedType
         if (rule.getCreditRuleId() != null) {
             CreditRule creditRule = creditRuleMapper.selectById(rule.getCreditRuleId());
             if (creditRule == null) {
                 throw new BizException("积分规则不存在：" + rule.getCreditRuleId());
             }
+            if (creditRule.getIsEnabled() == null || creditRule.getIsEnabled() != 1) {
+                throw new BizException("关联的积分规则已停用，请先启用再关联");
+            }
+            if (creditRule.getEventCode() != null && !creditRule.getEventCode().trim().isEmpty()) {
+                rule.setConvertedType(creditRule.getEventCode());
+            }
+        } else {
+            // 没传 creditRuleId：沿用已有关联，避免误清空
+            rule.setCreditRuleId(exist.getCreditRuleId());
+            rule.setConvertedType(exist.getConvertedType());
         }
         if (rule.getEffectiveStart() != null && rule.getEffectiveEnd() != null) {
             if (rule.getEffectiveStart().isAfter(rule.getEffectiveEnd())) {

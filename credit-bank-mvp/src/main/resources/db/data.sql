@@ -112,13 +112,15 @@ INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `crea
 
 
 -- 积分规则表初始数据（依赖 project.id）
+-- event_code 全局唯一（credit_rule 表有 uk_credit_rule_event_code 唯一索引）；
+-- 机构项目专属规则用 PROJECT_PARTICIPATE_{projectId} / PROJECT_EXCELLENT_{projectId} 后缀，避免与通用规则重复
 INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `start_time`, `end_time`, `project_id`, `org_id`) VALUES
 (1, 'COURSE_COMPLETE', '课程完成', 100, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
-(2, 'PROJECT_PARTICIPATE', '校园APP开发项目参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1, 1),
-(3, 'PROJECT_PARTICIPATE', '智能教室系统参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 2, 1),
-(4, 'PROJECT_PARTICIPATE', '工程模拟平台参与', 250, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 3, 2),
-(5, 'PROJECT_EXCELLENT', '校园APP开发优秀', 500, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1, 1),
-(6, 'PROJECT_EXCELLENT', '数据分析大赛优秀', 600, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 4, 2),
+(2, 'PROJECT_PARTICIPATE_1', '校园APP开发项目参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1, 1),
+(3, 'PROJECT_PARTICIPATE_2', '智能教室系统参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 2, 1),
+(4, 'PROJECT_PARTICIPATE_3', '工程模拟平台参与', 250, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 3, 2),
+(5, 'PROJECT_EXCELLENT_1', '校园APP开发优秀', 500, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 1, 1),
+(6, 'PROJECT_EXCELLENT_4', '数据分析大赛优秀', 600, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 4, 2),
 (7, 'ONLINE_TEST', '在线测试', 50, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
 (8, 'ATTENDANCE', '签到打卡', 10, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
 (9, 'SHARE_CONTENT', '分享内容', 30, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), NULL, NULL),
@@ -188,24 +190,26 @@ INSERT INTO `expert_cert` (`id`, `expert_id`, `cert_standard_id`, `field_name`, 
 
 -- 转换规则表初始数据（依赖 organization.id 和 credit_rule.id）
 -- 转换规则示例：原学习成果 → 转换后成果，关联积分规则
+-- converted_type = 关联 credit_rule.event_code（保证后续审批通过时能正确匹配积分规则加积分）
 INSERT INTO `conversion_rule` (`id`, `original_name`, `original_org_id`, `original_type`, `converted_name`, `converted_org_id`, `converted_type`, `credit_rule_id`, `is_enabled`, `effective_start`, `effective_end`, `description`, `created_at`, `created_by`) VALUES
-(1, '全国导游基础知识(李巧玲-智慧职教)', 4, '在线学习成果', '(0402114)导游基础知识', 1, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '智慧职教在线课程转换为校内课程学分', NOW(), 1),
-(2, '汽车构造(曹义等-中国大学MOOC)', 5, '在线学习成果', '(242714)汽车结构认知', 2, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '中国大学MOOC课程转换为校内课程学分', NOW(), 1),
-(3, '计算机网络技术(国家精品在线开放课程)', 1, '在线学习成果', '计算机网络基础', 1, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '国家精品课程转换', NOW(), 1),
-(4, 'Python编程入门(网易云课堂)', 6, '在线学习成果', 'Python程序设计', 1, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '网易云课堂课程转换', NOW(), 1),
-(5, '数据结构与算法(学堂在线)', 1, '在线学习成果', '数据结构', 1, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '学堂在线课程转换', NOW(), 1),
-(6, '校园APP开发项目(校外实习)', 1, '实践成果', '校园APP开发项目', 1, '校园APP开发优秀', 5, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), '校外实习成果转换为校内项目优秀', NOW(), 1),
-(7, '数据分析竞赛(省级)', 2, '竞赛成果', '数据分析大赛', 2, '数据分析大赛优秀', 6, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), '省级数据分析竞赛转换为校内大赛优秀', NOW(), 1),
-(8, '软件工程导论(MOOC)', 1, '在线学习成果', '软件工程基础', 1, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), 'MOOC软件工程课程转换', NOW(), 1),
-(9, '大学物理(爱课程)', 8, '在线学习成果', '大学物理', 2, '课程', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '爱课程物理课程转换', NOW(), 1),
-(10, '管理学原理(超星尔雅)', 3, '在线学习成果', '管理学基础', 3, '课程', 1, 0, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '超星尔雅管理课程转换（暂停用）', NOW(), 1);
+(1, '全国导游基础知识(李巧玲-智慧职教)', 4, '在线学习成果', '(0402114)导游基础知识', 1, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '智慧职教在线课程转换为校内课程学分', NOW(), 1),
+(2, '汽车构造(曹义等-中国大学MOOC)', 5, '在线学习成果', '(242714)汽车结构认知', 2, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '中国大学MOOC课程转换为校内课程学分', NOW(), 1),
+(3, '计算机网络技术(国家精品在线开放课程)', 1, '在线学习成果', '计算机网络基础', 1, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '国家精品课程转换', NOW(), 1),
+(4, 'Python编程入门(网易云课堂)', 6, '在线学习成果', 'Python程序设计', 1, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '网易云课堂课程转换', NOW(), 1),
+(5, '数据结构与算法(学堂在线)', 1, '在线学习成果', '数据结构', 1, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '学堂在线课程转换', NOW(), 1),
+(6, '校园APP开发项目(校外实习)', 1, '实践成果', '校园APP开发项目', 1, 'PROJECT_EXCELLENT_1', 5, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), '校外实习成果转换为校内项目优秀', NOW(), 1),
+(7, '数据分析竞赛(省级)', 2, '竞赛成果', '数据分析大赛', 2, 'PROJECT_EXCELLENT_4', 6, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), '省级数据分析竞赛转换为校内大赛优秀', NOW(), 1),
+(8, '软件工程导论(MOOC)', 1, '在线学习成果', '软件工程基础', 1, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), 'MOOC软件工程课程转换', NOW(), 1),
+(9, '大学物理(爱课程)', 8, '在线学习成果', '大学物理', 2, 'COURSE_COMPLETE', 1, 1, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '爱课程物理课程转换', NOW(), 1),
+(10, '管理学原理(超星尔雅)', 3, '在线学习成果', '管理学基础', 3, 'COURSE_COMPLETE', 1, 0, DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 1 YEAR), '超星尔雅管理课程转换（暂停用）', NOW(), 1);
 
 -- 转换申请表初始数据（依赖 sys_user.id 和 conversion_rule.id）
-INSERT INTO `conversion_application` (`id`, `rule_id`, `student_id`, `original_name`, `original_org_id`, `original_type`, `converted_name`, `converted_org_id`, `converted_type`, `certificate_file`, `apply_type`, `status`, `reject_reason`, `approved_at`, `created_at`) VALUES
-(1, 1, 6, '全国导游基础知识(李巧玲-智慧职教)', 4, '在线学习成果', '(0402114)导游基础知识', 1, '课程', '/uploads/cert1.pdf', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
-(2, 2, 7, '汽车构造(曹义等-中国大学MOOC)', 5, '在线学习成果', '(242714)汽车结构认知', 2, '课程', '/uploads/cert2.pdf', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
-(3, NULL, 8, '人工智能导论(Coursera)', 6, '在线学习成果', '人工智能基础', 1, '课程', '/uploads/cert3.pdf', 'RULE_ADD', 2, '课程名称与现有规则重复，请选择已有规则申请', NULL, DATE_ADD(NOW(), INTERVAL -4 DAY)),
-(4, 6, 6, '校园APP开发项目(校外实习)', 1, '实践成果', '校园APP开发项目', 1, '校园APP开发优秀', '/uploads/project1.pdf', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY));
+-- converted_type = 对应 credit_rule.event_code；form_data = 多附件 JSON（attachments[]），与新增上传控件数据结构一致
+INSERT INTO `conversion_application` (`id`, `rule_id`, `student_id`, `original_name`, `original_org_id`, `original_type`, `converted_name`, `converted_org_id`, `converted_type`, `certificate_file`, `form_data`, `apply_type`, `status`, `reject_reason`, `approved_at`, `created_at`) VALUES
+(1, 1, 6, '全国导游基础知识(李巧玲-智慧职教)', 4, '在线学习成果', '(0402114)导游基础知识', 1, 'COURSE_COMPLETE', '/uploads/cert1.pdf', '{"attachments":[{"name":"全国导游基础知识结课证书.pdf","url":"/uploads/cert1.pdf"}]}', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(2, 2, 7, '汽车构造(曹义等-中国大学MOOC)', 5, '在线学习成果', '(242714)汽车结构认知', 2, 'COURSE_COMPLETE', '/uploads/cert2.pdf', '{"attachments":[{"name":"汽车构造MOOC结业证书.pdf","url":"/uploads/cert2.pdf"}]}', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(3, NULL, 8, '人工智能导论(Coursera)', 6, '在线学习成果', '人工智能基础', 1, 'COURSE_COMPLETE', '/uploads/cert3.pdf', '{"attachments":[{"name":"Coursera人工智能导论证书.pdf","url":"/uploads/cert3.pdf"}]}', 'RULE_ADD', 2, '课程名称与现有规则重复，请选择已有规则申请', NULL, DATE_ADD(NOW(), INTERVAL -4 DAY)),
+(4, 6, 6, '校园APP开发项目(校外实习)', 1, '实践成果', '校园APP开发项目', 1, 'PROJECT_EXCELLENT_1', '/uploads/project1.pdf', '{"attachments":[{"name":"校外实习项目鉴定表.pdf","url":"/uploads/project1.pdf"}]}', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY));
 
 -- 交易流水表初始数据（依赖 sys_user.id 和 credit_rule.id）
 -- REWARD 类型：平台通用规则只生成学生流水；机构专属规则同步生成 ATTACHMENT 附加流水（机构积分池扣减）
@@ -441,14 +445,15 @@ INSERT INTO `student_project` (`id`, `student_id`, `project_id`, `status`, `crea
 (16, 20, 6, '已报名', DATE_ADD(NOW(), INTERVAL -2 DAY));
 
 -- ========== 补充：更多积分规则（与新增项目关联） ==========
+-- event_code 后缀使用对应 project_id 保证全局唯一
 INSERT INTO `credit_rule` (`id`, `event_code`, `event_name`, `credit_value`, `is_enabled`, `created_at`, `start_time`, `end_time`, `project_id`, `org_id`) VALUES
-(11, 'PROJECT_PARTICIPATE', '机器学习实战项目参与', 350, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 6, 1),
-(12, 'PROJECT_PARTICIPATE', '桥梁结构设计大赛参与', 400, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 7, 2),
-(13, 'PROJECT_EXCELLENT', '桥梁结构设计大赛优秀', 800, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 7, 2),
-(14, 'PROJECT_PARTICIPATE', '英语演讲训练营参与', 120, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 9, 9),
-(15, 'PROJECT_PARTICIPATE', '校园马拉松赛事参与', 150, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 10, 10),
-(16, 'PROJECT_PARTICIPATE', '模拟法庭辩论参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 11, 11),
-(17, 'PROJECT_PARTICIPATE', '职业技能提升培训参与', 220, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 12, 4);
+(11, 'PROJECT_PARTICIPATE_6', '机器学习实战项目参与', 350, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 6, 1),
+(12, 'PROJECT_PARTICIPATE_7', '桥梁结构设计大赛参与', 400, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 7, 2),
+(13, 'PROJECT_EXCELLENT_7', '桥梁结构设计大赛优秀', 800, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 7, 2),
+(14, 'PROJECT_PARTICIPATE_9', '英语演讲训练营参与', 120, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 9, 9),
+(15, 'PROJECT_PARTICIPATE_10', '校园马拉松赛事参与', 150, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 10, 10),
+(16, 'PROJECT_PARTICIPATE_11', '模拟法庭辩论参与', 200, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 11, 11),
+(17, 'PROJECT_PARTICIPATE_12', '职业技能提升培训参与', 220, 1, NOW(), DATE_ADD(NOW(), INTERVAL -30 DAY), DATE_ADD(NOW(), INTERVAL 6 MONTH), 12, 4);
 
 -- ========== 补充：更多学生证书（覆盖有效、已撤销两种状态） ==========
 INSERT INTO `student_cert` (`id`, `student_id`, `cert_standard_id`, `application_id`, `cert_no`, `student_name`, `cert_name`, `org_name`, `verify_code`, `status`, `revoke_reason`, `revoked_at`, `issued_at`, `valid_until`) VALUES

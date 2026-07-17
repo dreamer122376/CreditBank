@@ -224,6 +224,8 @@ CREATE TABLE `credit_rule` (
                                `project_id` bigint DEFAULT NULL,
                                `org_id` bigint DEFAULT NULL COMMENT '所属机构ID（NULL=平台通用）',
                                PRIMARY KEY (`id`),
+                               UNIQUE KEY `uk_credit_rule_event_code` (`event_code`),
+                               KEY `idx_credit_rule_event_name` (`event_name`),
                                KEY `fk_credit_rule_project` (`project_id`),
                                KEY `idx_org_id` (`org_id`),
                                CONSTRAINT `fk_credit_rule_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
@@ -608,7 +610,7 @@ CREATE TABLE `conversion_rule` (
     `converted_name` varchar(200) NOT NULL COMMENT '转换后成果名称',
     `converted_org_id` bigint DEFAULT NULL COMMENT '转换后成果机构ID',
     `converted_type` varchar(50) NOT NULL COMMENT '转换后成果类型（关联积分规则event_code）',
-    `credit_rule_id` bigint DEFAULT NULL COMMENT '关联积分规则ID',
+    `credit_rule_id` bigint NOT NULL COMMENT '关联积分规则ID（必填，外键关联 credit_rule.id）',
     `is_enabled` tinyint DEFAULT '1' COMMENT '是否启用：1启用，0停用',
     `effective_start` datetime DEFAULT NULL COMMENT '生效开始时间',
     `effective_end` datetime DEFAULT NULL COMMENT '生效结束时间',
@@ -620,7 +622,8 @@ CREATE TABLE `conversion_rule` (
     KEY `idx_converted_type` (`converted_type`),
     KEY `idx_credit_rule_id` (`credit_rule_id`),
     KEY `idx_original_org` (`original_org_id`),
-    KEY `idx_converted_org` (`converted_org_id`)
+    KEY `idx_converted_org` (`converted_org_id`),
+    CONSTRAINT `fk_conversion_rule_credit_rule` FOREIGN KEY (`credit_rule_id`) REFERENCES `credit_rule` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='转换规则表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -642,6 +645,7 @@ CREATE TABLE `conversion_application` (
     `converted_org_id` bigint DEFAULT NULL COMMENT '转换后成果机构ID',
     `converted_type` varchar(50) NOT NULL COMMENT '转换后成果类型',
     `certificate_file` varchar(500) DEFAULT NULL COMMENT '证明材料文件路径',
+    `form_data` text COMMENT '证明材料JSON（attachments[] 等）',
     `apply_type` varchar(20) NOT NULL COMMENT '申请类型：RULE_CONVERT（已有规则转换）/ RULE_ADD（新增规则申请）',
     `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1审核通过，2已驳回',
     `reject_reason` varchar(500) DEFAULT NULL COMMENT '驳回原因',
@@ -670,5 +674,91 @@ CREATE TABLE `conversion_application` (
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- ============================================================
+-- Plan-A Migration (Idempotent) - 2026-07-17
+-- 目标：给已有数据的老库做升级（空库首次启动 CREATE TABLE 时已直接带正确结构）
+-- 执行方式：每次后端启动 credit_bank.sql 都会自动重跑本块；
+--          所有 DDL 先查询 INFORMATION_SCHEMA 判断存在性后再执行，保证幂等；
+--          即使某条语句异常，DatabaseInitializer.executeSql 也会 catch warn 跳过。
+-- ============================================================
+
+-- ----------------------------------------------------------------
+-- Step 1: credit_rule.event_code 加唯一索引；event_name 加普通索引
+-- ----------------------------------------------------------------
+SET @uk_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'credit_rule'
+                    AND INDEX_NAME = 'uk_credit_rule_event_code');
+SET @sql = IF(@uk_exists = 0,
+              'ALTER TABLE credit_rule ADD CONSTRAINT uk_credit_rule_event_code UNIQUE (event_code)',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_event_name_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+                              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'credit_rule'
+                                AND INDEX_NAME = 'idx_credit_rule_event_name');
+SET @sql = IF(@idx_event_name_exists = 0,
+              'ALTER TABLE credit_rule ADD INDEX idx_credit_rule_event_name (event_name)',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ----------------------------------------------------------------
+-- Step 2: conversion_application 新增 form_data TEXT 列（证明材料 attachments JSON）
+-- ----------------------------------------------------------------
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'conversion_application'
+                     AND COLUMN_NAME = 'form_data');
+SET @sql = IF(@col_exists = 0,
+              'ALTER TABLE conversion_application ADD COLUMN form_data TEXT NULL COMMENT ''证明材料JSON（attachments[] 等）''',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 历史数据兼容：若原 certificate_file 非空且 form_data 为空，则迁移成单条 attachments JSON
+UPDATE conversion_application
+SET form_data = CONCAT('{"attachments":[{"name":"证明材料","url":"', certificate_file, '"}]}')
+WHERE certificate_file IS NOT NULL
+  AND certificate_file != ''
+  AND (form_data IS NULL OR form_data = '');
+
+-- ----------------------------------------------------------------
+-- Step 3: 回填 conversion_rule.credit_rule_id（老规则 converted_type → 积分规则）
+--         先按 converted_type = event_code 匹配；不命中按 converted_type = event_name 匹配
+--         WHERE credit_rule_id IS NULL 保证幂等：已经填过的行不覆盖
+-- ----------------------------------------------------------------
+UPDATE conversion_rule cr
+  LEFT JOIN credit_rule r1 ON cr.converted_type = r1.event_code
+  LEFT JOIN credit_rule r2 ON cr.converted_type = r2.event_name
+  SET cr.credit_rule_id = COALESCE(r1.id, r2.id, cr.credit_rule_id)
+WHERE cr.credit_rule_id IS NULL;
+
+-- 对仍未关联上的旧规则：自动停用，防止用户申请后无法正确加积分
+UPDATE conversion_rule
+SET is_enabled = 0
+WHERE credit_rule_id IS NULL AND is_enabled = 1;
+
+-- ----------------------------------------------------------------
+-- Step 4: conversion_rule.credit_rule_id 改为 NOT NULL（老库升级才用，首次启动 CREATE TABLE 已是 NOT NULL）
+--         注意：如果 Step3 执行后仍有 credit_rule_id = NULL，ALTER 会抛异常 → DatabaseInitializer 捕获 warn 跳过；
+--              管理员请在前端手动补所有规则的 credit_rule_id 关联后重启后端即可生效。
+-- ----------------------------------------------------------------
+SET @col_nullable = (SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'conversion_rule'
+                       AND COLUMN_NAME = 'credit_rule_id');
+SET @sql = IF(@col_nullable = 'YES',
+              'ALTER TABLE conversion_rule MODIFY COLUMN credit_rule_id BIGINT NOT NULL COMMENT ''关联积分规则ID（必填，外键关联 credit_rule.id）''',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ----------------------------------------------------------------
+-- Step 5: 加真实 FOREIGN KEY fk_conversion_rule_credit_rule（ON DELETE RESTRICT）
+-- ----------------------------------------------------------------
+SET @fk_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'conversion_rule'
+                    AND CONSTRAINT_NAME = 'fk_conversion_rule_credit_rule'
+                    AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+              'ALTER TABLE conversion_rule ADD CONSTRAINT fk_conversion_rule_credit_rule FOREIGN KEY (credit_rule_id) REFERENCES credit_rule(id) ON DELETE RESTRICT ON UPDATE CASCADE',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Dump completed on 2026-07-10 21:06:15

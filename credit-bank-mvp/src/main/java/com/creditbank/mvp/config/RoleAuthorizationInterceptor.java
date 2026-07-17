@@ -122,9 +122,15 @@ public class RoleAuthorizationInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        if (isAdminOrOrgAdminPath(path, method) && !"admin".equals(role) && !"org_admin".equals(role)) {
-            ResponseUtil.writeError(response, 403, "无权限，仅管理员或机构管理员可操作");
-            return false;
+        if (isAdminOrOrgAdminPath(path, method)) {
+            boolean allowed = "admin".equals(role) || "org_admin".equals(role);
+            if (!allowed && "expert".equals(role) && path.contains("/audit")) {
+                allowed = true;
+            }
+            if (!allowed) {
+                ResponseUtil.writeError(response, 403, "无权限，仅管理员或机构管理员可操作");
+                return false;
+            }
         }
 
         return true;

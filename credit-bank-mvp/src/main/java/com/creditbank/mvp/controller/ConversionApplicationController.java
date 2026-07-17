@@ -102,7 +102,7 @@ public class ConversionApplicationController {
         if (operator == null) {
             throw new BizException("用户不存在");
         }
-        if (!"admin".equals(operator.getRole()) && !"org_admin".equals(operator.getRole())) {
+        if (!"admin".equals(operator.getRole()) && !"org_admin".equals(operator.getRole()) && !"expert".equals(operator.getRole())) {
             throw new BizException("无权限审核");
         }
         return Result.ok(applicationService.audit(id, request.isApprove(), request.getReason(), operator));

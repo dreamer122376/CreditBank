@@ -212,7 +212,7 @@ public class StudentProjectService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void updateEnrollmentStatus(Long enrollmentId, String newStatus, SysUser operator) {
-        if (!isOrgAdminOrAdmin(operator)) {
+        if (!isOrgAdminOrAdminOrExpert(operator)) {
             throw new BizException("无权操作");
         }
 
@@ -226,6 +226,11 @@ public class StudentProjectService {
             if (project == null || !operator.getOrgId().equals(project.getOrgId())) {
                 throw new BizException("无权审核非本机构项目的报名");
             }
+        // } else if ("expert".equals(operator.getRole())) {
+        //     Project project = projectMapper.selectById(enrollment.getProjectId());
+        //     if (project == null || project.getExpertId() == null || !project.getExpertId().equals(operator.getId())) {
+        //         throw new BizException("无权审核非本人负责项目的报名");
+        //     }
         }
 
         String current = enrollment.getStatus();
@@ -346,11 +351,9 @@ public class StudentProjectService {
      * 查询待审核的报名列表（机构管理员只能查看本机构项目下的报名）。
      */
     public List<StudentProjectAuditDTO> getPendingAuditEnrollments(SysUser operator) {
-        if (!isOrgAdminOrAdmin(operator)) {
+        if (!isOrgAdminOrAdminOrExpert(operator)) {
             throw new BizException("无权操作");
         }
-
-        System.out.println("[DEBUG] getPendingAuditEnrollments - operator: " + operator.getRealName() + ", role: " + operator.getRole() + ", orgId: " + operator.getOrgId());
 
         LambdaQueryWrapper<StudentProject> query = new LambdaQueryWrapper<StudentProject>()
                 .eq(StudentProject::getStatus, StudentProject.STATUS_PENDING_REVIEW);
@@ -359,14 +362,23 @@ public class StudentProjectService {
             List<Project> orgProjects = projectMapper.selectList(
                     new LambdaQueryWrapper<Project>()
                             .eq(Project::getOrgId, operator.getOrgId()));
-            System.out.println("[DEBUG] org_admin projects count: " + orgProjects.size());
             if (orgProjects.isEmpty()) {
                 return new ArrayList<>();
             }
             List<Long> projectIds = orgProjects.stream()
                     .map(Project::getId)
                     .collect(Collectors.toList());
-            System.out.println("[DEBUG] projectIds: " + projectIds);
+            query.in(StudentProject::getProjectId, projectIds);
+        } else if ("expert".equals(operator.getRole())) {
+            List<Project> expertProjects = projectMapper.selectList(
+                    new LambdaQueryWrapper<Project>()
+                            .eq(Project::getExpertId, operator.getId()));
+            if (expertProjects.isEmpty()) {
+                return new ArrayList<>();
+            }
+            List<Long> projectIds = expertProjects.stream()
+                    .map(Project::getId)
+                    .collect(Collectors.toList());
             query.in(StudentProject::getProjectId, projectIds);
         }
 
@@ -379,7 +391,7 @@ public class StudentProjectService {
      * 查询所有状态的报名列表（用于审核管理页面统计）。
      */
     public List<StudentProjectAuditDTO> getAllEnrollmentsForAudit(SysUser operator) {
-        if (!isOrgAdminOrAdmin(operator)) {
+        if (!isOrgAdminOrAdminOrExpert(operator)) {
             throw new BizException("无权操作");
         }
 
@@ -393,6 +405,17 @@ public class StudentProjectService {
                 return new ArrayList<>();
             }
             List<Long> projectIds = orgProjects.stream()
+                    .map(Project::getId)
+                    .collect(Collectors.toList());
+            query.in(StudentProject::getProjectId, projectIds);
+        } else if ("expert".equals(operator.getRole())) {
+            List<Project> expertProjects = projectMapper.selectList(
+                    new LambdaQueryWrapper<Project>()
+                            .eq(Project::getExpertId, operator.getId()));
+            if (expertProjects.isEmpty()) {
+                return new ArrayList<>();
+            }
+            List<Long> projectIds = expertProjects.stream()
                     .map(Project::getId)
                     .collect(Collectors.toList());
             query.in(StudentProject::getProjectId, projectIds);
@@ -455,8 +478,8 @@ public class StudentProjectService {
 
     // ==================== 内部工具 ====================
 
-    private boolean isOrgAdminOrAdmin(SysUser operator) {
-        return operator != null && ("org_admin".equals(operator.getRole()) || "admin".equals(operator.getRole()));
+    private boolean isOrgAdminOrAdminOrExpert(SysUser operator) {
+        return operator != null && ("org_admin".equals(operator.getRole()) || "admin".equals(operator.getRole()) || "expert".equals(operator.getRole()));
     }
 
     private ProjectEnrollmentDTO toEnrollmentDTO(StudentProject enrollment, Project project) {

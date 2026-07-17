@@ -372,6 +372,37 @@ public class StudentProjectService {
 
         List<StudentProject> enrollments = studentProjectMapper.selectList(query);
         System.out.println("[DEBUG] enrollments count: " + enrollments.size());
+        return buildAuditDTOs(enrollments);
+    }
+
+    /**
+     * 查询所有状态的报名列表（用于审核管理页面统计）。
+     */
+    public List<StudentProjectAuditDTO> getAllEnrollmentsForAudit(SysUser operator) {
+        if (!isOrgAdminOrAdmin(operator)) {
+            throw new BizException("无权操作");
+        }
+
+        LambdaQueryWrapper<StudentProject> query = new LambdaQueryWrapper<StudentProject>();
+
+        if ("org_admin".equals(operator.getRole()) && operator.getOrgId() != null) {
+            List<Project> orgProjects = projectMapper.selectList(
+                    new LambdaQueryWrapper<Project>()
+                            .eq(Project::getOrgId, operator.getOrgId()));
+            if (orgProjects.isEmpty()) {
+                return new ArrayList<>();
+            }
+            List<Long> projectIds = orgProjects.stream()
+                    .map(Project::getId)
+                    .collect(Collectors.toList());
+            query.in(StudentProject::getProjectId, projectIds);
+        }
+
+        List<StudentProject> enrollments = studentProjectMapper.selectList(query);
+        return buildAuditDTOs(enrollments);
+    }
+
+    private List<StudentProjectAuditDTO> buildAuditDTOs(List<StudentProject> enrollments) {
         if (enrollments.isEmpty()) {
             return new ArrayList<>();
         }

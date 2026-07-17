@@ -156,6 +156,7 @@ const BIZ_TYPE_MAP = {
   REFUND: { name: '撤销记录', type: 'danger' },
   ATTACHMENT: { name: '附加流水', type: 'primary' },
   UPDATE_ADJUST: { name: '更新补差', type: 'info' },
+  ADMIN: { name: '手动修改', type: 'info' },
   DAILY: { name: '每日打卡', type: 'success' }
 }
 

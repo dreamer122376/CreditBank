@@ -212,7 +212,7 @@ public class UserService {
     public Page<UserOpLog> getOpLogs(int page, int size,
                                       String action, String module, String keyword,
                                       LocalDateTime startTime, LocalDateTime endTime,
-                                      Long orgId) {
+                                      Long operatorId, Long orgId) {
         LambdaQueryWrapper<UserOpLog> wrapper = new LambdaQueryWrapper<>();
         if (action != null && !action.isEmpty()) {
             wrapper.eq(UserOpLog::getAction, action);
@@ -234,7 +234,7 @@ public class UserService {
         if (endTime != null) {
             wrapper.le(UserOpLog::getCreatedAt, endTime);
         }
-        // 机构管理员：查看本机构学生相关的日志 + 批量操作日志（targetUserId为null）+ 本机构用户执行的操作日志
+        // 机构管理员：只能看到自己的操作 + 本机构学生的操作日志
         if (orgId != null) {
             List<Long> studentIds = sysUserMapper.selectList(
                     new LambdaQueryWrapper<SysUser>()
@@ -244,11 +244,12 @@ public class UserService {
                     .map(SysUser::getId)
                     .collect(Collectors.toList());
             if (studentIds.isEmpty()) {
-                wrapper.eq(UserOpLog::getId, -1L);
+                // 没有学生时，只能看自己的操作
+                wrapper.eq(UserOpLog::getOperatorId, operatorId);
             } else {
-                wrapper.and(w -> w.in(UserOpLog::getTargetUserId, studentIds)
+                wrapper.and(w -> w.eq(UserOpLog::getOperatorId, operatorId)
                         .or()
-                        .isNull(UserOpLog::getTargetUserId));
+                        .in(UserOpLog::getTargetUserId, studentIds));
             }
         }
         wrapper.orderByDesc(UserOpLog::getCreatedAt);

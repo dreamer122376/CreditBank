@@ -138,7 +138,7 @@ public class UserController {
         Long operatorId = CurrentUserUtil.getCurrentUserId();
         SysUser operator = userService.getUser(operatorId);
         Long orgId = "org_admin".equals(operator.getRole()) ? operator.getOrgId() : null;
-        return Result.ok(userService.getOpLogs(page, size, action, module, keyword, start, end, orgId));
+        return Result.ok(userService.getOpLogs(page, size, action, module, keyword, start, end, operatorId, orgId));
     }
 
     private void rejectOrgAdmin(SysUser operator, String actionName) {

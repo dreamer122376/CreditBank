@@ -47,7 +47,7 @@ request.interceptors.request.use(
   }
 )
 
-const publicApiPaths = ['/exchange-rule/list', '/conversion-rule/list', '/stats/dashboard']
+const publicApiPaths = ['/exchange-rule/list', '/conversion-rule/list', '/credit-rule/list', '/stats/dashboard']
 
 function isPublicApi(url) {
   return publicApiPaths.some(path => url.includes(path))

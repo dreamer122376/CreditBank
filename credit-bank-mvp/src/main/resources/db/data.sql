@@ -205,11 +205,12 @@ INSERT INTO `conversion_rule` (`id`, `original_name`, `original_org_id`, `origin
 
 -- 转换申请表初始数据（依赖 sys_user.id 和 conversion_rule.id）
 -- converted_type = 对应 credit_rule.event_code；form_data = 多附件 JSON（attachments[]），与新增上传控件数据结构一致
-INSERT INTO `conversion_application` (`id`, `rule_id`, `student_id`, `original_name`, `original_org_id`, `original_type`, `converted_name`, `converted_org_id`, `converted_type`, `certificate_file`, `form_data`, `apply_type`, `status`, `reject_reason`, `approved_at`, `created_at`) VALUES
-(1, 1, 6, '全国导游基础知识(李巧玲-智慧职教)', 4, '在线学习成果', '(0402114)导游基础知识', 1, 'COURSE_COMPLETE', '/uploads/cert1.pdf', '{"attachments":[{"name":"全国导游基础知识结课证书.pdf","url":"/uploads/cert1.pdf"}]}', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
-(2, 2, 7, '汽车构造(曹义等-中国大学MOOC)', 5, '在线学习成果', '(242714)汽车结构认知', 2, 'COURSE_COMPLETE', '/uploads/cert2.pdf', '{"attachments":[{"name":"汽车构造MOOC结业证书.pdf","url":"/uploads/cert2.pdf"}]}', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
-(3, NULL, 8, '人工智能导论(Coursera)', 6, '在线学习成果', '人工智能基础', 1, 'COURSE_COMPLETE', '/uploads/cert3.pdf', '{"attachments":[{"name":"Coursera人工智能导论证书.pdf","url":"/uploads/cert3.pdf"}]}', 'RULE_ADD', 2, '课程名称与现有规则重复，请选择已有规则申请', NULL, DATE_ADD(NOW(), INTERVAL -4 DAY)),
-(4, 6, 6, '校园APP开发项目(校外实习)', 1, '实践成果', '校园APP开发项目', 1, 'PROJECT_EXCELLENT_1', '/uploads/project1.pdf', '{"attachments":[{"name":"校外实习项目鉴定表.pdf","url":"/uploads/project1.pdf"}]}', 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY));
+-- credit_rule_id = 直接挂到具体积分规则ID（审核通过时按此精确加积分，不再依赖 converted_type 兜底匹配）
+INSERT INTO `conversion_application` (`id`, `rule_id`, `student_id`, `original_name`, `original_org_id`, `original_type`, `converted_name`, `converted_org_id`, `converted_type`, `certificate_file`, `form_data`, `credit_rule_id`, `apply_type`, `status`, `reject_reason`, `approved_at`, `created_at`) VALUES
+(1, 1, 6, '全国导游基础知识(李巧玲-智慧职教)', 4, '在线学习成果', '(0402114)导游基础知识', 1, 'COURSE_COMPLETE', '/uploads/cert1.pdf', '{"attachments":[{"name":"全国导游基础知识结课证书.pdf","url":"/uploads/cert1.pdf"}]}', 1, 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -5 DAY)),
+(2, 2, 7, '汽车构造(曹义等-中国大学MOOC)', 5, '在线学习成果', '(242714)汽车结构认知', 2, 'COURSE_COMPLETE', '/uploads/cert2.pdf', '{"attachments":[{"name":"汽车构造MOOC结业证书.pdf","url":"/uploads/cert2.pdf"}]}', 1, 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -2 DAY)),
+(3, NULL, 8, '人工智能导论(Coursera)', 6, '在线学习成果', '人工智能基础', 1, 'COURSE_COMPLETE', '/uploads/cert3.pdf', '{"attachments":[{"name":"Coursera人工智能导论证书.pdf","url":"/uploads/cert3.pdf"}]}', 1, 'RULE_ADD', 2, '课程名称与现有规则重复，请选择已有规则申请', NULL, DATE_ADD(NOW(), INTERVAL -4 DAY)),
+(4, 6, 6, '校园APP开发项目(校外实习)', 1, '实践成果', '校园APP开发项目', 1, 'PROJECT_EXCELLENT_1', '/uploads/project1.pdf', '{"attachments":[{"name":"校外实习项目鉴定表.pdf","url":"/uploads/project1.pdf"}]}', 5, 'RULE_CONVERT', 0, NULL, NULL, DATE_ADD(NOW(), INTERVAL -1 DAY));
 
 -- 交易流水表初始数据（依赖 sys_user.id 和 credit_rule.id）
 -- REWARD 类型：平台通用规则只生成学生流水；机构专属规则同步生成 ATTACHMENT 附加流水（机构积分池扣减）

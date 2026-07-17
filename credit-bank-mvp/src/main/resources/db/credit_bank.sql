@@ -643,9 +643,10 @@ CREATE TABLE `conversion_application` (
     `original_type` varchar(50) NOT NULL COMMENT '原成果类型',
     `converted_name` varchar(200) NOT NULL COMMENT '转换后成果名称',
     `converted_org_id` bigint DEFAULT NULL COMMENT '转换后成果机构ID',
-    `converted_type` varchar(50) NOT NULL COMMENT '转换后成果类型',
+    `converted_type` varchar(50) NOT NULL COMMENT '转换后成果类型（=积分规则event_code）',
     `certificate_file` varchar(500) DEFAULT NULL COMMENT '证明材料文件路径',
     `form_data` text COMMENT '证明材料JSON（attachments[] 等）',
+    `credit_rule_id` bigint DEFAULT NULL COMMENT '关联积分规则ID（外键 credit_rule.id，审核通过按该规则加积分）',
     `apply_type` varchar(20) NOT NULL COMMENT '申请类型：RULE_CONVERT（已有规则转换）/ RULE_ADD（新增规则申请）',
     `status` tinyint DEFAULT '0' COMMENT '状态：0待审核，1审核通过，2已驳回',
     `reject_reason` varchar(500) DEFAULT NULL COMMENT '驳回原因',
@@ -654,7 +655,9 @@ CREATE TABLE `conversion_application` (
     PRIMARY KEY (`id`),
     KEY `idx_student_id` (`student_id`),
     KEY `idx_rule_id` (`rule_id`),
-    KEY `idx_status` (`status`)
+    KEY `idx_status` (`status`),
+    KEY `idx_credit_rule_id` (`credit_rule_id`),
+    CONSTRAINT `fk_conv_app_credit_rule` FOREIGN KEY (`credit_rule_id`) REFERENCES `credit_rule` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='转换申请表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -758,6 +761,40 @@ SET @fk_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
                     AND CONSTRAINT_TYPE = 'FOREIGN KEY');
 SET @sql = IF(@fk_exists = 0,
               'ALTER TABLE conversion_rule ADD CONSTRAINT fk_conversion_rule_credit_rule FOREIGN KEY (credit_rule_id) REFERENCES credit_rule(id) ON DELETE RESTRICT ON UPDATE CASCADE',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ----------------------------------------------------------------
+-- Step 6: conversion_application 加 credit_rule_id 列（精确关联积分规则）
+--   6.1 新增列 + 索引
+--   6.2 回填已有数据：先按 rule_id → conversion_rule.credit_rule_id；
+--       未挂 rule_id 的（RULE_ADD）按 converted_type = event_code/event_name 匹配
+--   6.3 加 FK 约束
+-- ----------------------------------------------------------------
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'conversion_application'
+                     AND COLUMN_NAME = 'credit_rule_id');
+SET @sql = IF(@col_exists = 0,
+              'ALTER TABLE conversion_application ADD COLUMN credit_rule_id BIGINT NULL COMMENT ''关联积分规则ID（外键 credit_rule.id，审核通过按该规则加积分）'' AFTER form_data, ADD INDEX idx_credit_rule_id (credit_rule_id)',
+              'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 6.2 回填（仅 WHERE credit_rule_id IS NULL，保证幂等）
+UPDATE conversion_application ca
+  LEFT JOIN conversion_rule cr ON ca.rule_id = cr.id
+  LEFT JOIN credit_rule r1 ON cr.credit_rule_id = r1.id
+  LEFT JOIN credit_rule r2 ON ca.converted_type = r2.event_code
+  LEFT JOIN credit_rule r3 ON ca.converted_type = r3.event_name
+  SET ca.credit_rule_id = COALESCE(r1.id, r2.id, r3.id, ca.credit_rule_id)
+WHERE ca.credit_rule_id IS NULL;
+
+-- 6.3 加 FK（fk_conv_app_credit_rule）
+SET @fk_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'conversion_application'
+                    AND CONSTRAINT_NAME = 'fk_conv_app_credit_rule'
+                    AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+SET @sql = IF(@fk_exists = 0,
+              'ALTER TABLE conversion_application ADD CONSTRAINT fk_conv_app_credit_rule FOREIGN KEY (credit_rule_id) REFERENCES credit_rule(id) ON DELETE RESTRICT ON UPDATE CASCADE',
               'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 

@@ -120,9 +120,28 @@
           </template>
         </el-table-column>
         <el-table-column prop="convertedOrgName" label="转换后成果机构" min-width="100" />
-        <el-table-column prop="convertedType" label="转换后成果类型" width="120">
+        <el-table-column label="对应积分规则" min-width="150">
           <template #default="scope">
-            <el-tag size="small">{{ scope.row.convertedType }}</el-tag>
+            <span v-if="scope.row.creditRuleName" class="credit-rule-name">
+              {{ scope.row.creditRuleName }}
+            </span>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="对应分值" width="90" align="right">
+          <template #default="scope">
+            <span v-if="scope.row.creditValue != null" class="credit-value">
+              +{{ scope.row.creditValue }}
+            </span>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="转换后成果类型" width="120">
+          <template #default="scope">
+            <el-tag size="small">
+              <!-- 优先展示关联的积分规则中文名，未关联才兜底显示 convertedType（event_code） -->
+              {{ scope.row.creditRuleName || scope.row.convertedType }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
@@ -138,18 +157,39 @@
             <span v-else class="muted">-</span>
           </template>
         </el-table-column>
+        <!-- 证明材料列：PDF/图片直接打开预览页面，其他类型直接下载 -->
+        <el-table-column label="证明材料" min-width="180">
+          <template #default="scope">
+            <div v-if="parseConvAttachments(scope.row).length">
+              <el-link
+                v-for="(att, i) in parseConvAttachments(scope.row)"
+                :key="i"
+                type="primary"
+                :href="isConvPreviewable(att) ? previewConvUrl(att) : downloadConvUrl(att)"
+                target="_blank"
+                style="display:inline-flex;align-items:center;margin-right:10px;margin-bottom:4px;"
+                size="small">
+                <el-icon style="margin-right:3px;">
+                  <component :is="isConvPreviewable(att) ? View : Paperclip" />
+                </el-icon>
+                {{ att.name?.slice(0, 10) }}{{ att.name?.length > 10 ? '…' : '' }}
+              </el-link>
+            </div>
+            <span v-else class="muted">无附件</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="createdAt" label="提交时间" width="155">
           <template #default="scope">
             {{ formatTime(scope.row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="scope">
+            <el-button size="small" @click="openConvDetail(scope.row)">详情</el-button>
             <template v-if="scope.row.status === 0">
               <el-button size="small" type="success" @click="auditConversion(scope.row, true)">通过</el-button>
               <el-button size="small" type="danger" @click="openConvReject(scope.row)">驳回</el-button>
             </template>
-            <span v-else class="muted">已处理</span>
           </template>
         </el-table-column>
       </el-table>
@@ -249,6 +289,96 @@
       </template>
     </el-dialog>
 
+    <!-- 转换申请详情弹窗（管理员审阅完整证明材料） -->
+    <el-dialog v-model="convDetailVisible" title="转换申请详情" width="760px">
+      <template v-if="convDetailRow">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="申请ID">{{ convDetailRow.id }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ convDetailRow.studentName }}</el-descriptions-item>
+          <el-descriptions-item label="申请类型">
+            <el-tag :type="convDetailRow.applyType === 'RULE_CONVERT' ? 'primary' : 'warning'" size="small">
+              {{ convDetailRow.applyType === 'RULE_CONVERT' ? '已有规则转换' : '新增规则申请' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="当前状态">
+            <el-tag :type="getConvStatusType(convDetailRow.status)" size="small">
+              {{ getConvStatusText(convDetailRow.status) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="关联转换规则" :span="2">
+            <span v-if="convDetailRow.ruleName">{{ convDetailRow.ruleName }}</span>
+            <span v-else class="muted">新增自定义（未匹配现有规则）</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider content-position="left">原成果信息</el-divider>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="原成果名称" :span="2">{{ convDetailRow.originalName }}</el-descriptions-item>
+          <el-descriptions-item label="原成果机构">
+            {{ convDetailRow.originalOrgName || '—' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="原成果类型">
+            <el-tag size="small">{{ convDetailRow.originalType }}</el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider content-position="left">转换后成果信息（含对应积分规则）</el-divider>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="转换后成果名称" :span="2">{{ convDetailRow.convertedName }}</el-descriptions-item>
+          <el-descriptions-item label="转换后成果机构">
+            {{ convDetailRow.convertedOrgName || '—' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="转换后成果类型">
+            <el-tag size="small">
+              {{ convDetailRow.creditRuleName || convDetailRow.convertedType }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="对应积分规则">
+            <span v-if="convDetailRow.creditRuleName" class="credit-rule-name">{{ convDetailRow.creditRuleName }}</span>
+            <span v-else class="muted">—</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="对应分值">
+            <span v-if="convDetailRow.creditValue != null" class="credit-value">+{{ convDetailRow.creditValue }}</span>
+            <span v-else class="muted">—</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider content-position="left">证明材料（附件）</el-divider>
+        <div class="conv-att-block">
+          <template v-if="convDetailAttachments.length">
+            <div v-for="(att, i) in convDetailAttachments" :key="i" class="att-row conv-att-row">
+              <el-icon v-if="isConvPreviewable(att)" class="att-icon"><View /></el-icon>
+              <el-icon v-else class="att-icon"><Paperclip /></el-icon>
+              <span class="att-name">{{ att.name || `附件${i + 1}` }}</span>
+              <el-link v-if="isConvPreviewable(att)" :href="previewConvUrl(att)" target="_blank" type="primary">在线预览</el-link>
+              <el-link :href="downloadConvUrl(att)" target="_blank" type="primary">下载</el-link>
+            </div>
+          </template>
+          <span v-else class="muted">学生未上传证明材料</span>
+        </div>
+
+        <el-descriptions v-if="convDetailRow.rejectReason" :column="1" border style="margin-top: 14px;">
+          <el-descriptions-item label="驳回原因">
+            <span class="reject-text">{{ convDetailRow.rejectReason }}</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-descriptions :column="2" border style="margin-top: 14px;">
+          <el-descriptions-item label="提交时间">{{ formatTime(convDetailRow.createdAt) }}</el-descriptions-item>
+          <el-descriptions-item label="审核通过时间">
+            {{ formatTime(convDetailRow.approvedAt) || '—' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </template>
+      <template #footer>
+        <el-button @click="convDetailVisible = false">关闭</el-button>
+        <template v-if="convDetailRow && Number(convDetailRow.status) === 0">
+          <el-button type="success" @click="auditConversion(convDetailRow, true)">审核通过</el-button>
+          <el-button type="danger" @click="openConvRejectFromDetail">驳回申请</el-button>
+        </template>
+      </template>
+    </el-dialog>
+
     <!-- 转换申请驳回弹窗 -->
     <el-dialog v-model="convRejectVisible" title="驳回转换申请" width="420px">
       <el-form label-width="80px">
@@ -281,6 +411,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { View, Paperclip } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import { useAuditTodos } from '@/composables/useAuditTodos'
 import { getApplications, auditApplication } from '@/api/application'
@@ -315,6 +446,8 @@ const convStatusFilter = ref(null)
 const convRejectVisible = ref(false)
 const convRejectReason = ref('')
 const convRejectTarget = ref(null)
+const convDetailVisible = ref(false)
+const convDetailRow = ref(null)
 
 const enrollmentApps = ref([])
 const enrollmentTodoCount = ref(0)
@@ -577,6 +710,62 @@ async function confirmConvReject() {
   }
   await auditConversion(convRejectTarget.value, false, convRejectReason.value)
   convRejectVisible.value = false
+  // 如果是从详情页发起的驳回，关闭详情弹窗
+  if (convDetailVisible.value) convDetailVisible.value = false
+}
+
+// 转换申请详情：打开弹窗查看完整信息+附件
+function openConvDetail(row) {
+  convDetailRow.value = row
+  convDetailVisible.value = true
+}
+
+// 从详情弹窗内打开驳回面板
+function openConvRejectFromDetail() {
+  if (!convDetailRow.value) return
+  openConvReject(convDetailRow.value)
+}
+
+// 解析单条转换申请的证明材料：优先用 formData.attachments；降级 certificate_file 单文件
+function parseConvAttachments(row) {
+  if (!row) return []
+  if (row.formData) {
+    try {
+      const obj = typeof row.formData === 'string' ? JSON.parse(row.formData) : row.formData
+      if (Array.isArray(obj?.attachments) && obj.attachments.length) {
+        return obj.attachments.filter(a => a && typeof a.url === 'string')
+      }
+    } catch (_) { /* JSON 解析失败则降级 */ }
+  }
+  if (row.certificateFile) {
+    return [{ name: '证明材料', url: row.certificateFile }]
+  }
+  return []
+}
+
+// 详情弹窗的证明材料（computed 更高效渲染）
+const convDetailAttachments = computed(() => parseConvAttachments(convDetailRow.value))
+
+function fileNameFromConvUrl(url) {
+  if (!url) return ''
+  const clean = String(url).split('?')[0]
+  // FileController 的 storedName 可能带 "files/xxx" 前缀或直接 "xxx"
+  const stripPrefix = clean.replace(/^files\//, '')
+  return stripPrefix.split('/').pop() || stripPrefix
+}
+
+function isConvPreviewable(att) {
+  return /\.(pdf|jpe?g|png|gif|webp)$/i.test(fileNameFromConvUrl(att?.url))
+}
+
+function previewConvUrl(att) {
+  const name = encodeURIComponent(att?.name || '附件')
+  return `/api/files/preview/${fileNameFromConvUrl(att?.url)}?name=${name}`
+}
+
+function downloadConvUrl(att) {
+  const name = encodeURIComponent(att?.name || '附件')
+  return `/api/files/download/${fileNameFromConvUrl(att?.url)}?name=${name}`
 }
 
 function getEnrollmentStatusType(status) {
@@ -776,5 +965,36 @@ async function confirmEnrollReject() {
   color: #409eff;
   font-size: 16px;
   font-weight: bold;
+}
+
+/* 转换申请：积分规则名称和分值样式 */
+.credit-rule-name {
+  color: #1e3a5f;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.credit-value {
+  color: #e8590c;
+  font-weight: 700;
+}
+
+/* 转换申请详情：证明材料区块样式 */
+.conv-att-block {
+  padding: 10px 4px;
+}
+
+.conv-att-row {
+  padding: 6px 0;
+  border-bottom: 1px dashed #e9ecef;
+}
+
+.conv-att-row:last-child {
+  border-bottom: none;
+}
+
+.att-icon {
+  color: #1e3a5f;
+  margin-right: 6px;
 }
 </style>

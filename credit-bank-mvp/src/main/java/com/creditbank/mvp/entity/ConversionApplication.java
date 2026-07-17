@@ -43,6 +43,9 @@ public class ConversionApplication {
     @TableField("form_data")
     private String formData;
 
+    @TableField("credit_rule_id")
+    private Long creditRuleId;
+
     @TableField("apply_type")
     private String applyType;
 
@@ -68,6 +71,12 @@ public class ConversionApplication {
 
     @TableField(exist = false)
     private String ruleName;
+
+    @TableField(exist = false)
+    private String creditRuleName;
+
+    @TableField(exist = false)
+    private Integer creditValue;
 
     public Long getId() {
         return id;
@@ -227,5 +236,29 @@ public class ConversionApplication {
 
     public void setRuleName(String ruleName) {
         this.ruleName = ruleName;
+    }
+
+    public Long getCreditRuleId() {
+        return creditRuleId;
+    }
+
+    public void setCreditRuleId(Long creditRuleId) {
+        this.creditRuleId = creditRuleId;
+    }
+
+    public String getCreditRuleName() {
+        return creditRuleName;
+    }
+
+    public void setCreditRuleName(String creditRuleName) {
+        this.creditRuleName = creditRuleName;
+    }
+
+    public Integer getCreditValue() {
+        return creditValue;
+    }
+
+    public void setCreditValue(Integer creditValue) {
+        this.creditValue = creditValue;
     }
 }

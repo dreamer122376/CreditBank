@@ -120,13 +120,12 @@ public class ConversionApplicationService {
         if (application.getOriginalType() == null || application.getOriginalType().trim().isEmpty()) {
             throw new BizException("原成果类型不能为空");
         }
-        if (application.getConvertedType() == null || application.getConvertedType().trim().isEmpty()) {
-            throw new BizException("转换后成果类型不能为空");
-        }
         if (application.getApplyType() == null || application.getApplyType().trim().isEmpty()) {
             throw new BizException("申请类型不能为空");
         }
 
+        // 方案A：申请单必须直接关联一条积分规则（creditRuleId），审核通过时按该规则精确加积分
+        // RULE_CONVERT：优先从 conversion_rule 推导（前端若传了 creditRuleId，也以 ruleId 对应值为准，保证一致性）
         if (application.getRuleId() != null) {
             ConversionRule rule = conversionRuleMapper.selectById(application.getRuleId());
             if (rule == null) {
@@ -141,6 +140,32 @@ public class ConversionApplicationService {
             if (rule.getEffectiveEnd() != null && LocalDateTime.now().isAfter(rule.getEffectiveEnd())) {
                 throw new BizException("转换规则已过期");
             }
+            if (rule.getCreditRuleId() == null) {
+                throw new BizException("该转换规则尚未关联积分规则，管理员请先在转换规则页补关联");
+            }
+            application.setCreditRuleId(rule.getCreditRuleId());
+            // convertedType 直接写积分规则的 event_code，保证后端加分匹配（覆盖前端自由输入的中文）
+            CreditRule bind = creditRuleMapper.selectById(rule.getCreditRuleId());
+            if (bind != null && bind.getEventCode() != null) {
+                application.setConvertedType(bind.getEventCode());
+            }
+        } else if (APPLY_TYPE_RULE_ADD.equals(application.getApplyType())) {
+            // RULE_ADD（新增自定义规则）：必须由用户显式选一条积分规则
+            if (application.getCreditRuleId() == null) {
+                throw new BizException("新增自定义转换规则必须关联一条积分规则（请选择积分规则）");
+            }
+            CreditRule bind = creditRuleMapper.selectById(application.getCreditRuleId());
+            if (bind == null) {
+                throw new BizException("积分规则不存在：" + application.getCreditRuleId());
+            }
+            if (bind.getIsEnabled() == null || bind.getIsEnabled() != 1) {
+                throw new BizException("关联的积分规则已停用，请先启用");
+            }
+            if (bind.getEventCode() != null) {
+                application.setConvertedType(bind.getEventCode());
+            }
+        } else {
+            throw new BizException("请选择转换规则，或切换为「新增自定义规则」模式");
         }
 
         application.setId(null);
@@ -181,7 +206,8 @@ public class ConversionApplicationService {
         } else {
             application.setStatus(STATUS_APPROVED);
             application.setApprovedAt(LocalDateTime.now());
-            if (application.getApplyType().equals(APPLY_TYPE_RULE_CONVERT)) {
+            // 只要申请关联了积分规则，审核通过就发积分（RULE_CONVERT / RULE_ADD 都允许，兜底空值不发）
+            if (application.getCreditRuleId() != null) {
                 grantCredit(application, operator.getId());
             }
         }
@@ -235,19 +261,11 @@ public class ConversionApplicationService {
         return sb.toString();
     }
 
-    // 审核通过：按已关联的 creditRuleId 精确加积分，避免 eventCode 模糊匹配失败
+    // 审核通过：按申请单自带的 creditRuleId 精确加积分（不再走 ruleId → conversion_rule 的冗余链路）
     private void grantCredit(ConversionApplication application, Long operatorId) {
-        Long creditRuleId = null;
+        Long creditRuleId = application.getCreditRuleId();
         String eventCode = null;
 
-        if (application.getRuleId() != null) {
-            ConversionRule rule = conversionRuleMapper.selectById(application.getRuleId());
-            if (rule != null && rule.getCreditRuleId() != null) {
-                creditRuleId = rule.getCreditRuleId();
-            }
-        }
-
-        // 只要拿到了 ruleId，就按主键精确查询积分规则 —— 不再依赖 eventCode 匹配
         if (creditRuleId != null) {
             CreditRule creditRule = creditRuleMapper.selectById(creditRuleId);
             if (creditRule != null) {
@@ -255,13 +273,12 @@ public class ConversionApplicationService {
             }
         }
 
-        if (eventCode == null) {
-            // 兜底：申请单没挂 ruleId/ruleId 没关联积分规则时，直接从申请单取 convertedType 作 eventCode
+        // 兜底：极端情况下（老数据 creditRuleId 为空），从 convertedType 作 eventCode
+        if (eventCode == null || eventCode.trim().isEmpty()) {
             eventCode = application.getConvertedType();
             creditRuleId = null;
         }
 
-        // 传入真实审核人 operatorId；优先使用 ruleId 精确命中（PointService.earn 第 6 个参数 ruleId != null 时按 ID 查）
         pointService.earn(application.getStudentId(), eventCode, operatorId, null, null, creditRuleId);
     }
 
@@ -279,6 +296,9 @@ public class ConversionApplicationService {
         Map<Long, ConversionRule> rules = conversionRuleMapper.selectList(null).stream()
                 .collect(Collectors.toMap(ConversionRule::getId, r -> r));
 
+        Map<Long, CreditRule> creditRules = creditRuleMapper.selectList(null).stream()
+                .collect(Collectors.toMap(CreditRule::getId, r -> r));
+
         for (ConversionApplication app : applications) {
             app.setStudentName(userNames.getOrDefault(app.getStudentId(), ""));
             app.setOriginalOrgName(orgNames.getOrDefault(app.getOriginalOrgId(), ""));
@@ -287,6 +307,14 @@ public class ConversionApplicationService {
                 ConversionRule rule = rules.get(app.getRuleId());
                 if (rule != null) {
                     app.setRuleName(rule.getOriginalName() + " → " + rule.getConvertedName());
+                }
+            }
+            // 显示关联的积分规则名称和分值（用于学生/管理员端直观查看加什么）
+            if (app.getCreditRuleId() != null) {
+                CreditRule cr = creditRules.get(app.getCreditRuleId());
+                if (cr != null) {
+                    app.setCreditRuleName(cr.getEventName());
+                    app.setCreditValue(cr.getCreditValue());
                 }
             }
         }

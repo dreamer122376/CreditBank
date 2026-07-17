@@ -12,6 +12,22 @@
         <el-table-column prop="ruleName" label="转换规则" min-width="200" />
         <el-table-column prop="originalName" label="原成果名称" min-width="150" />
         <el-table-column prop="convertedName" label="转换后成果名称" min-width="150" />
+        <el-table-column label="对应积分规则" min-width="160">
+          <template #default="scope">
+            <span v-if="scope.row.creditRuleName" class="credit-rule-name">
+              {{ scope.row.creditRuleName }}
+            </span>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="对应分值" width="90" align="right">
+          <template #default="scope">
+            <span v-if="scope.row.creditValue != null" class="credit-value">
+              +{{ scope.row.creditValue }}
+            </span>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="applyType" label="申请类型" width="100">
           <template #default="scope">
             <el-tag :type="scope.row.applyType === 'RULE_CONVERT' ? 'primary' : 'warning'" size="small">
@@ -39,11 +55,11 @@
                 v-for="(att, i) in parseFormDataAtts(scope.row)"
                 :key="i"
                 type="primary"
-                :href="getFileDownloadUrl(att.url)"
+                :href="isAttachmentPreviewable(att) ? attachmentPreviewUrl(att) : attachmentDownloadUrl(att)"
                 target="_blank"
                 style="display:inline-flex;align-items:center;margin-right:10px;margin-bottom:4px;"
                 size="small">
-                <el-icon style="margin-right:3px;"><Paperclip /></el-icon>
+                <el-icon style="margin-right:3px;"><component :is="isAttachmentPreviewable(att) ? View : Paperclip" /></el-icon>
                 {{ att.name?.slice(0, 10) }}{{ att.name?.length > 10 ? '…' : '' }}
               </el-link>
             </div>
@@ -86,9 +102,20 @@
         </el-table-column>
         <el-table-column prop="convertedName" label="转换后成果名称" min-width="180" />
         <el-table-column prop="convertedOrgName" label="转换后成果机构" min-width="120" />
-        <el-table-column prop="convertedType" label="转换后成果类型" width="100">
+        <el-table-column label="对应积分规则" min-width="150">
           <template #default="scope">
-            <el-tag size="small">{{ scope.row.convertedType }}</el-tag>
+            <span v-if="scope.row.creditRuleName" class="credit-rule-name">
+              {{ scope.row.creditRuleName }}
+            </span>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="对应分值" width="90" align="right">
+          <template #default="scope">
+            <span v-if="scope.row.creditValue != null" class="credit-value">
+              +{{ scope.row.creditValue }}
+            </span>
+            <span v-else class="muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100">
@@ -142,9 +169,42 @@
             <el-option v-for="o in organizations" :key="o.id" :label="o.name" :value="o.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="转换后成果类型" required>
-          <el-input v-model="form.convertedType" placeholder="如：课程" />
-        </el-form-item>
+        <!-- RULE_CONVERT：已有关联转换规则，直接展示关联的积分规则名称（由后端覆盖 convertedType） -->
+        <template v-if="form.applyType === 'RULE_CONVERT'">
+          <el-form-item label="对应积分规则">
+            <div v-if="form.creditRuleName" class="credit-rule-readonly">
+              <span class="credit-rule-name">{{ form.creditRuleName }}</span>
+              <span class="credit-value">+{{ form.creditValue }} 分</span>
+            </div>
+            <el-tag v-else type="info">请先选择上方的转换规则</el-tag>
+          </el-form-item>
+          <el-form-item label="转换后成果类型" required>
+            <el-input v-model="form.convertedType" :disabled="!!form.ruleId" placeholder="选择转换规则后自动关联" />
+          </el-form-item>
+        </template>
+        <!-- RULE_ADD：新增自定义转换，必须由学生显式选择一条积分规则（审核通过后按该规则加积分） -->
+        <template v-if="form.applyType === 'RULE_ADD'">
+          <el-form-item label="对应积分规则" required>
+            <el-select v-model="form.creditRuleId" placeholder="请选择一条积分规则（审核通过后按此规则加分）" style="width:100%;" filterable @change="onCreditRuleChange">
+              <el-option
+                v-for="cr in availableCreditRules"
+                :key="cr.id"
+                :label="`${cr.eventName} (+${cr.creditValue}分)`"
+                :value="cr.id">
+                <div class="credit-rule-option">
+                  <span class="cr-event-name">{{ cr.eventName }}</span>
+                  <span class="cr-value">+{{ cr.creditValue }}</span>
+                </div>
+              </el-option>
+            </el-select>
+            <div v-if="form.creditRuleId" class="rule-pick-tip">
+              转换审核通过后，系统将按所选积分规则自动发放积分。
+            </div>
+          </el-form-item>
+          <el-form-item label="转换后成果类型" required>
+            <el-input v-model="form.convertedType" placeholder="如：课程 / 竞赛 / 实践" />
+          </el-form-item>
+        </template>
 
         <el-form-item label="证明材料">
           <el-upload
@@ -195,13 +255,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Paperclip } from '@element-plus/icons-vue'
+import { Paperclip, View } from '@element-plus/icons-vue'
 import {
   getConversionApplications,
   submitConversionApplication
 } from '@/api/conversionApplication'
 import { getConversionRules } from '@/api/conversionRule'
 import { getOrganizations } from '@/api/organization'
+import { getRules as getCreditRules } from '@/api/point'
 import { useAuth } from '@/composables/useAuth'
 
 const { currentUser } = useAuth()
@@ -210,6 +271,7 @@ const loading = ref(true)
 const applications = ref([])
 const rules = ref([])
 const organizations = ref([])
+const creditRules = ref([]) // 所有可用的积分规则列表
 const dialogVisible = ref(false)
 const form = ref({})
 const isEdit = ref(false)
@@ -224,8 +286,17 @@ const uploadHeaders = computed(() => {
   return token ? { Authorization: `Bearer ${token}` } : {}
 })
 
-// 上传前置校验：10MB 以内
+// 上传前置校验：扩展名+大小（完全对齐 StudentCerts 标准，保持一致）
+const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx']
+
 function beforeUpload(file) {
+  const ext = file.name.includes('.')
+    ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+    : ''
+  if (!ALLOWED_EXTS.includes(ext)) {
+    ElMessage.warning('仅支持 PDF、Word、图片格式')
+    return false
+  }
   const maxSize = 10 * 1024 * 1024
   if (file.size > maxSize) {
     ElMessage.warning('单个文件不能超过 10MB')
@@ -234,46 +305,59 @@ function beforeUpload(file) {
   return true
 }
 
-// 上传成功后：把后端返回的 { url, storedName, originalName } 合并保存到 attachments
+// 上传成功：严格对齐 StudentCerts 的 onUploadSuccess 实现
+// FileController.uploadAttachment 返回 Result<String>，其中 data 字段就是完整 URL "/api/files/download/{uuid}.ext"
 function onUploadSuccess(response, file) {
-  if (response && (response.code === 0 || response.code === 200) && response.data) {
-    const item = {
-      name: response.data.originalName || response.data.name || file.name,
-      url: response.data.url || response.data.fileUrl || response.data.storedName
-    }
-    attachments.value.push(item)
-  } else if (response && typeof response.url === 'string') {
+  if (response && response.code === 200) {
+    // 证明材料的 attachment 对象：{ uid, name, url } 三字段统一结构，与 StudentCerts 保持一致
     attachments.value.push({
+      uid: file.uid,
       name: file.name,
-      url: response.url
+      url: response.data
     })
   } else {
-    attachments.value.push({
-      name: file.name,
-      url: file.response?.url || file.name
-    })
+    ElMessage.error((response && response.message) || '上传失败')
+    uploadList.value = uploadList.value.filter(item => item.uid !== file.uid)
   }
 }
 
-// 删除文件时：同步从 attachments 移除
+// 删除文件：按 uid 精确匹配删除（StudentCerts 同样实现）
 function onUploadRemove(file) {
-  const name = file.name
-  const url = file.url || file.response?.url
-  const idx = attachments.value.findIndex(a => a.name === name || a.url === url)
-  if (idx >= 0) attachments.value.splice(idx, 1)
+  attachments.value = attachments.value.filter(att => att.uid !== file.uid)
 }
 
-function onUploadError(err) {
-  ElMessage.error('上传失败：' + (err?.message || '请稍后重试'))
+function onUploadError(err, file) {
+  ElMessage.error(err?.message || '上传失败，请重试')
+  uploadList.value = uploadList.value.filter(item => item.uid !== file.uid)
 }
 
-// URL 处理：FileController 下载路由是 /api/files/download/{storedName}，url 若含目录前缀 "files/xxx" 直接取尾段
-function getFileDownloadUrl(url) {
+// 文件名提取：完全对齐 StudentCerts.fileNameFromUrl，同时兼容 "files/xxx" 旧前缀
+function fileNameFromUrl(url) {
   if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  // url 格式可能是 "files/abc.pdf" 或直接是 "abc.pdf"
-  const clean = String(url).replace(/^files\//, '')
-  return `/api/files/download/${encodeURIComponent(clean)}`
+  const clean = String(url).split('?')[0]
+  // 兼容旧格式 "files/abc.pdf" 和 "/api/files/download/abc.pdf" 以及纯 "abc.pdf"
+  const stripPrefix = clean.replace(/^files\//, '')
+  return stripPrefix.split('/').pop() || stripPrefix
+}
+
+// 附件下载链接：与 StudentCerts.downloadUrl 完全一致
+function attachmentDownloadUrl(att) {
+  if (!att?.url) return ''
+  if (String(att.url).startsWith('http://') || String(att.url).startsWith('https://')) return att.url
+  const name = encodeURIComponent(att.name || '附件')
+  return `/api/files/download/${fileNameFromUrl(att.url)}?name=${name}`
+}
+
+// 附件预览链接：与 StudentCerts.previewUrl 完全一致
+function attachmentPreviewUrl(att) {
+  if (!att?.url) return ''
+  const name = encodeURIComponent(att.name || '附件')
+  return `/api/files/preview/${fileNameFromUrl(att.url)}?name=${name}`
+}
+
+// PDF/图片等浏览器可直接预览
+function isAttachmentPreviewable(att) {
+  return /\.(pdf|jpe?g|png|gif|webp)$/i.test(fileNameFromUrl(att?.url))
 }
 
 // 解析单条申请的证明材料：优先用 formData.attachments；降级用旧的 certificate_file 单文件
@@ -282,18 +366,31 @@ function parseFormDataAtts(row) {
     try {
       const obj = typeof row.formData === 'string' ? JSON.parse(row.formData) : row.formData
       if (Array.isArray(obj?.attachments) && obj.attachments.length) {
-        return obj.attachments.filter(a => a && typeof a.url === 'string')
+        return obj.attachments
+          .filter(a => a && typeof a.url === 'string')
+          .map((a, i) => ({ ...a, uid: a.uid || `${a.url}-${i}` }))
       }
     } catch (_) { /* JSON 解析失败降级用旧字段 */ }
   }
   if (row?.certificateFile) {
-    return [{ name: '证明材料', url: row.certificateFile }]
+    return [{ uid: `cert-${row.id}`, name: '证明材料', url: row.certificateFile }]
   }
   return []
 }
 
+// 为保持兼容：若有代码仍调用 getFileDownloadUrl，内部走附件下载链接逻辑
+function getFileDownloadUrl(url) {
+  return attachmentDownloadUrl({ url, name: '附件' })
+}
+
 const availableRules = computed(() => {
   return rules.value.filter(r => r.isEnabled === 1)
+})
+
+// 学生可选的积分规则：只展示已启用的（通用+本机构）
+const availableCreditRules = computed(() => {
+  const list = creditRules.value || []
+  return list.filter(r => r.isEnabled === 1)
 })
 
 const tableMaxHeight = computed(() => {
@@ -303,13 +400,24 @@ const tableMaxHeight = computed(() => {
 onMounted(async () => {
   loading.value = true
   try {
-    await loadApplications()
-    await loadRules()
-    await loadOrganizations()
+    await Promise.all([
+      loadApplications(),
+      loadRules(),
+      loadOrganizations(),
+      loadCreditRules()
+    ])
   } finally {
     loading.value = false
   }
 })
+
+async function loadCreditRules() {
+  try {
+    creditRules.value = await getCreditRules(true)
+  } catch (error) {
+    creditRules.value = []
+  }
+}
 
 async function loadApplications() {
   try {
@@ -359,12 +467,17 @@ function formatDateTime(dateStr) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-// 初始化申请弹窗：清空/回填附件
+// 初始化申请弹窗：清空/回填附件 + creditRuleId/Name/Value
 function openApply(row = null) {
   attachments.value = []
   uploadList.value = []
   isEdit.value = row !== null
   if (row) {
+    // 重新提交时：RULE_CONVERT 模式下 convertedType 仍然优先展示中文 creditRuleName（避免英文 event_code）
+    // RULE_ADD 则保留原 convertedType（自己填的"课程/竞赛"等）
+    const fallbackType = row.applyType === 'RULE_CONVERT'
+      ? (row.creditRuleName || row.convertedType)
+      : row.convertedType
     form.value = {
       id: row.id,
       ruleId: row.ruleId,
@@ -374,19 +487,26 @@ function openApply(row = null) {
       originalType: row.originalType,
       convertedName: row.convertedName,
       convertedOrgId: row.convertedOrgId,
-      convertedType: row.convertedType,
-      certificateFile: row.certificateFile || ''
+      convertedType: fallbackType,
+      certificateFile: row.certificateFile || '',
+      creditRuleId: row.creditRuleId ?? null,
+      creditRuleName: row.creditRuleName ?? '',
+      creditValue: row.creditValue ?? null
     }
-    // 重新提交时：把历史附件解析出来回填
+    // 重新提交时：把历史附件解析出来回填，保证和 StudentCerts 结构一致（uid/name/url 三字段）
     const existAtts = parseFormDataAtts(row)
     if (existAtts.length) {
-      attachments.value = [...existAtts]
-      // 回填 el-upload 的 file-list 初始值（便于学生重新提交时能看到原先上传的列表）
-      uploadList.value = existAtts.map((a, i) => ({
+      attachments.value = existAtts.map((a, i) => ({
+        uid: a.uid || `${row.id}-att-${i}`,
         name: a.name || `附件${i + 1}`,
-        url: getFileDownloadUrl(a.url),
+        url: a.url
+      }))
+      // 回填 el-upload 的 file-list 初始值
+      uploadList.value = attachments.value.map(a => ({
+        name: a.name,
+        url: attachmentDownloadUrl(a),
         status: 'success',
-        uid: Date.now() + i
+        uid: a.uid
       }))
     }
   } else {
@@ -399,7 +519,10 @@ function openApply(row = null) {
       convertedName: '',
       convertedOrgId: null,
       convertedType: '',
-      certificateFile: ''
+      certificateFile: '',
+      creditRuleId: null,
+      creditRuleName: '',
+      creditValue: null
     }
   }
   dialogVisible.value = true
@@ -408,6 +531,9 @@ function openApply(row = null) {
 function applyByRule(rule) {
   attachments.value = []
   uploadList.value = []
+  // RULE_CONVERT 模式下，表单里的 convertedType 展示给学生看：直接用对应积分规则中文名（creditRuleName），
+  // 避免学生看到英文 event_code（如 COURSE_COMPLETE）。后端在 submit() 里会覆盖为正确的 event_code，不影响持久化。
+  const displayType = rule.creditRuleName || rule.convertedType
   form.value = {
     ruleId: rule.id,
     applyType: 'RULE_CONVERT',
@@ -416,8 +542,11 @@ function applyByRule(rule) {
     originalType: rule.originalType,
     convertedName: rule.convertedName,
     convertedOrgId: rule.convertedOrgId,
-    convertedType: rule.convertedType,
-    certificateFile: ''
+    convertedType: displayType,
+    certificateFile: '',
+    creditRuleId: rule.creditRuleId ?? null,
+    creditRuleName: rule.creditRuleName ?? '',
+    creditValue: rule.creditValue ?? null
   }
   dialogVisible.value = true
 }
@@ -430,7 +559,27 @@ function onRuleChange(ruleId) {
     form.value.originalType = rule.originalType
     form.value.convertedName = rule.convertedName
     form.value.convertedOrgId = rule.convertedOrgId
-    form.value.convertedType = rule.convertedType
+    // 同上：展示层填中文，避免英文 event_code
+    form.value.convertedType = rule.creditRuleName || rule.convertedType
+    form.value.creditRuleId = rule.creditRuleId ?? null
+    form.value.creditRuleName = rule.creditRuleName ?? ''
+    form.value.creditValue = rule.creditValue ?? null
+  } else {
+    form.value.creditRuleId = null
+    form.value.creditRuleName = ''
+    form.value.creditValue = null
+  }
+}
+
+// RULE_ADD：学生选中积分规则后，提示对应分值（convertedType 仍留给学生手动填，因为是成果类型名，如"课程/竞赛"）
+function onCreditRuleChange(creditRuleId) {
+  const cr = creditRules.value.find(x => x.id === creditRuleId)
+  if (cr) {
+    form.value.creditRuleName = cr.eventName || ''
+    form.value.creditValue = cr.creditValue ?? null
+  } else {
+    form.value.creditRuleName = ''
+    form.value.creditValue = null
   }
 }
 
@@ -441,6 +590,11 @@ async function submit() {
   }
   if (form.value.applyType === 'RULE_CONVERT' && !form.value.ruleId) {
     ElMessage.warning('请选择转换规则')
+    return
+  }
+  // 方案A：RULE_ADD（新增自定义转换）必须显式选择一条积分规则，审核通过后按该规则加积分
+  if (form.value.applyType === 'RULE_ADD' && !form.value.creditRuleId) {
+    ElMessage.warning('新增规则申请必须选择一条对应的积分规则（用于审核通过后自动加分）')
     return
   }
   if (!form.value.originalName) {
@@ -462,6 +616,9 @@ async function submit() {
   try {
     const submitData = { ...form.value }
     delete submitData.id
+    // 只提交数据库持久化字段，去掉非持久化展示字段
+    delete submitData.creditRuleName
+    delete submitData.creditValue
     // 附件：存到 formData JSON（多文件标准格式）
     submitData.formData = JSON.stringify({ attachments: attachments.value })
     // 兼容旧接口：第一个附件 URL 回写到 certificateFile，避免历史单文件逻辑断链
@@ -499,5 +656,59 @@ async function submit() {
   font-size: 12px;
   margin-top: 6px;
   line-height: 1.5;
+}
+
+.muted {
+  color: #adb5bd;
+  font-size: 12px;
+}
+
+/* 积分规则名称+分值的展示样式 */
+.credit-rule-name {
+  color: #1e3a5f;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.credit-value {
+  color: #e8590c;
+  font-weight: 700;
+}
+
+/* 只读展示：已有转换规则关联的积分规则 */
+.credit-rule-readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+/* 下拉选项：显示事件名+分值 */
+.credit-rule-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.credit-rule-option .cr-event-name {
+  color: #333;
+}
+
+.credit-rule-option .cr-value {
+  color: #e8590c;
+  font-weight: 600;
+  margin-left: 12px;
+}
+
+.rule-pick-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #5c940d;
+  background: #f4fce3;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 </style>

@@ -454,13 +454,14 @@ function truncateType(type) {
 onMounted(async () => {
   loading.value = true
   try {
-    // 公开只读模式：仅加载规则目录，不请求机构/积分规则等管理侧数据
+    // 积分规则数据用于 course/project 分类统计，公开模式也必须加载
+    // 机构列表仅管理模式下才需要（用于新增/编辑弹窗的下拉）
     if (props.readonly) {
-      await loadData()
+      await Promise.all([loadData(), loadCreditRules()])
     } else if (currentUser.value) {
       await Promise.all([loadData(), loadOrganizations(), loadCreditRules()])
     } else {
-      await loadData()
+      await Promise.all([loadData(), loadCreditRules()])
     }
   } finally {
     loading.value = false
@@ -498,27 +499,43 @@ const creditRulesById = computed(() => {
   return map
 })
 
-// 判断某条转换规则是否对应「课程类」积分规则（优先按关联积分规则，兜底按历史 convertedType 中文）
+// 判断某条转换规则是否对应「课程类」积分规则
+// 优先级：1) 关联积分规则对象 2) 行数据自带的 creditRuleName 中文 3) convertedType（中文或英文 event_code）
 function isCourseRule(rule) {
   if (!rule) return false
+  // 1. 优先通过关联的积分规则对象判断（需要已加载 creditRules）
   const cr = rule.creditRuleId != null ? creditRulesById.value.get(rule.creditRuleId) : null
   if (cr) {
     if ((cr.eventCode && cr.eventCode.toLowerCase().startsWith('course_')) ||
         (cr.eventName && cr.eventName.includes('课程'))) return true
   }
-  return rule.convertedType === '课程'
+  // 2. 兜底：后端 enrich 过的中文规则名（只读模式下 creditRules 未加载时也能分类）
+  if (typeof rule.creditRuleName === 'string' && rule.creditRuleName.includes('课程')) return true
+  // 3. 最终兜底：convertedType 可能是中文"课程"或英文 event_code（course_ 前缀）
+  const ct = rule.convertedType || ''
+  return ct === '课程' || (typeof ct === 'string' && ct.toLowerCase().startsWith('course_'))
 }
 
 // 判断某条转换规则是否对应「项目/竞赛类」积分规则
 function isProjectRule(rule) {
   if (!rule) return false
+  // 1. 优先通过关联的积分规则对象判断
   const cr = rule.creditRuleId != null ? creditRulesById.value.get(rule.creditRuleId) : null
   if (cr) {
     if ((cr.eventCode && cr.eventCode.toLowerCase().startsWith('project_')) ||
         (cr.eventName && (cr.eventName.includes('项目') || cr.eventName.includes('大赛') ||
                           cr.eventName.includes('优秀') || cr.eventName.includes('竞赛')))) return true
   }
-  return !!(rule.convertedType && (rule.convertedType.includes('项目') || rule.convertedType.includes('大赛') || rule.convertedType.includes('优秀')))
+  // 2. 兜底：行数据自带的中文规则名
+  if (typeof rule.creditRuleName === 'string') {
+    const name = rule.creditRuleName
+    if (name.includes('项目') || name.includes('大赛') || name.includes('竞赛') || name.includes('优秀')) return true
+  }
+  // 3. 最终兜底：convertedType 中文关键字或英文 project_ 前缀
+  const ct = rule.convertedType || ''
+  if (typeof ct !== 'string') return false
+  if (ct.includes('项目') || ct.includes('大赛') || ct.includes('竞赛') || ct.includes('优秀')) return true
+  return ct.toLowerCase().startsWith('project_')
 }
 
 // ============ 操作权限 ============

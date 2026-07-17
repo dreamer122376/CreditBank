@@ -3,8 +3,9 @@
     <!-- 统计卡片 -->
     <div class="stat-row">
       <div v-for="item in statItems" :key="item.key"
-           class="stat-card" :class="{ active: activeTab === 'conversion' ? convStatusFilter === item.key : statFilter === item.key }"
-           @click="toggleStat(item.key)">
+           class="stat-card" :class="{ active: activeTab === 'conversion' ? convStatusFilter === item.key : activeTab === 'enrollment' ? enrollStatusFilter === item.key : statFilter === item.key }"
+           @click="toggleStat(item.key)"
+           v-show="item.key !== 'placeholder'">
         <div class="stat-value" :style="{ color: item.color }">{{ item.count }}</div>
         <div class="stat-label">{{ item.label }}</div>
       </div>
@@ -32,8 +33,14 @@
             </span>
           </div>
           <div class="header-right">
-            <el-tag v-if="statFilter" closable type="primary" effect="plain" @close="statFilter = null">
+            <el-tag v-if="statFilter && activeTab !== 'conversion' && activeTab !== 'enrollment'" closable type="primary" effect="plain" @close="statFilter = null">
               {{ statItems.find(item => item.key === statFilter)?.label }}
+            </el-tag>
+            <el-tag v-if="convStatusFilter && activeTab === 'conversion'" closable type="primary" effect="plain" @close="convStatusFilter = null">
+              {{ statItems.find(item => item.key === convStatusFilter)?.label }}
+            </el-tag>
+            <el-tag v-if="enrollStatusFilter && activeTab === 'enrollment'" closable type="primary" effect="plain" @close="enrollStatusFilter = null">
+              {{ statItems.find(item => item.key === enrollStatusFilter)?.label }}
             </el-tag>
             <el-tag v-if="activeTab === 'cert'" type="info" effect="plain">学生认证 / 专家认证</el-tag>
           </div>
@@ -287,13 +294,13 @@ import { getApplications, auditApplication } from '@/api/application'
 import { getCertStandards } from '@/api/certStandard'
 import { getStudentCertByApplication } from '@/api/studentCert'
 import { getConversionApplications, auditConversionApplication } from '@/api/conversionApplication'
-import { getPendingAuditEnrollments, auditProjectCompletion } from '@/api/project'
+import { getAllEnrollmentsForAudit, auditProjectCompletion } from '@/api/project'
 
 const CERT_BIZ_TYPES = ['CERT_APPLY', 'EXPERT_CERT']
 const STATUS_IN_REVIEW = 1
-const STATUS_APPROVED = 2
-const STATUS_REJECTED = 3
-const IN_REVIEW_STATUSES = [STATUS_IN_REVIEW]
+const STATUS_APPROVED = 3
+const STATUS_REJECTED = 4
+const IN_REVIEW_STATUSES = [STATUS_IN_REVIEW, 2]
 
 const router = useRouter()
 const { currentUser } = useAuth()
@@ -317,6 +324,7 @@ const convRejectReason = ref('')
 const convRejectTarget = ref(null)
 
 const enrollmentApps = ref([])
+const enrollStatusFilter = ref(null)
 const enrollmentTodoCount = ref(0)
 const enrollRejectVisible = ref(false)
 const enrollRejectReason = ref('')
@@ -359,6 +367,16 @@ const statItems = computed(() => {
       { key: 'all', label: '全部', color: '#495057', count: conversionApps.value.length }
     ]
   }
+  if (activeTab.value === 'enrollment') {
+    const allowedStatuses = ['待审核', '已完成']
+    const filteredList = enrollmentApps.value.filter(app => allowedStatuses.includes(app.status))
+    return [
+      { key: 'pending', label: '待审核', color: '#e8590c', count: filteredList.filter(app => app.status === '待审核').length },
+      { key: 'approved', label: '已通过', color: '#2f9e44', count: filteredList.filter(app => app.status === '已完成').length },
+      { key: 'all', label: '全部', color: '#495057', count: filteredList.length },
+      { key: 'placeholder', label: '', color: '#495057', count: 0 }
+    ]
+  }
   const list = activeTab.value === 'cert' ? certApps.value : bizApps.value
   return [
     { key: 'mine', label: activeTab.value === 'cert' ? '待我审核' : '待处理', color: '#e8590c', count: list.filter(app => app.canAudit).length },
@@ -392,11 +410,23 @@ const filteredApps = computed(() => {
   }
 })
 
-const filteredEnrollmentApps = computed(() => enrollmentApps.value)
+const filteredEnrollmentApps = computed(() => {
+  const allowedStatuses = ['待审核', '已完成']
+  const baseList = enrollmentApps.value.filter(app => allowedStatuses.includes(app.status))
+  if (!enrollStatusFilter.value) return baseList
+  switch (enrollStatusFilter.value) {
+    case 'pending': return baseList.filter(app => app.status === '待审核')
+    case 'approved': return baseList.filter(app => app.status === '已完成')
+    case 'all': return baseList
+    default: return baseList
+  }
+})
 
 function toggleStat(key) {
   if (activeTab.value === 'conversion') {
     convStatusFilter.value = convStatusFilter.value === key ? null : key
+  } else if (activeTab.value === 'enrollment') {
+    enrollStatusFilter.value = enrollStatusFilter.value === key ? null : key
   } else {
     statFilter.value = statFilter.value === key ? null : key
   }
@@ -406,6 +436,7 @@ function switchTab(tab) {
   activeTab.value = tab
   statFilter.value = null
   convStatusFilter.value = null
+  enrollStatusFilter.value = null
 }
 
 onMounted(loadData)
@@ -417,7 +448,7 @@ async function loadData() {
       getApplications(currentUser.value?.role, currentUser.value?.id),
       getCertStandards(),
       getConversionApplications(),
-      getPendingAuditEnrollments()
+      getAllEnrollmentsForAudit()
     ])
     standards.value = standardList
     apps.value = list
@@ -704,7 +735,7 @@ async function confirmEnrollReject() {
 
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }

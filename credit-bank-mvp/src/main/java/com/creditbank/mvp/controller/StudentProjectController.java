@@ -80,6 +80,14 @@ public class StudentProjectController {
         return Result.ok(studentProjectService.getPendingAuditEnrollments(operator));
     }
 
+    /** 查询所有状态的报名列表（用于审核管理页面统计） */
+    @GetMapping("/all-for-audit")
+    public Result<List<StudentProjectAuditDTO>> getAllEnrollmentsForAudit(
+            @RequestHeader("X-Operator-Id") Long operatorId) {
+        SysUser operator = userService.getUser(operatorId);
+        return Result.ok(studentProjectService.getAllEnrollmentsForAudit(operator));
+    }
+
     @GetMapping("/project/{projectId}/students")
     public Result<List<SysUser>> getStudentsByProject(@PathVariable Long projectId) {
         return Result.ok(studentProjectService.getStudentsByProjectId(projectId));

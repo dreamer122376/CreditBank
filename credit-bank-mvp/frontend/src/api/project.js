@@ -59,6 +59,10 @@ export function getPendingAuditEnrollments() {
   return request.get('/student-projects/pending-audit')
 }
 
+export function getAllEnrollmentsForAudit() {
+  return request.get('/student-projects/all-for-audit')
+}
+
 // ==================== 管理端 ====================
 
 /** 机构端：本机构项目列表 */

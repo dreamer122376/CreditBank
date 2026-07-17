@@ -20,17 +20,29 @@
         active-text-color="#fff"
         router
       >
-        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span class="menu-label-wrap">
-            <span>{{ item.title }}</span>
-            <span
-              v-if="item.path === '/applications' && auditTodoCount > 0"
-              class="menu-badge"
-              :class="{ wide: auditTodoCount > 9 }"
-            >{{ auditTodoCount > 99 ? '99+' : auditTodoCount }}</span>
-          </span>
-        </el-menu-item>
+        <template v-for="item in menuItems" :key="item.path || item.title">
+          <el-sub-menu v-if="item.children" :index="item.path || item.title">
+            <template #title>
+              <el-icon><component :is="item.icon" /></el-icon>
+              <span>{{ item.title }}</span>
+            </template>
+            <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
+              <el-icon><component :is="child.icon" /></el-icon>
+              <span>{{ child.title }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item v-else :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span class="menu-label-wrap">
+              <span>{{ item.title }}</span>
+              <span
+                v-if="item.path === '/applications' && auditTodoCount > 0"
+                class="menu-badge"
+                :class="{ wide: auditTodoCount > 9 }"
+              >{{ auditTodoCount > 99 ? '99+' : auditTodoCount }}</span>
+            </span>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
     <el-container class="main">
@@ -173,9 +185,15 @@ const menuItems = computed(() => {
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/organizations', title: '机构管理', icon: OfficeBuilding },
       { path: '/experts', title: '专家管理', icon: Avatar },
-      { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
-      { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
-      { path: '/conversion-rules', title: '转换规则', icon: ArrowRight },
+      {
+        title: '规则管理',
+        icon: ScaleToOriginal,
+        children: [
+          { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+          { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
+          { path: '/conversion-rules', title: '转换规则', icon: ArrowRight }
+        ]
+      },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '审核管理', icon: Tickets },
       { path: '/campaigns', title: '平台活动管理', icon: Promotion },
@@ -188,9 +206,15 @@ const menuItems = computed(() => {
       { path: '/dashboard', title: '工作台', icon: HomeFilled },
       { path: '/users', title: '用户管理', icon: UserFilled },
       { path: '/projects/manage', title: '项目管理', icon: Files },
-      { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
-      { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
-      { path: '/conversion-rules', title: '转换规则', icon: ArrowRight },
+      {
+        title: '规则管理',
+        icon: ScaleToOriginal,
+        children: [
+          { path: '/rules', title: '积分规则', icon: ScaleToOriginal },
+          { path: '/exchange-rules', title: '兑换规则', icon: Refresh },
+          { path: '/conversion-rules', title: '转换规则', icon: ArrowRight }
+        ]
+      },
       { path: '/cert-standards', title: '认证标准', icon: Medal },
       { path: '/applications', title: '业务审核', icon: Tickets },
       { path: '/profile', title: '我的资料', icon: Postcard },

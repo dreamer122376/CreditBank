@@ -130,7 +130,7 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '重新提交申请' : '转换申请'" width="600px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '提交申请' : '转换申请'" width="600px">
       <el-form :model="form" label-width="110px">
         <el-form-item label="申请类型" required>
           <el-radio-group v-model="form.applyType">

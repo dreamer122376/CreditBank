@@ -109,7 +109,10 @@ const mapRef = ref(null)
 const categoryRef = ref(null)
 const trendRef = ref(null)
 
-function formatNum(n) { return (n ?? 0).toLocaleString() }
+function formatNum(n) {
+  const v = Number(n)
+  return isNaN(v) ? '0' : v.toLocaleString()
+}
 
 const kpiList = computed(() => {
   const k = data.value?.kpi
@@ -125,7 +128,7 @@ const kpiList = computed(() => {
 // 左侧：用户构成（从 categories 提取角色分布）
 const leftStats = computed(() => {
   const cats = data.value?.categories || []
-  const total = cats.reduce((s, c) => s + (c.value || 0), 0) || 1
+  const total = cats.reduce((s, c) => s + (Number(c.value) || 0), 0) || 1
   const colorMap = {
     '学生档案': '#3568d4',
     '机构管理员': '#e8850c',
@@ -191,7 +194,7 @@ async function renderCharts() {
         backgroundColor: '#fff',
         borderColor: '#e2e8f0',
         textStyle: { color: '#1a1a2e', fontSize: 13 },
-        formatter: '{b}<br/>机构数量：{c}',
+        formatter: params => `${params.name}<br/>机构数量：${formatNum(params.value)}`,
       },
       visualMap: {
         min: 0,
@@ -224,7 +227,7 @@ async function renderCharts() {
           borderWidth: 1.2,
           areaColor: '#eef2ff',
         },
-        data: data.value.provinces || [],
+        data: (data.value.provinces || []).map(p => ({ name: p.name, value: Number(p.value) || 0 })),
         animationDurationUpdate: 600,
         animationEasingUpdate: 'cubicInOut',
       }],

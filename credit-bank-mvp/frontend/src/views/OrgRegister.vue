@@ -88,9 +88,11 @@
             <el-input v-model="queryForm.applicantName" placeholder="请输入申请时填写的申请人姓名" />
           </el-form-item>
 
-          <el-button type="primary" size="large" class="submit-btn" @click="handleQuery" :loading="querying">
-            查询
-          </el-button>
+          <el-form-item class="btn-form-item">
+            <el-button type="primary" size="large" class="submit-btn" @click="handleQuery" :loading="querying">
+              查询
+            </el-button>
+          </el-form-item>
 
           <div v-if="queryResult" class="query-result">
             <el-alert
@@ -108,9 +110,11 @@
             </div>
           </div>
 
-          <el-button class="back-form-link" @click="showQuery = false">
-            ← 返回提交申请
-          </el-button>
+          <el-form-item class="btn-form-item">
+            <el-button type="primary" class="back-form-link" @click="showQuery = false">
+              ← 返回提交申请
+            </el-button>
+          </el-form-item>
         </el-form>
 
         <div class="form-footer">
@@ -413,12 +417,26 @@ async function handleSubmit() {
 }
 .back-form-link {
   margin-top: 12px; width: 100%;
-  border: 1px solid var(--cb-border); color: var(--cb-slate);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #3b5bdb 100%) !important;
+  background-size: 300% 300% !important;
+  background-position: 0% 50% !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600;
+  letter-spacing: 2px;
+  box-shadow: 0 4px 15px rgba(102,126,234,0.3);
   transition: all 0.3s ease;
 }
 .back-form-link:hover {
-  border-color: var(--cb-primary); color: var(--cb-primary);
-  background: var(--cb-primary-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(118,75,162,0.4);
+  animation: btnShimmer 0.8s ease forwards;
+}
+.btn-form-item {
+  margin-bottom: 0;
+}
+.btn-form-item .el-form-item__content {
+  line-height: 1;
 }
 
 .form-footer {

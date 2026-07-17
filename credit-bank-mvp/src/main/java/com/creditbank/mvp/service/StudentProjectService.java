@@ -149,7 +149,7 @@ public class StudentProjectService {
                         .eq(StudentProject::getProjectId, projectId));
         if (existing != null) {
             if (StudentProject.STATUS_CANCELLED.equals(existing.getStatus())) {
-                existing.setStatus(StudentProject.STATUS_ENROLLED);
+                existing.setStatus(StudentProject.STATUS_IN_PROGRESS);
                 studentProjectMapper.updateById(existing);
                 userOpLogMapper.insert(UserOpLog.createLog(
                         studentId, student.getRealName(), null, null,
@@ -163,7 +163,7 @@ public class StudentProjectService {
         StudentProject enrollment = new StudentProject();
         enrollment.setStudentId(studentId);
         enrollment.setProjectId(projectId);
-        enrollment.setStatus(StudentProject.STATUS_ENROLLED);
+        enrollment.setStatus(StudentProject.STATUS_IN_PROGRESS);
         enrollment.setCreatedAt(LocalDateTime.now());
         studentProjectMapper.insert(enrollment);
 
@@ -190,8 +190,8 @@ public class StudentProjectService {
         if (enrollment == null) {
             throw new BizException("未报名该项目");
         }
-        if (!StudentProject.STATUS_ENROLLED.equals(enrollment.getStatus())
-                && !StudentProject.STATUS_IN_PROGRESS.equals(enrollment.getStatus())) {
+        if (!StudentProject.STATUS_IN_PROGRESS.equals(enrollment.getStatus())
+                && !"已报名".equals(enrollment.getStatus())) {
             throw new BizException("当前状态不可取消报名");
         }
         Project project = projectService.getById(projectId);

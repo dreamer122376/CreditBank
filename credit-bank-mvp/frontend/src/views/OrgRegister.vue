@@ -108,7 +108,7 @@
             </div>
           </div>
 
-          <el-button link type="primary" class="back-form-link" @click="showQuery = false">
+          <el-button class="back-form-link" @click="showQuery = false">
             ← 返回提交申请
           </el-button>
         </el-form>
@@ -411,11 +411,26 @@ async function handleSubmit() {
   margin-top: 8px; font-size: var(--cb-text-xs);
   color: var(--cb-warning); text-align: center;
 }
-.back-form-link { margin-top: 12px; }
+.back-form-link {
+  margin-top: 12px; width: 100%;
+  border: 1px solid var(--cb-border); color: var(--cb-slate);
+  transition: all 0.3s ease;
+}
+.back-form-link:hover {
+  border-color: var(--cb-primary); color: var(--cb-primary);
+  background: var(--cb-primary-glow);
+}
 
 .form-footer {
   text-align: center; padding-top: 20px;
   border-top: 1px solid var(--cb-border-light); margin-top: auto;
+}
+.form-footer .el-button {
+  font-size: var(--cb-text-sm); color: var(--cb-muted);
+  transition: color 0.3s ease;
+}
+.form-footer .el-button:hover {
+  color: var(--cb-primary);
 }
 
 /* 输入框渐变焦点 */

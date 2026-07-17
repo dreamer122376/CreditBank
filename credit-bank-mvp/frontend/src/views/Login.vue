@@ -22,7 +22,23 @@
       </div>
     </header>
 
-    <!-- 背景装饰 -->
+    <!-- 背景波浪 -->
+    <div class="bg-waves" aria-hidden="true">
+      <div class="wave wave-1"></div>
+      <div class="wave wave-2"></div>
+      <div class="wave wave-3"></div>
+    </div>
+    <!-- 浮动几何装饰 -->
+    <div class="bg-shapes" aria-hidden="true">
+      <div class="shape shape-circle shape-1"></div>
+      <div class="shape shape-circle shape-2"></div>
+      <div class="shape shape-circle shape-3"></div>
+      <div class="shape shape-triangle shape-4"></div>
+      <div class="shape shape-triangle shape-5"></div>
+      <div class="shape shape-ring shape-6"></div>
+      <div class="shape shape-ring shape-7"></div>
+    </div>
+    <!-- 背景大字 -->
     <div class="bg-glyph" aria-hidden="true">学</div>
 
     <div class="login-card">
@@ -32,7 +48,7 @@
       <!-- 品牌区 -->
       <div class="brand">
         <div class="brand-emblem">
-          <span class="emblem-char">学</span>
+          <img src="/logo.jpg" alt="学分银行" class="nav-logo" />
         </div>
         <h1 class="brand-title">终身学习学分银行</h1>
         <p class="brand-sub">Credit Bank System</p>
@@ -70,7 +86,7 @@
             <el-form-item>
               <el-input v-model="loginForm.password" type="password" placeholder="密码" size="large" @keyup.enter="handleLogin" />
             </el-form-item>
-            <el-button type="primary" size="large" class="btn-block" @click="handleLogin" :loading="loading">登 录</el-button>
+            <el-button type="primary" size="large" class="btn-block btn-login" @click="handleLogin" :loading="loading">登 录</el-button>
             <p class="login-msg" v-if="loginMsg">{{ loginMsg }}</p>
           </el-form>
         </el-tab-pane>
@@ -107,7 +123,7 @@
             <el-form-item v-if="showInstName">
               <el-input v-model="registerForm.institutionName" placeholder="专家领域" size="large" />
             </el-form-item>
-            <el-button type="primary" size="large" class="btn-block" @click="handleRegister" :loading="loading">注 册</el-button>
+            <el-button type="primary" size="large" class="btn-block btn-register" @click="handleRegister" :loading="loading">注 册</el-button>
             <p class="login-msg" v-if="registerMsg">{{ registerMsg }}</p>
           </el-form>
         </el-tab-pane>
@@ -314,7 +330,7 @@ function goHome(tab) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ink);
+  background: linear-gradient(160deg, #e8f0fe 0%, #dbe4f5 30%, #e3ecf8 60%, #f0f4fc 100%);
   position: relative;
   overflow: hidden;
   padding-top: 60px;
@@ -442,16 +458,16 @@ function goHome(tab) {
 .bg-glyph {
   position: absolute;
   font-family: 'Noto Serif SC', 'SimSun', serif;
-  font-size: clamp(280px, 50vw, 600px);
+  font-size: clamp(260px, 45vw, 550px);
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.035);
+  color: rgba(59, 91, 219, 0.03);
   line-height: 1;
   pointer-events: none;
   user-select: none;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) rotate(-8deg);
-  letter-spacing: -0.08em;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  letter-spacing: -0.06em;
 }
 
 /* ===== 卡片 ===== */
@@ -689,18 +705,33 @@ function goHome(tab) {
   border: none;
   color: #FFFFFF !important;
   transition: transform 0.2s, box-shadow 0.2s;
-  background: linear-gradient(135deg, #B8860B 0%, #8B6508 100%) !important;
-  box-shadow: 0 4px 14px rgba(139, 101, 8, 0.45) !important;
+}
+
+.btn-login {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  box-shadow: 0 4px 14px rgba(102,126,234,0.4) !important;
+}
+.btn-login:hover {
+  background: linear-gradient(135deg, #7c8cf5 0%, #8c5ee0 100%) !important;
+  box-shadow: 0 6px 20px rgba(118,75,162,0.45) !important;
 }
 
 .btn-block:hover {
-  background: linear-gradient(135deg, #D4A017 0%, #B8860B 100%) !important;
-  box-shadow: 0 6px 20px rgba(139, 101, 8, 0.55) !important;
   transform: translateY(-1px);
 }
 
 .btn-block:active {
   transform: scale(0.98);
+}
+
+.btn-register {
+  background: linear-gradient(135deg, #0b7a4f 0%, #20c997 50%, #10986a 100%) !important;
+  background-size: 200% 200% !important;
+  border: none !important;
+}
+.btn-register:hover {
+  background-position: 100% 50% !important;
+  box-shadow: 0 6px 20px rgba(11,122,79,0.35) !important;
 }
 
 /* ===== 消息 ===== */
@@ -751,5 +782,75 @@ function goHome(tab) {
 .login-extra-link {
   text-align: center;
   margin-top: 12px;
+}
+
+/* ============ 背景波浪 ============ */
+.bg-waves {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.wave {
+  position: absolute; left: -10%; width: 120%;
+  border-radius: 50%;
+  opacity: 0.25;
+}
+.wave-1 {
+  bottom: 10%; height: 280px;
+  background: linear-gradient(180deg, transparent, rgba(59,91,219,0.35), transparent);
+  animation: waveDrift 8s ease-in-out infinite;
+}
+.wave-2 {
+  bottom: 0%; height: 200px;
+  background: linear-gradient(180deg, transparent, rgba(121,80,242,0.3), transparent);
+  animation: waveDrift 10s ease-in-out infinite reverse;
+}
+.wave-3 {
+  bottom: 20%; height: 240px;
+  background: linear-gradient(180deg, transparent, rgba(11,122,79,0.25), transparent);
+  animation: waveDrift 12s ease-in-out infinite;
+  animation-delay: -4s;
+}
+@keyframes waveDrift {
+  0%, 100% { transform: translateX(-3%) translateY(0); }
+  50% { transform: translateX(3%) translateY(-15px); }
+}
+
+/* ============ 浮动几何装饰 ============ */
+.bg-shapes {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.shape {
+  position: absolute; opacity: 0.12;
+  animation: shapeFloat 12s ease-in-out infinite;
+}
+.shape-circle {
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cb-primary-light), var(--cb-primary));
+}
+.shape-triangle {
+  width: 0; height: 0;
+  border-left: 30px solid transparent;
+  border-right: 30px solid transparent;
+  border-bottom: 52px solid rgba(59,91,219,0.5);
+  background: none;
+}
+.shape-ring {
+  width: 50px; height: 50px; border-radius: 50%;
+  border: 4px solid rgba(59,91,219,0.45);
+  background: none;
+}
+
+.shape-1 { width: 80px; height: 80px; top: 12%; left: 8%; animation-delay: 0s; }
+.shape-2 { width: 50px; height: 50px; top: 60%; left: 5%; animation-delay: -3s; }
+.shape-3 { width: 40px; height: 40px; top: 30%; right: 8%; animation-delay: -6s; }
+.shape-4 { top: 20%; right: 15%; animation-delay: -2s; }
+.shape-5 { top: 70%; right: 10%; animation-delay: -5s; opacity: 0.08; }
+.shape-6 { top: 40%; left: 60%; animation-delay: -4s; }
+.shape-7 { top: 15%; left: 35%; animation-delay: -7s; opacity: 0.08; width: 60px; height: 60px; border-width: 3px; }
+
+@keyframes shapeFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-20px) rotate(5deg) scale(1.05); }
+  50% { transform: translateY(-5px) rotate(-3deg) scale(0.95); }
+  75% { transform: translateY(-25px) rotate(2deg) scale(1.08); }
 }
 </style>

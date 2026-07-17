@@ -104,6 +104,11 @@
 </template>
 
 <script setup>
+/**
+ * PointRules.vue - 积分规则页面（额外注释）
+ * 功能：管理员/机构管理员 CRUD 积分规则（事件名称+奖励积分数值+关联项目），
+ *       支持启用/停用、补差（对历史流水按新规则值补齐）、删除。
+ */
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {

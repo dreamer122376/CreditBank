@@ -7,6 +7,11 @@ import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.time.LocalDateTime;
 
+/**
+ * 成果转换申请实体。
+ * 学生提交将某种成果（如竞赛获奖）转换为学分/积分的申请记录。
+ * 额外注释
+ */
 @TableName("conversion_application")
 public class ConversionApplication {
 

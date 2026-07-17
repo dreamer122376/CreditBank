@@ -202,6 +202,9 @@ public class StatsService {
         return dto;
     }
 
+    /**
+     * 获取近 N 天积分概览（按日统计收入/支出/兑换/活动/净值）
+     */
     public List<PointOverviewDTO> getPointOverview(int days) {
         List<PointOverviewDTO> result = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -291,6 +294,9 @@ public class StatsService {
         Map<String, String> bizTypeName = new HashMap<>();
         bizTypeName.put("PROJECT_UP", "项目上架审核");
         bizTypeName.put("CERT_APPLY", "证书认证申请");
+        bizTypeName.put("EXPERT_CERT", "专家认证申请");
+        bizTypeName.put("UNFREEZE_APPEAL", "解冻申诉");
+        bizTypeName.put("ORG_REGISTER", "机构入驻申请");
 
         Map<Integer, String[]> statusMap = new HashMap<>();
         statusMap.put(1, new String[]{"审核中", "warning"});
@@ -493,6 +499,9 @@ public class StatsService {
 
     // ==================== 数据大屏 ====================
 
+    /**
+     * 获取数据大屏数据：KPI 指标、角色分类、同比对比、省份分布、月度趋势
+     */
     public DashboardVO getDashboardData() {
         DashboardVO vo = new DashboardVO();
 

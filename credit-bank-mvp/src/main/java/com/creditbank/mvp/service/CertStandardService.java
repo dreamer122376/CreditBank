@@ -19,6 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 认证标准服务。
+ * 管理学生/专家认证标准（如"英语四级"、"教师资格证"），
+ * 支持配置审批流程（cert_audit_flow），自动/人工审核模式。
+ * 额外注释
+ */
 @Service
 public class CertStandardService {
 

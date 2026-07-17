@@ -21,9 +21,16 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * 签到服务。
+ * 通过 Redis 缓存今日签到状态以避免重复签到，每日签到奖励积分，
+ * 并统计连续签到天数（最高追溯 365 天）。
+ * 额外注释
+ */
 @Service
 public class SignInService {
 
+    /** 签到事件编码，对应积分规则表中 ATTENDANCE 规则 */
     private static final String SIGN_IN_EVENT_CODE = "ATTENDANCE";
 
     private final SysUserMapper sysUserMapper;
@@ -44,6 +51,13 @@ public class SignInService {
         this.userOpLogMapper = userOpLogMapper;
     }
 
+    /**
+     * 签到操作。先查 Redis 缓存判断今日是否已签到，再查数据库二次校验，
+     * 通过后加积分、写交易日志、更新 Redis 缓存。
+     *
+     * @param userId 用户 ID
+     * @return 签到结果（成功标志、获得积分、新余额、连续签到天数）
+     */
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> signIn(Long userId) {
         SysUser user = sysUserMapper.selectById(userId);
@@ -222,6 +236,9 @@ public class SignInService {
         return streak;
     }
 
+    /**
+     * 获取已启用的签到积分规则
+     */
     private CreditRule getSignInRule() {
         return creditRuleMapper.selectOne(
                 new LambdaQueryWrapper<CreditRule>()

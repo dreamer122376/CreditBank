@@ -1,3 +1,8 @@
+/**
+ * project.js - 项目 API（额外注释）
+ * 功能：学生端项目报名/取消、管理端项目 CRUD + 审核 + 下架。
+ *       兼容新旧两套接口（/api/projects 和 /api/student-projects）。
+ */
 import request from './request'
 
 // ==================== 新的 /api/projects 接口 ====================
@@ -47,6 +52,7 @@ export function submitProjectForReview(id) {
   return request.post('/student-projects/' + id + '/submit')
 }
 
+/** 审核项目完成情况 */
 export function auditProjectCompletion(id, approve) {
   return request.post('/student-projects/' + id + '/audit', null, { params: { approve } })
 }
@@ -55,10 +61,12 @@ export function getStudentsByProject(projectId) {
   return request.get('/student-projects/project/' + projectId + '/students')
 }
 
+// 获取待审核的报名列表（用于徽标计数）
 export function getPendingAuditEnrollments() {
   return request.get('/student-projects/pending-audit')
 }
 
+// 获取全部可审核的报名列表（用于报名审核 tab）
 export function getAllEnrollmentsForAudit() {
   return request.get('/student-projects/all-for-audit')
 }

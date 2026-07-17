@@ -6,6 +6,7 @@ import java.util.Set;
 /**
  * 权限认证相关常量。
  * 统一管理所有与权限、路径白名单相关的常量，避免分散定义导致不一致。
+ * 额外注释
  */
 public final class AuthConstants {
 

@@ -7,6 +7,11 @@ import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.time.LocalDateTime;
 
+/**
+ * 成果转换规则实体。
+ * 定义"原成果 → 转换后成果"的映射关系，关联一条积分规则用于自动加分。
+ * 额外注释
+ */
 @TableName("conversion_rule")
 public class ConversionRule {
 

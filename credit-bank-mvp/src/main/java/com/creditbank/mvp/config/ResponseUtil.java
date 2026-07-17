@@ -9,6 +9,7 @@ import java.util.Map;
 /**
  * 拦截器响应工具类。
  * 统一管理 ObjectMapper 和错误响应写入，避免各拦截器重复创建。
+ * 额外注释
  */
 public final class ResponseUtil {
 

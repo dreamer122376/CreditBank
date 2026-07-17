@@ -6,55 +6,77 @@ import com.creditbank.mvp.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 
+// 以下导入在注释掉的自动执行 SQL 逻辑中使用
+// import org.springframework.boot.CommandLineRunner;
+// import javax.sql.DataSource;
+// import java.io.BufferedReader;
+// import java.io.IOException;
+// import java.io.InputStream;
+// import java.io.InputStreamReader;
+// import java.sql.Connection;
+// import java.sql.SQLException;
+// import java.sql.Statement;
+
+/**
+ * 数据库初始化器（保留类结构，不再自动执行 SQL 脚本）。
+ * 确保所有用户密码为 BCrypt 加密、并为每个用户创建欢迎通知。
+ * 额外注释
+ */
 @Component
-public class DatabaseInitializer implements CommandLineRunner {
+// 取消下面注释可恢复启动时自动执行 SQL 脚本的能力
+// public class DatabaseInitializer implements CommandLineRunner {
+public class DatabaseInitializer {
 
     private static final Logger logger = LoggerFactory.getLogger(DatabaseInitializer.class);
 
-    private final DataSource dataSource;
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    // private final DataSource dataSource; // 自动执行 SQL 时需要
 
     @Autowired
-    public DatabaseInitializer(DataSource dataSource, SysUserMapper sysUserMapper,
+    public DatabaseInitializer(SysUserMapper sysUserMapper,
                                PasswordEncoder passwordEncoder,
                                NotificationService notificationService) {
-        this.dataSource = dataSource;
+        // this(null, sysUserMapper, passwordEncoder, notificationService);
         this.sysUserMapper = sysUserMapper;
         this.passwordEncoder = passwordEncoder;
         this.notificationService = notificationService;
     }
 
-    @Override
-    public void run(String... args) throws Exception {
-        logger.info("开始初始化数据库...");
-        try (Connection connection = dataSource.getConnection()) {
-            executeSqlFile(connection, "/db/credit_bank.sql");
-            executeSqlFile(connection, "/db/data.sql");
-            ensureAdminUserExists();
-            notificationService.ensureWelcomeNotificationsForAllUsers();
-            logger.info("数据库初始化完成");
-        } catch (SQLException e) {
-            logger.error("数据库初始化失败", e);
-            throw e;
-        }
-    }
+    // 以下构造器在取消注释 CommandLineRunner 时需要一并启用
+    // @Autowired
+    // public DatabaseInitializer(DataSource dataSource, SysUserMapper sysUserMapper,
+    //                            PasswordEncoder passwordEncoder,
+    //                            NotificationService notificationService) {
+    //     this.dataSource = dataSource;
+    //     this.sysUserMapper = sysUserMapper;
+    //     this.passwordEncoder = passwordEncoder;
+    //     this.notificationService = notificationService;
+    // }
 
+    // 取消注释以下 run() 方法可恢复启动时自动执行 SQL 脚本
+    // @Override
+    // public void run(String... args) throws Exception {
+    //     logger.info("开始初始化数据库...");
+    //     try (Connection connection = dataSource.getConnection()) {
+    //         executeSqlFile(connection, "/db/credit_bank.sql");
+    //         executeSqlFile(connection, "/db/data.sql");
+    //         ensureAdminUserExists();
+    //         notificationService.ensureWelcomeNotificationsForAllUsers();
+    //         logger.info("数据库初始化完成");
+    //     } catch (SQLException e) {
+    //         logger.error("数据库初始化失败", e);
+    //         throw e;
+    //     }
+    // }
+
+    /** 确保默认管理员账户（admin/123456）存在，并更新密码为 BCrypt 加密 */
     private void ensureAdminUserExists() {
         SysUser existing = sysUserMapper.selectById(1L);
         if (existing == null) {
@@ -105,50 +127,48 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
     }
 
-    private void executeSqlFile(Connection connection, String filePath) throws SQLException, IOException {
-        logger.info("执行SQL文件: {}", filePath);
-        InputStream inputStream = getClass().getResourceAsStream(filePath);
-        if (inputStream == null) {
-            logger.warn("SQL文件不存在: {}", filePath);
-            return;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"))) {
-            StringBuilder sqlBuilder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("--")) {
-                    continue;
-                }
-                if (line.startsWith("/*!") && line.endsWith("*/")) {
-                    continue;
-                }
-                sqlBuilder.append(line);
-                if (line.endsWith(";")) {
-                    String sql = sqlBuilder.toString();
-                    if (!sql.trim().isEmpty()) {
-                        executeSql(connection, sql);
-                    }
-                    sqlBuilder = new StringBuilder();
-                }
-            }
-        }
-    }
-
-    private void executeSql(Connection connection, String sql) throws SQLException {
-        if (sql.trim().isEmpty()) {
-            return;
-        }
-//        String upperSql = sql.toUpperCase();
-//        if (upperSql.contains("DROP DATABASE") || upperSql.contains("DROP SCHEMA") || upperSql.contains("DROP TABLE")) {
-//            logger.warn("跳过危险SQL，避免启动时删除已有数据: {}", sql.substring(0, Math.min(100, sql.length())));
-//            return;
-//        }
-        try (Statement statement = connection.createStatement()) {
-            statement.execute(sql);
-        } catch (SQLException e) {
-            logger.warn("执行SQL失败，可能已存在: {}", sql.substring(0, Math.min(100, sql.length())));
-        }
-    }
+    // 以下方法在取消注释 CommandLineRunner 启动逻辑时需要一并启用
+    //
+    ///** 执行 SQL 文件（逐行读取，按分号分割语句执行） */
+    //private void executeSqlFile(Connection connection, String filePath) throws SQLException, IOException {
+    //    logger.info("执行SQL文件: {}", filePath);
+    //    InputStream inputStream = getClass().getResourceAsStream(filePath);
+    //    if (inputStream == null) {
+    //        logger.warn("SQL文件不存在: {}", filePath);
+    //        return;
+    //    }
+    //
+    //    try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"))) {
+    //        StringBuilder sqlBuilder = new StringBuilder();
+    //        String line;
+    //        while ((line = reader.readLine()) != null) {
+    //            line = line.trim();
+    //            if (line.isEmpty() || line.startsWith("--")) {
+    //                continue;
+    //            }
+    //            if (line.startsWith("/*!") && line.endsWith("*/")) {
+    //                continue;
+    //            }
+    //            sqlBuilder.append(line);
+    //            if (line.endsWith(";")) {
+    //                String sql = sqlBuilder.toString();
+    //                if (!sql.trim().isEmpty()) {
+    //                    executeSql(connection, sql);
+    //                }
+    //                sqlBuilder = new StringBuilder();
+    //            }
+    //        }
+    //    }
+    //}
+    //
+    //private void executeSql(Connection connection, String sql) throws SQLException {
+    //    if (sql.trim().isEmpty()) {
+    //        return;
+    //    }
+    //    try (Statement statement = connection.createStatement()) {
+    //        statement.execute(sql);
+    //    } catch (SQLException e) {
+    //        logger.warn("执行SQL失败，可能已存在: {}", sql.substring(0, Math.min(100, sql.length())));
+    //    }
+    //}
 }

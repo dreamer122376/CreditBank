@@ -158,6 +158,12 @@
 </template>
 
 <script setup>
+/**
+ * Dashboard.vue - 仪表盘/工作台（额外注释）
+ * 功能：根据角色展示不同布局——
+ *       student：签到卡片（含考试倒计时/抽签运势）+ 积分趋势 ECharts 图 + 待办 + 最近交易；
+ *       admin/org_admin/expert：待审核事项 Hero + 核心指标 + 待办 + 最近交易。
+ */
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'

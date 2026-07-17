@@ -1,7 +1,11 @@
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 
+// Element Plus 消息提示默认显示时长（毫秒）
 const defaultDuration = 3000
 
+// --- 轻量消息提示（ElMessage），适合瞬时反馈 ---
+
+// 成功提示
 function success(message, options = {}) {
   return ElMessage.success({
     message,
@@ -10,6 +14,7 @@ function success(message, options = {}) {
   })
 }
 
+// 错误提示
 function error(message, options = {}) {
   return ElMessage.error({
     message,
@@ -18,6 +23,7 @@ function error(message, options = {}) {
   })
 }
 
+// 警告提示
 function warning(message, options = {}) {
   return ElMessage.warning({
     message,
@@ -26,6 +32,7 @@ function warning(message, options = {}) {
   })
 }
 
+// 普通信息提示
 function info(message, options = {}) {
   return ElMessage.info({
     message,
@@ -34,6 +41,9 @@ function info(message, options = {}) {
   })
 }
 
+// --- 对话框（ElMessageBox），适合需要用户确认的操作 ---
+
+// 确认弹窗（确定/取消），常用于删除等危险操作前二次确认
 function confirm(message, options = {}) {
   return ElMessageBox.confirm(
     message,
@@ -48,6 +58,7 @@ function confirm(message, options = {}) {
   )
 }
 
+// 提示弹窗（仅确定按钮）
 function alert(message, options = {}) {
   return ElMessageBox.alert(
     message,
@@ -60,6 +71,7 @@ function alert(message, options = {}) {
   )
 }
 
+// 输入弹窗，接收用户输入文本
 function prompt(message, options = {}) {
   return ElMessageBox.prompt(
     message,
@@ -77,6 +89,9 @@ function prompt(message, options = {}) {
   )
 }
 
+// --- 通知栏（ElNotification），顶部弹出，适合系统级消息 ---
+
+// 通用通知
 function notify(message, options = {}) {
   return ElNotification({
     title: options.title || '',
@@ -88,6 +103,7 @@ function notify(message, options = {}) {
   })
 }
 
+// 成功通知（预设标题"成功"）
 function notifySuccess(message, options = {}) {
   return ElNotification({
     title: options.title || '成功',
@@ -99,6 +115,7 @@ function notifySuccess(message, options = {}) {
   })
 }
 
+// 错误通知（预设标题"错误"）
 function notifyError(message, options = {}) {
   return ElNotification({
     title: options.title || '错误',
@@ -110,6 +127,7 @@ function notifyError(message, options = {}) {
   })
 }
 
+// 警告通知（预设标题"警告"）
 function notifyWarning(message, options = {}) {
   return ElNotification({
     title: options.title || '警告',
@@ -121,6 +139,7 @@ function notifyWarning(message, options = {}) {
   })
 }
 
+// 信息通知（预设标题"信息"）
 function notifyInfo(message, options = {}) {
   return ElNotification({
     title: options.title || '信息',

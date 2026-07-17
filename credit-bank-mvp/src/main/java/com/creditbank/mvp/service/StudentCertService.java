@@ -150,6 +150,9 @@ public class StudentCertService {
         return cert;
     }
 
+    /**
+     * 作废证书（仅系统管理员或所属机构管理员可操作）
+     */
     public StudentCert revoke(Long id, String role, Long userId, String reason) {
         if (reason == null || reason.trim().isEmpty()) {
             throw new BizException("作废证书必须填写原因");

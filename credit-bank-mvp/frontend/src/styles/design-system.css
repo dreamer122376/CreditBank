@@ -1,52 +1,72 @@
+/* ========================================================
+   学分银行（Credit Bank）设计系统 CSS 变量与全局样式
+   额外注释
+   说明：统一管理颜色、圆角、阴影、字号、过渡动画等设计令牌，
+         覆盖 Element Plus 默认样式以保持视觉一致性。
+   ======================================================== */
+
+/* ———— 设计令牌（Design Tokens） ———— */
 :root {
+  /* 主色调：靛蓝 */
   --cb-primary: #3b5bdb;
   --cb-primary-light: #5c7bf5;
   --cb-primary-dark: #2d46b9;
   --cb-primary-glow: rgba(59, 91, 219, 0.15);
   
+  /* 成功/绿色 */
   --cb-success: #0b7a4f;
   --cb-success-light: #10986a;
   --cb-success-glow: rgba(11, 122, 79, 0.15);
   
+  /* 警告/橙色 */
   --cb-warning: #f59f00;
   --cb-warning-light: #f7b731;
   --cb-warning-glow: rgba(245, 159, 0, 0.15);
   
+  /* 危险/红色 */
   --cb-danger: #e03131;
   --cb-danger-light: #ea5858;
   --cb-danger-glow: rgba(224, 49, 49, 0.15);
   
+  /* 信息/青色 */
   --cb-info: #17a2b8;
   --cb-info-light: #22b8c9;
   
-  --cb-ink: #1e3a5f;
+  /* 中性色 */
+  --cb-ink: #1e3a5f;          /* 最深文字 */
   --cb-ink-light: #2d4a6f;
-  --cb-charcoal: #2c3e50;
-  --cb-slate: #4a5568;
-  --cb-muted: #868e96;
-  --cb-border: #e9ecef;
+  --cb-charcoal: #2c3e50;     /* 正文 */
+  --cb-slate: #4a5568;        /* 次要文字 */
+  --cb-muted: #868e96;        /* 占位/弱化 */
+  --cb-border: #e9ecef;       /* 边框 */
   --cb-border-light: #f0f0f0;
   
+  /* 背景 */
   --cb-bg: #f8fafc;
   --cb-bg-card: #ffffff;
   --cb-bg-hover: #f1f5f9;
   
+  /* 圆角 */
   --cb-radius-sm: 4px;
   --cb-radius-md: 8px;
   --cb-radius-lg: 12px;
   --cb-radius-xl: 16px;
   
+  /* 阴影层级 */
   --cb-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --cb-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --cb-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
   
+  /* 过渡速度 */
   --cb-transition-fast: 0.15s ease;
   --cb-transition-normal: 0.25s ease;
   --cb-transition-slow: 0.35s ease;
   
+  /* 字体 */
   --cb-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --cb-font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   
+  /* 字号梯度 */
   --cb-text-xs: 11px;
   --cb-text-sm: 12px;
   --cb-text-base: 13px;

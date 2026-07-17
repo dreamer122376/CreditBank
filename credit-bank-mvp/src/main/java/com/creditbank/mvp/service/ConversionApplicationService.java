@@ -22,6 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 转换申请服务。
+ * 学生提交成果转换申请（RULE_CONVERT 使用已有规则 / RULE_ADD 自定义规则），
+ * 管理员审核通过后自动发放积分。
+ * 额外注释
+ */
 @Service
 public class ConversionApplicationService {
 

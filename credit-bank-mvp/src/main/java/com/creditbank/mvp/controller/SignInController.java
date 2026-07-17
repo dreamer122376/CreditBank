@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 签到打卡控制器。
+ * 额外注释
+ */
 @RestController
 @RequestMapping("/api")
 @Tag(name = "签到打卡", description = "用户签到打卡相关接口")

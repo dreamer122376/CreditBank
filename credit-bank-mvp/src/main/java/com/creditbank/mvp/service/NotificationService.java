@@ -170,6 +170,7 @@ public class NotificationService {
         notificationMapper.updateById(notification);
     }
 
+    /** 定时任务：每天凌晨 3:15 归档过期通知 */
     @Scheduled(cron = "0 15 3 * * ?")
     @Transactional(rollbackFor = Exception.class)
     public int archiveDueNotifications() {
@@ -317,6 +318,7 @@ public class NotificationService {
         }
     }
 
+    /** 向指定用户发送通知 */
     @Transactional(rollbackFor = Exception.class)
     public void sendToUser(String eventCode, String category, String level,
                            String title, String content, String actionPath,
@@ -341,6 +343,7 @@ public class NotificationService {
                 sourceType, sourceId, actionPath, actorId, dedupeKey, recipients);
     }
 
+    /** 向指定机构的所有学生发送通知 */
     @Transactional(rollbackFor = Exception.class)
     public void sendToOrgStudents(String eventCode, String category, String level,
                                   String title, String content, String actionPath,

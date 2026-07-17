@@ -1,3 +1,9 @@
+/**
+ * useAuditTodos.js - 审核待办组合式函数（额外注释）
+ * 功能：统一管理侧边栏审核待办徽标数量（业务流程/证书申请/转换申请/报名审核），
+ *       每 30 秒轮询刷新，页面可见时（visibilitychange）主动刷新。
+ *       与 Applications.vue 的审核数据口径完全一致。
+ */
 import { computed, ref } from 'vue'
 import { getApplications } from '@/api/application'
 import { getConversionApplications } from '@/api/conversionApplication'
@@ -22,6 +28,7 @@ function hasAuditRole(user) {
   return ['admin', 'org_admin', 'expert'].includes(role)
 }
 
+// 刷新所有分类的待办计数
 async function refreshAuditTodos() {
   try {
     const { currentUser } = useAuth()
@@ -56,10 +63,12 @@ async function refreshAuditTodos() {
   }
 }
 
+// 页面从后台切回时主动刷新
 function onVisibilityChange() {
   if (document.visibilityState === 'visible') refreshAuditTodos()
 }
 
+// 启动轮询：立即刷新一次，然后每 30 秒执行一次
 function startAuditTodosPolling() {
   refreshAuditTodos()
   if (!timer) timer = window.setInterval(refreshAuditTodos, 30000)
@@ -69,6 +78,7 @@ function startAuditTodosPolling() {
   }
 }
 
+// 停止轮询并清理事件监听
 function stopAuditTodosPolling() {
   if (timer) {
     window.clearInterval(timer)
@@ -80,6 +90,7 @@ function stopAuditTodosPolling() {
   }
 }
 
+// 清零所有待办计数
 function clearAuditTodos() {
   bizTodoCount.value = 0
   certTodoCount.value = 0

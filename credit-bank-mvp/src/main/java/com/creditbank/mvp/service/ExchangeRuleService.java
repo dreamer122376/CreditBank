@@ -16,6 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 兑换规则服务。
+ * 管理积分商城的商品配置（上架/启停/库存），
+ * 处理用户积分兑换逻辑（含并发扣减、限购检查）。
+ * 额外注释
+ */
 @Service
 public class ExchangeRuleService {
 
@@ -42,6 +48,9 @@ public class ExchangeRuleService {
                 new LambdaQueryWrapper<ExchangeRule>().orderByDesc(ExchangeRule::getId));
     }
 
+    /**
+     * 创建兑换规则，机构管理员只能创建本机构规则
+     */
     @Transactional(rollbackFor = Exception.class)
     public ExchangeRule create(ExchangeRule rule) {
         if (rule.getItemName() == null || rule.getItemName().trim().isEmpty()) {

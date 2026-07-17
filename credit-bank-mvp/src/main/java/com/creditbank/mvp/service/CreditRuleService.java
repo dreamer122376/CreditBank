@@ -77,6 +77,9 @@ public class CreditRuleService {
                         .orderByDesc(CreditRule::getId));
     }
 
+    /**
+     * 创建积分规则，自动写入操作日志
+     */
     @Transactional(rollbackFor = Exception.class)
     public CreditRule create(CreditRule rule) {
         if (rule.getEventCode() == null || rule.getEventCode().trim().isEmpty()) {
@@ -268,12 +271,13 @@ public class CreditRuleService {
 
     // --- 内部辅助方法 ---
 
+    /** 从请求上下文中获取当前操作人 */
     private SysUser currentOperator() {
         Long userId = CurrentUserUtil.getCurrentUserId();
         return userId == null ? null : sysUserMapper.selectById(userId);
     }
 
-    // 操作日志详情
+    /** 构造积分规则的简要概述（用于操作日志的详情字段） */
     private String buildRuleSummary(CreditRule rule) {
         if (rule == null) {
             return "";

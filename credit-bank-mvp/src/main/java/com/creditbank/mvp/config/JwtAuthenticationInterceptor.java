@@ -8,12 +8,20 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+/**
+ * JWT 认证拦截器。
+ * 从请求头中提取 Bearer Token，验证用户身份，并将用户信息（ID、角色、冻结状态）
+ * 设置到 request 属性中，供后续拦截器和控制器使用。
+ * 额外注释
+ */
 public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
     private final SysUserMapper sysUserMapper;
 
+    /** 存储在 request 属性中的当前用户 ID */
     public static final String CURRENT_USER_ID = "currentUserId";
+    /** 存储在 request 属性中的当前用户角色 */
     public static final String CURRENT_USER_ROLE = "currentUserRole";
 
     public JwtAuthenticationInterceptor(JwtUtil jwtUtil, SysUserMapper sysUserMapper) {

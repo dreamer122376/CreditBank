@@ -20,6 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 转换规则服务。
+ * 管理"成果转换"的规则配置（如竞赛证书→学分），
+ * 每条规则关联一条积分规则，转换通过后自动加积分。
+ * 额外注释
+ */
 @Service
 public class ConversionRuleService {
 

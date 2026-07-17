@@ -11,6 +11,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 转换规则控制器。
+ * 支持规则的增删改查、启停，按角色/机构过滤。
+ * 额外注释
+ */
 @RestController
 @RequestMapping("/api/conversion-rule")
 public class ConversionRuleController {

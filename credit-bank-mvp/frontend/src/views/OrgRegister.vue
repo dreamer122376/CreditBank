@@ -72,7 +72,8 @@
             <el-input v-model="form.address" type="textarea" :rows="2" placeholder="请输入机构地址" />
           </el-form-item>
 
-          <el-button type="primary" size="large" class="submit-btn" @click="handleSubmit" :loading="loading">
+          <el-button type="primary" size="large" class="submit-btn" @click="handleSubmit" :loading="loading"
+                     @mousemove="trackGlow" @mouseleave="resetGlow">
             提交入驻申请
           </el-button>
 
@@ -89,7 +90,8 @@
           </el-form-item>
 
           <el-form-item class="btn-form-item">
-            <el-button type="primary" size="large" class="submit-btn" @click="handleQuery" :loading="querying">
+            <el-button type="primary" size="large" class="submit-btn" @click="handleQuery" :loading="querying"
+                       @mousemove="trackGlow" @mouseleave="resetGlow">
               查询
             </el-button>
           </el-form-item>
@@ -111,7 +113,8 @@
           </div>
 
           <el-form-item class="btn-form-item">
-            <el-button type="primary" class="back-form-link" @click="showQuery = false">
+            <el-button type="primary" class="back-form-link" @click="showQuery = false"
+                       @mousemove="trackGlow" @mouseleave="resetGlow">
               ← 返回提交申请
             </el-button>
           </el-form-item>
@@ -171,6 +174,16 @@ async function handleQuery() {
 
 function goLogin() {
   router.push('/login')
+}
+
+function trackGlow(e) {
+  const rect = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--x', `${e.clientX - rect.left}px`)
+  e.currentTarget.style.setProperty('--y', `${e.clientY - rect.top}px`)
+}
+function resetGlow(e) {
+  e.currentTarget.style.removeProperty('--x')
+  e.currentTarget.style.removeProperty('--y')
 }
 
 async function handleSubmit() {
@@ -390,6 +403,22 @@ async function handleSubmit() {
   background-position: 0% 50%;
   border: none; color: #fff; font-weight: 600; letter-spacing: 2px;
   box-shadow: 0 4px 15px rgba(102,126,234,0.3);
+  position: relative; overflow: hidden;
+}
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  width: 260%; height: 260%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(155,127,233,0.55) 0%, rgba(102,126,234,0.28) 40%, rgba(59,91,219,0) 70%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.submit-btn:hover::before {
+  opacity: 1;
 }
 .submit-btn:hover {
   transform: translateY(-2px);
@@ -426,6 +455,22 @@ async function handleSubmit() {
   letter-spacing: 2px;
   box-shadow: 0 4px 15px rgba(102,126,234,0.3);
   transition: all 0.3s ease;
+  position: relative; overflow: hidden;
+}
+.back-form-link::before {
+  content: '';
+  position: absolute;
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  width: 260%; height: 260%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(155,127,233,0.55) 0%, rgba(102,126,234,0.28) 40%, rgba(59,91,219,0) 70%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.back-form-link:hover::before {
+  opacity: 1;
 }
 .back-form-link:hover {
   transform: translateY(-2px);

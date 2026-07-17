@@ -6,6 +6,7 @@ import com.creditbank.mvp.entity.Organization;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.OrganizationMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
+import com.creditbank.mvp.mapper.UserOpLogMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,12 +38,15 @@ class OrganizationServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private UserOpLogMapper userOpLogMapper;
+
     private OrganizationService organizationService;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockitoAnnotations.openMocks(this);
-        organizationService = new OrganizationService(organizationMapper, sysUserMapper, passwordEncoder, notificationService);
+        organizationService = new OrganizationService(organizationMapper, sysUserMapper, passwordEncoder, notificationService, userOpLogMapper);
         System.out.println("========== 开始执行: " + testInfo.getDisplayName() + " ==========");
     }
 

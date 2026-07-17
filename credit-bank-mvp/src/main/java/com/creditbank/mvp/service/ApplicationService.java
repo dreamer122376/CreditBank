@@ -373,10 +373,10 @@ public class ApplicationService {
         applicationMapper.insert(app);
         Application saved = applicationMapper.selectById(app.getId());
 
-        // 机构入驻申请：无登录上下文，申请人名取自表单，操作人/目标人填申请人名
+        // 机构入驻申请：无登录上下文，申请人名取自表单，operatorId/targetUserId 用 -1 表示匿名提交
         userOpLogMapper.insert(UserOpLog.createLog(
-                null, applicantName,
-                null, applicantName,
+                -1L, applicantName,
+                -1L, applicantName,
                 UserOpLog.MODULE_ORG_REGISTER, UserOpLog.ACTION_SUBMIT,
                 "提交机构入驻申请：" + buildApplySummary(saved) + "，联系人："
                         + (contactPerson == null ? applicantName : contactPerson)

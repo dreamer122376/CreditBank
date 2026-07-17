@@ -8,6 +8,7 @@ import com.creditbank.mvp.entity.Project;
 import com.creditbank.mvp.entity.StudentProject;
 import com.creditbank.mvp.entity.SysUser;
 import com.creditbank.mvp.mapper.OrganizationMapper;
+import com.creditbank.mvp.mapper.ProjectMapper;
 import com.creditbank.mvp.mapper.StudentProjectMapper;
 import com.creditbank.mvp.mapper.SysUserMapper;
 import com.creditbank.mvp.mapper.UserOpLogMapper;
@@ -46,13 +47,20 @@ class StudentProjectServiceTest {
     @Mock
     private PointService pointService;
 
+    @Mock
+    private ProjectMapper projectMapper;
+
+    @Mock
+    private NotificationService notificationService;
+
     private StudentProjectService studentProjectService;
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
         MockitoAnnotations.openMocks(this);
         studentProjectService = new StudentProjectService(studentProjectMapper, projectService,
-                sysUserMapper, organizationMapper, userOpLogMapper, pointService);
+                projectMapper, sysUserMapper, organizationMapper, userOpLogMapper, pointService,
+                notificationService);
         System.out.println("========== 开始执行: " + testInfo.getDisplayName() + " ==========");
     }
 
@@ -118,7 +126,7 @@ class StudentProjectServiceTest {
         StudentProject result = studentProjectService.enroll(100L, 1L);
 
         assertNotNull(result);
-        assertEquals(StudentProject.STATUS_ENROLLED, result.getStatus());
+        assertEquals(StudentProject.STATUS_IN_PROGRESS, result.getStatus());
         assertEquals(100L, result.getStudentId());
         assertEquals(1L, result.getProjectId());
         System.out.println("✓ 测试通过: 学生报名项目成功 - 状态=" + result.getStatus());
